@@ -124,9 +124,8 @@ bindkey '^j' autosuggest-accept
 
 export http_proxy=http://sys-proxy-rd-relay.byted.org:8118  https_proxy=http://sys-proxy-rd-relay.byted.org:8118  no_proxy=*.byted.org
 
-export PATH="$PATH:/home/lihao.hellohake/github_repo/nvim-linux64-0.9.5/bin"
-#nvim10需要glibc2.29
-#export PATH="$PATH:/home/lihao.hellohake/github_repo/nvim-linux64-0.10.0/bin"
+#export PATH="$PATH:/home/lihao.hellohake/github_repo/nvim-linux64-0.9.5/bin"
+export PATH="$PATH:/home/lihao.hellohake/github_repo/nvim-0.10.4/bin"
 
 #go配置
 export PATH="$PATH:/usr/local/go/bin:/home/lihao.hellohake/go/bin"
@@ -148,6 +147,7 @@ export no_proxy=.byteintl.net,.byted.org,.bytedance.net
 
 export RUNTIME_IDC_NAME=boe
 export BYTED_HOST_IPV6=1
+# export TCE_PSM='life.open.operation_sop'
 
 prompt_context() {
   if [[ "$USER" != "$DEFAULT_USER" || -n "$SSH_CLIENT" ]]; then
@@ -155,6 +155,9 @@ prompt_context() {
   fi
 }
 
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+eval $(thefuck --alias)
+export TLDR_LANG=zh_CN
 . "$HOME/.cargo/env"
 # zsh启动测速
 # zprof
