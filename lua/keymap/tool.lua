@@ -118,7 +118,7 @@ local mappings = {
 			:with_silent()
 			:with_desc("tool: Find files"),
 		["n|<leader>fb"] = map_cu("Telescope buffers"):with_noremap():with_silent():with_desc("find: Buffer opened"),
-		["n|<leader>fp"] = map_callback(function()
+		["n|<leader>fw"] = map_callback(function()
 				require("search").open({ collection = "pattern" })
 			end)
 			:with_noremap()
