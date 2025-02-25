@@ -54,6 +54,7 @@
   "multiple-cursors.nvim": { "branch": "main", "commit": "1ac15d047a4b265cc2389957bcc56ee561b29e02" },
   "neoconf.nvim": { "branch": "main", "commit": "443b1311d5ac0cbacf195f57fefba93b54c33d9d" },
   "neodev.nvim": { "branch": "main", "commit": "46aa467dca16cf3dfe27098042402066d2ae242d" },
+  "neoformat": { "branch": "master", "commit": "719b79b2d29067b955cd3417b88fbb0125453550" },
   "neoscroll.nvim": { "branch": "master", "commit": "f957373912e88579e26fdaea4735450ff2ef5c9c" },
   "none-ls.nvim": { "branch": "main", "commit": "f41624ea1a73f020ddbd33438f74abb95ea17d55" },
   "nvim-bqf": { "branch": "main", "commit": "ebb6d2689e4427452180f17c53f29f7e460236f1" },
