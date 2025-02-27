@@ -152,7 +152,7 @@ function M.gitsigns(bufnr)
 			:with_buffer(bufnr)
 			:with_noremap()
 			:with_desc("git: Preview hunk"),
-		["n|<leader>gb"] = map_callback(function()
+		["n|<leader>gB"] = map_callback(function()
 				gitsigns.blame_line({ full = true })
 			end)
 			:with_buffer(bufnr)

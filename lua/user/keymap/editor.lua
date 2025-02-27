@@ -16,7 +16,9 @@ return {
 	["n|H"] = map_cmd("8zh"):with_noremap():with_silent():with_desc("moving"),
 	["n|L"] = map_cmd("8zl"):with_noremap():with_silent():with_desc("moving"),
 	["n|<leader>sa"] = map_cr("wa"):with_noremap():with_silent():with_desc("save all files"),
-	["n|<Leader>gi"] = map_cr("GoImports"):with_noremap():with_silent():with_desc("GoImports"),
-	["n|<Leader>go"] = map_cr("GoImpl"):with_noremap():with_silent():with_desc("GoImpl"),
-	["n|<Leader>bo"] = map_cr("BufDelOthers"):with_noremap():with_silent():with_desc("BufDelOthers"),
+	["n|<leader>q"] = map_cr("q"):with_noremap():with_silent():with_desc("quit"),
+	["n|<leader>gi"] = map_cr("GoImports"):with_noremap():with_silent():with_desc("GoImports"),
+	["n|<leader>gb"] = map_cr("Git blame"):with_noremap():with_silent():with_desc("Git blame file"),
+	["n|<leader>go"] = map_cr("GoImpl"):with_noremap():with_silent():with_desc("GoImpl"),
+	["n|<leader>bo"] = map_cr("BufDelOthers"):with_noremap():with_silent():with_desc("BufDelOthers"),
 }
