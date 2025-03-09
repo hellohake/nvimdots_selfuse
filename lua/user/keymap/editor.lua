@@ -21,4 +21,7 @@ return {
 	["n|<leader>gb"] = map_cr("Git blame"):with_noremap():with_silent():with_desc("Git blame file"),
 	["n|<leader>go"] = map_cr("GoImpl"):with_noremap():with_silent():with_desc("GoImpl"),
 	["n|<leader>bo"] = map_cr("BufDelOthers"):with_noremap():with_silent():with_desc("BufDelOthers"),
+	-- noice
+	["n|<leader>nh"] = map_cr("Noice history"):with_noremap():with_silent():with_desc("Noice history"),
+	["n|<leader>nd"] = map_cr("Noice dismiss"):with_noremap():with_silent():with_desc("Noice dismiss"),
 }
