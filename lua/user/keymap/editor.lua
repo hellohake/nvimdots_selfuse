@@ -23,5 +23,5 @@ return {
 	["n|<leader>bo"] = map_cr("BufDelOthers"):with_noremap():with_silent():with_desc("BufDelOthers"),
 	-- noice
 	["n|<leader>nh"] = map_cr("Noice history"):with_noremap():with_silent():with_desc("Noice history"),
-	["n|<leader>nd"] = map_cr("Noice dismiss"):with_noremap():with_silent():with_desc("Noice dismiss"),
+	["n|<leader>e"] = map_cr("Noice dismiss"):with_noremap():with_silent():with_desc("Noice dismiss"),
 }
