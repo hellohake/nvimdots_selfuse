@@ -14,7 +14,7 @@ settings["format_on_save"] = true
 
 -- Set format timeout here (in ms).
 ---@type number
-settings["format_timeout"] = 1000
+settings["format_timeout"] = 2000
 
 -- Set it to false if the notification after formatting is annoying.
 ---@type boolean
