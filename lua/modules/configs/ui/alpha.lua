@@ -69,7 +69,7 @@ return function()
 			{ noremap = true, silent = true, nowait = true }
 		),
 		button(
-			"space f p",
+			"space f w",
 			icons.documents.Word .. "Find patterns",
 			leader,
 			nil,
