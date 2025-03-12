@@ -75,6 +75,9 @@ ENABLE_CORRECTION="true"
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
+
+# plugins+=(vi-mode)
+plugins+=(zsh-vi-mode) # https://github.com/jeffreytse/zsh-vi-mode
 plugins=(git zsh-interactive-cd copypath z fzf colorize jsontools)
 
 source $ZSH/oh-my-zsh.sh
@@ -117,7 +120,13 @@ alias vim='nvim'
 #source /usr/share/powerlevel9k/powerlevel9k.zsh-theme
 source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+bindkey -v # 启用vi 模式 bindkey -L 查看所有绑定快捷键
 bindkey '^j' autosuggest-accept
+bindkey '^k' forward-word  #https://github.com/zsh-users/zsh-autosuggestions/issues/265
+bindkey '^u' backward-kill-line
+bindkey '^p' up-line-or-history
+bindkey '^n' down-line-or-history
+
 # export ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#ff00ff,bg=cyan,bold,underline"
 
 # source /home/lihao.hellohake/github_repo/zsh_plugin/zsh-interactive-cd/zsh-interactive-cd.plugin.zsh
@@ -154,6 +163,9 @@ prompt_context() {
     prompt_segment black default "%(!.%{%F{yellow}%}.)$USER"
   fi
 }
+
+# Do the initialization when the script is sourced (i.e. Initialize instantly)
+ZVM_INIT_MODE=sourcing
 
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 eval $(thefuck --alias)
