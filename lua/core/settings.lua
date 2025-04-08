@@ -18,7 +18,7 @@ settings["format_timeout"] = 2000
 
 -- Set it to false if the notification after formatting is annoying.
 ---@type boolean
-settings["format_notify"] = true
+settings["format_notify"] = false
 
 -- Set it to true if you prefer formatting ONLY the *changed lines* as defined by your version control system.
 -- NOTE: This entry will only be respected if:
@@ -176,7 +176,7 @@ settings["treesitter_deps"] = {
 ---@type { font_name: string, font_size: number }
 settings["gui_config"] = {
 	font_name = "JetBrainsMono Nerd Font",
-	font_size = 12,
+	font_size = 10,
 }
 
 -- Set the options specific to `neovide` here.
@@ -253,7 +253,7 @@ settings["dashboard_image2"] = {
 	[[  ' ') '( (/]],
 }
 
-settings["dashboard_image1"] = {
+settings["dashboard_image"] = {
 	[[ ,\/~~~\_                            _/~~~~\]],
 	[[ |  ---, `\_    ___,-------~~\__  /~' ,,''  |]],
 	[[ | `~`, ',,\`-~~--_____    ---  - /, ,--/ '/']],
@@ -277,7 +277,7 @@ settings["dashboard_image1"] = {
 	[[               `     `@@@@@@']],
 }
 
-settings["dashboard_image"] = {
+settings["dashboard_image1"] = {
 	[[                        .]],
 	[[                       d$e]],
 	[[                      d$$$b]],
