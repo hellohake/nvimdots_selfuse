@@ -1,0 +1,144 @@
+" M->cmd, A->option, C->control
+" <ESC> - escape, <BS> - backspace, <CR> - return
+let mapleader = " "
+
+set NERDTree
+set easymotion
+set surround
+set which-key
+set multiple-cursors
+set history=1000
+set nu
+set rnu
+set ideajoin
+set ideamarks
+set incsearch
+set hlsearch
+nmap <leader>nh :noh<CR>
+set showmode
+set clipboard=unnamed
+set clipboard+=ideaput
+set ignorecase smartcase
+set notimeout
+"set timeoutlen=10000
+let g:WhichKey_DefaultDelay = 500
+let g:WhichKeyDesc_LeaderKeymap= "<leader> LeaderKeymap"
+let g:EasyMotion_keys='abcdefghijklmnopqrstuvwxyz,;'
+let g:EasyMotion_use_smartsign_us = 1
+
+" code
+nmap <leader>gc <Action>(Generate)
+nmap <leader>gt <Action>(GoToTest)
+map <c-o> <Action>(Back)
+map <c-i> <Action>(Forward)
+nnoremap gd :action GotoDeclaration<CR>
+nnoremap gh :action FindUsages<CR>
+nnoremap gi :action GotoImplementation<CR>
+map gcc <Action>(CommentByLineComment)
+noremap gej <ESC>:action GotoNextError<CR>
+noremap gek <ESC>:action GotoPreviousError<CR>
+
+nmap gr <Action>(RenameElement)
+nmap K <Action>(ShowHoverInfo)
+nmap <leader>hc <Action>(CallHierarchy)
+nmap <leader>hm <Action>(MethodHierarchy)
+nmap <leader>ht <Action>(TypeHierarchy)
+noremap gi <ESC>:action ShowIntentionActions<CR>
+
+noremap gt <ESC>:action $EditorTranslateAction<CR>
+noremap / <ESC>:action Find<CR>
+noremap [[ <ESC>:action MethodUp<CR>
+noremap ]] <ESC>:action MethodDown<CR>
+
+nmap <leader>fa <action>(SearchEverywhere)
+nmap <leader>ff <action>(GotoFile)
+nmap <leader>fw <action>(GotoSymbol)
+nmap <leader>fg <action>(FindInPath)
+noremap <leader>fr <ESC>:action RecentFiles<CR>
+nmap <Leader>cpr <action>(CopyReference)
+nmap <leader>cpa <action>(CopyAbsolutePath)
+noremap <leader>q :wq<CR>
+noremap <leader>u <ESC>:action ShowUsages<CR>
+noremap <leader>p <ESC>:action ManageRecentProjects<CR>
+noremap <leader>go <ESC>:action FileStructurePopup<CR>
+noremap <leader>gg <ESC>:action Generate<CR>
+noremap <leader>h <ESC>:action HideAllWindows<CR>
+noremap <leader>x <ESC>:action CloseAllEditorsButActive<CR>
+noremap <leader>; "0p
+nmap <leader>w <Plug>(easymotion-bd-w)
+nmap <leader>j <Plug>(easymotion-bd-jk)
+
+" terminal
+nmap <leader>tt <Action>(ActivateTerminalToolWindow)
+nmap <leader>tc <Action>(Terminal.OpenInTerminal)
+
+" bookmark
+nmap mm <Action>(ToggleBookmark)
+nmap ms <Action>(ShowBookmarks)
+
+" collapse
+nmap zz <Action>(ExpandCollapseToggleAction)
+nmap za <Action>(CollapseAllRegions)
+nmap zA <Action>(ExpandAllRegions)
+
+" zen 禅模式
+nmap <leader>z <Action>(ToggleZenMode)
+
+" move
+inoremap jk <Esc>
+nnoremap dd ddzz
+vnoremap d dzz
+noremap w wzz
+noremap W Wzz
+noremap e ezz
+noremap E Ezz
+noremap b bzz
+noremap B Bzz
+noremap 0 0zz
+noremap $ $zz
+noremap ^ ^zz
+noremap j jzz
+noremap k kzz
+noremap G Gzz
+noremap u uzz
+noremap ( (zz
+noremap ) )zz
+noremap { {zz
+noremap } }zz
+noremap [{ [{zz
+noremap ]} ]}zz
+nmap H ^
+nmap L $
+nmap Y y$
+nnoremap <a-h> gT
+nnoremap <a-l> gt
+
+" debug
+noremap <leader>dz <ESC>:action Resume<CR>
+noremap <leader>dn <ESC>:action StepOver<CR>
+noremap <leader>di <ESC>:action SmartStepInto<CR>
+noremap <leader>dv <ESC>:action EvaluateExpression<CR>
+noremap <leader>dc <ESC>:action ChooseDebugConfiguration<CR>
+noremap <leader>db <ESC>:action ToggleLineBreakpoint<CR>
+
+" multiple cursors
+" https://github.com/JetBrains/ideavim/wiki/IdeaVim-Plugins#multiple-cursors-extends-multicursor-support
+nmap <C-n> <Plug>NextWholeOccurrence
+xmap <C-n> <Plug>NextWholeOccurrence
+nmap g<C-n> <Plug>NextOccurrence
+xmap g<C-n> <Plug>NextOccurrence
+xmap <C-x> <Plug>SkipOccurrence
+xmap <C-p> <Plug>RemoveOccurrence
+nmap <leader><C-n> <Plug>AllWholeOccurrences
+xmap <leader><C-n> <Plug>AllWholeOccurrences
+nmap <leader>g<C-n> <Plug>AllOccurrences
+xmap <leader>g<C-n> <Plug>AllOccurrences
+
+" nerdtree
+noremap <leader>e <ESC>:NERDTreeToggle<CR>
+"noremap <c-n> <ESC>:NERDTreeToggle<CR>
+
+" open IdeaVim settings
+nmap \\v <Action>(VimActions)
+" refresh vimrc
+noremap <leader>r <ESC>:source ~/.ideavimrc<CR>
