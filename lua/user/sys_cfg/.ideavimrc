@@ -62,7 +62,7 @@ noremap <leader>u <ESC>:action ShowUsages<CR>
 noremap <leader>p <ESC>:action ManageRecentProjects<CR>
 noremap <leader>go <ESC>:action FileStructurePopup<CR>
 noremap <leader>gg <ESC>:action Generate<CR>
-noremap <leader>h <ESC>:action HideAllWindows<CR>
+noremap <leader>hh <ESC>:action HideAllWindows<CR>
 noremap <leader>x <ESC>:action CloseAllEditorsButActive<CR>
 noremap <leader>; "0p
 nmap <leader>w <Plug>(easymotion-bd-w)
@@ -80,6 +80,10 @@ nmap ms <Action>(ShowBookmarks)
 nmap zz <Action>(ExpandCollapseToggleAction)
 nmap za <Action>(CollapseAllRegions)
 nmap zA <Action>(ExpandAllRegions)
+
+" zoom
+nnoremap <C-=> :action EditorIncreaseFontSize<CR>
+nnoremap <C--> :action EditorDecreaseFontSize<CR>
 
 " zen 禅模式
 nmap <leader>z <Action>(ToggleZenMode)
