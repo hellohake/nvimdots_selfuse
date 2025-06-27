@@ -10,6 +10,14 @@ set which-key
 set multiple-cursors
 set argtextobj
 set commentary
+set exchange
+set highlightedyank
+set matchit
+" install FunctionTextObj plugin
+set functiontextobj
+set ReplaceWithRegister
+set quickscope
+set textobj-entire
 " config
 set history=1000
 set scrolloff=5
@@ -20,19 +28,23 @@ set ideamarks
 set idearefactormode=normal
 set ideastatusicon=gray
 set incsearch
-set hlsearch
+"set hlsearch
 nmap <leader>nh :noh<CR>
 set showmode
 set clipboard=unnamed
 set clipboard+=ideaput
 set ignorecase smartcase
 set notimeout
-set keep-english-in-normal-and-restore-in-insert
+"set keep-english-in-normal-and-restore-in-insert
 "set timeoutlen=10000
 let g:WhichKey_DefaultDelay = 500
 let g:WhichKeyDesc_LeaderKeymap= "<leader> LeaderKeymap"
 let g:EasyMotion_keys='abcdefghijklmnopqrstuvwxyz,;'
 let g:EasyMotion_use_smartsign_us = 1
+let g:highlightedyank_highlight_duration = "300"
+let g:qs_highlight_on_keys = ['f', 'F', 't', 'T']
+let g:qs_highlight_on_keys = ['f', 'F']
+let g:qs_disable_for_diffs = 1
 
 " code
 " nmap <leader>gc <Action>(Generate)
@@ -40,9 +52,11 @@ nmap <leader>gt <Action>(GoToTest)
 map <c-o> <Action>(Back)
 map <c-i> <Action>(Forward)
 nnoremap gd :action GotoDeclaration<CR>
-nnoremap gh :action FindUsages<CR>
-nnoremap gi :action GotoImplementation<CR>
-map gcc <Action>(CommentByLineComment)
+"nnoremap gh :action FindUsages<CR>
+noremap gh <ESC>:action ShowUsages<CR>
+noremap go <ESC>:action GotoSuperMethod<CR>
+nnoremap gm :action GotoImplementation<CR>
+"map gcc <Action>(CommentByLineComment)
 noremap gej <ESC>:action GotoNextError<CR>
 noremap gek <ESC>:action GotoPreviousError<CR>
 
@@ -66,7 +80,7 @@ noremap <leader>fr <ESC>:action RecentFiles<CR>
 nmap <Leader>cpr <action>(CopyReference)
 nmap <leader>cpa <action>(CopyAbsolutePath)
 noremap <leader>q :wq<CR>
-noremap <leader>u <ESC>:action ShowUsages<CR>
+"noremap <leader>u <ESC>:action ShowUsages<CR>
 noremap <leader>p <ESC>:action ManageRecentProjects<CR>
 noremap <leader>go <ESC>:action FileStructurePopup<CR>
 "noremap <leader>gg <ESC>:action Generate<CR>
@@ -78,14 +92,8 @@ nmap <leader>j <Plug>(easymotion-bd-jk)
 
 " git
 nnoremap <leader>gg :action ActivateVersionControlToolWindow<CR>
-" commit
-nnoremap <leader>gc :action CheckinProject<CR>
-" pull
-nnoremap <leader>gl :action Vcs.UpdateProject<CR>
-" push
-nnoremap <leader>gp :action Vcs.Push<CR>
-" history
 nnoremap <leader>gh :action Vcs.ShowTabbedFileHistory<CR>
+nmap <leader>gb :action Annotate<CR>
 
 
 " terminal
