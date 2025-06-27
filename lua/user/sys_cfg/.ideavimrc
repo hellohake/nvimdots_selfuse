@@ -2,16 +2,23 @@
 " <ESC> - escape, <BS> - backspace, <CR> - return
 let mapleader = " "
 
+" plugin
 set NERDTree
 set easymotion
 set surround
 set which-key
 set multiple-cursors
+set argtextobj
+set commentary
+" config
 set history=1000
+set scrolloff=5
 set nu
 set rnu
 set ideajoin
 set ideamarks
+set idearefactormode=normal
+set ideastatusicon=gray
 set incsearch
 set hlsearch
 nmap <leader>nh :noh<CR>
@@ -20,6 +27,7 @@ set clipboard=unnamed
 set clipboard+=ideaput
 set ignorecase smartcase
 set notimeout
+set keep-english-in-normal-and-restore-in-insert
 "set timeoutlen=10000
 let g:WhichKey_DefaultDelay = 500
 let g:WhichKeyDesc_LeaderKeymap= "<leader> LeaderKeymap"
@@ -27,7 +35,7 @@ let g:EasyMotion_keys='abcdefghijklmnopqrstuvwxyz,;'
 let g:EasyMotion_use_smartsign_us = 1
 
 " code
-nmap <leader>gc <Action>(Generate)
+" nmap <leader>gc <Action>(Generate)
 nmap <leader>gt <Action>(GoToTest)
 map <c-o> <Action>(Back)
 map <c-i> <Action>(Forward)
@@ -61,12 +69,24 @@ noremap <leader>q :wq<CR>
 noremap <leader>u <ESC>:action ShowUsages<CR>
 noremap <leader>p <ESC>:action ManageRecentProjects<CR>
 noremap <leader>go <ESC>:action FileStructurePopup<CR>
-noremap <leader>gg <ESC>:action Generate<CR>
+"noremap <leader>gg <ESC>:action Generate<CR>
 noremap <leader>hh <ESC>:action HideAllWindows<CR>
-noremap <leader>x <ESC>:action CloseAllEditorsButActive<CR>
+noremap <leader>bo <ESC>:action CloseAllEditorsButActive<CR>
 noremap <leader>; "0p
 nmap <leader>w <Plug>(easymotion-bd-w)
 nmap <leader>j <Plug>(easymotion-bd-jk)
+
+" git
+nnoremap <leader>gg :action ActivateVersionControlToolWindow<CR>
+" commit
+nnoremap <leader>gc :action CheckinProject<CR>
+" pull
+nnoremap <leader>gl :action Vcs.UpdateProject<CR>
+" push
+nnoremap <leader>gp :action Vcs.Push<CR>
+" history
+nnoremap <leader>gh :action Vcs.ShowTabbedFileHistory<CR>
+
 
 " terminal
 nmap <leader>tt <Action>(ActivateTerminalToolWindow)
@@ -111,8 +131,8 @@ noremap { {zz
 noremap } }zz
 noremap [{ [{zz
 noremap ]} ]}zz
-nmap H ^
-nmap L $
+nmap H 8zh
+nmap L 8zl
 nmap Y y$
 nnoremap <a-h> gT
 nnoremap <a-l> gt
