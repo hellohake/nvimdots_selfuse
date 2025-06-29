@@ -45,6 +45,7 @@ let g:highlightedyank_highlight_duration = "300"
 let g:qs_highlight_on_keys = ['f', 'F', 't', 'T']
 let g:qs_highlight_on_keys = ['f', 'F']
 let g:qs_disable_for_diffs = 1
+let g:EasyMotion_startofline = 0
 
 " code
 " nmap <leader>gc <Action>(Generate)
@@ -67,21 +68,21 @@ nmap <leader>hm <Action>(MethodHierarchy)
 nmap <leader>ht <Action>(TypeHierarchy)
 noremap gi <ESC>:action ShowIntentionActions<CR>
 
-noremap gt <ESC>:action $EditorTranslateAction<CR>
 noremap / <ESC>:action Find<CR>
 noremap [[ <ESC>:action MethodUp<CR>
 noremap ]] <ESC>:action MethodDown<CR>
 
 nmap <leader>fa <action>(SearchEverywhere)
 nmap <leader>ff <action>(GotoFile)
-nmap <leader>fw <action>(GotoSymbol)
+nmap <leader>fw <action>(SearchEverywhere)
 nmap <leader>fg <action>(FindInPath)
 noremap <leader>fr <ESC>:action RecentFiles<CR>
 nmap <Leader>cpr <action>(CopyReference)
 nmap <leader>cpa <action>(CopyAbsolutePath)
 noremap <leader>q :wq<CR>
 "noremap <leader>u <ESC>:action ShowUsages<CR>
-noremap <leader>p <ESC>:action ManageRecentProjects<CR>
+noremap <leader>pp <ESC>:action ManageRecentProjects<CR>
+noremap <leader>s <ESC>:action SelectInProjectView<CR>
 noremap <leader>go <ESC>:action FileStructurePopup<CR>
 "noremap <leader>gg <ESC>:action Generate<CR>
 noremap <leader>hh <ESC>:action HideAllWindows<CR>
@@ -99,6 +100,10 @@ nmap <leader>gb :action Annotate<CR>
 " terminal
 nmap <leader>tt <Action>(ActivateTerminalToolWindow)
 nmap <leader>tc <Action>(Terminal.OpenInTerminal)
+
+" translate
+noremap tr <ESC>:action $EditorTranslateAction<CR>
+
 
 " bookmark
 nmap mm <Action>(ToggleBookmark)
