@@ -1,0 +1,218 @@
+{
+	"vim.easymotion": true,
+	"vim.surround": true,
+	"vim.incsearch": true,
+	"vim.useSystemClipboard": true,
+	"editor.lineNumbers": "relative",
+	"vim.leader": "<space>",
+	"vim.easymotionKeys": "hklyuiopnmqwertzxcvbasdgjf",
+	"vim.easymotionJumpToAnywhereRegex": "\\b[A-Za-z0-9]|[A-Za-z0-9]\\b|_.|#.|[a-z][A-Z]",
+	"vim.camelCaseMotion.enable": true,
+	"vim.handleKeys": {
+		"<C-n>": false
+	},
+	"vim.normalModeKeyBindings": [
+		{
+			"before": [
+				"<leader>",
+				"l",
+				"p"
+			],
+			"commands": [
+				"editor.action.marker.nextInFiles"
+			]
+		},
+		{
+			"before": [
+				"<leader>",
+				"q"
+			],
+			"commands": [
+				":q"
+			]
+		},
+		{
+			"before": [
+				"m",
+				"s"
+			],
+			"commands": [
+				"workbench.view.extension.bookmarks"
+			]
+		},
+		{
+			"before": [
+				"leader",
+				"t"
+			],
+			"commands": [
+				"workbench.action.terminal.toggleTerminal"
+			]
+		},
+		{
+			"before": [
+				"m",
+				"m"
+			],
+			"commands": [
+				"bookmarks.toggleLabeled"
+			]
+		},
+		{
+			"before": [
+				"<leader>",
+				"w"
+			],
+			"after": [
+				"leader",
+				"leader",
+				"s"
+			]
+		},
+		{
+			"before": [
+				"leader",
+				"k"
+			],
+			"commands": [
+				"editor.action.showHover"
+			]
+		},
+		{
+			"before": [
+				"<leader>",
+				"s"
+			],
+			"commands": [
+				"workbench.files.action.showActiveFileInExplorer"
+			]
+		},
+		{
+			"before": [
+				"<leader>",
+				"f",
+				"f"
+			],
+			"commands": [
+				"workbench.action.quickOpen"
+			]
+		},
+		{
+			"before": [
+				"<leader>",
+				"f",
+				"w"
+			],
+			"commands": [
+				"workbench.action.findInFiles"
+			]
+		},
+		{
+			"before": [
+				"<c-l>"
+			],
+			"after": [
+				"<c-w>",
+				"l"
+			]
+		},
+		{
+			"before": [
+				"<c-h>"
+			],
+			"after": [
+				"<c-w>",
+				"h"
+			]
+		},
+		{
+			"before": [
+				"g",
+				"h"
+			],
+			"commands": [
+				"editor.action.referenceSearch.trigger"
+			]
+		},
+		{
+			"before": [
+				"g",
+				"r"
+			],
+			"commands": [
+				"editor.action.rename"
+			]
+		},
+		{
+			"before": [
+				"<leader>",
+				"g",
+				"o"
+			],
+			"commands": [
+				"editor.action.peekImplementation"
+			]
+		},
+		{
+			"before": [
+				"g",
+				"i"
+			],
+			"commands": [
+				"editor.action.goToImplementation"
+			]
+		},
+		{
+			"before": [
+				"<leader>",
+				"h"
+			],
+			"commands": [
+				"workbench.action.closePanel",
+				"workbench.action.closeSidebar"
+			]
+		},
+		{
+			"before": [
+				"<leader>",
+				"b",
+				"o"
+			],
+			"commands": [
+				"workbench.action.closeOtherEditors"
+			]
+		},
+		{
+			"before": [
+				"<S-l>"
+			],
+			"after": [
+				"8",
+				"z",
+				"h"
+			]
+		},
+		{
+			"before": [
+				"<S-h>"
+			],
+			"after": [
+				"8",
+				"z",
+				"l"
+			]
+		}
+	],
+	"vim.insertModeKeyBindings": [
+		{
+			"before": [
+				"j",
+				"k"
+			],
+			"after": [
+				"<Esc>"
+			]
+		}
+	],
+	"vim.operatorPendingModeKeyBindings": []
+}

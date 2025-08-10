@@ -1,0 +1,64 @@
+[
+	{
+		"key": "ctrl+n",
+		"command": "workbench.view.explorer",
+		"when": "viewContainer.workbench.view.explorer.enabled",
+		"isAIItem": false
+	},
+	{
+		"key": "shift+cmd+e",
+		"command": "-workbench.view.explorer",
+		"when": "viewContainer.workbench.view.explorer.enabled"
+	},
+	{
+		"key": "ctrl+q",
+		"command": "workbench.action.closeSidebar",
+		"isAIItem": false
+	},
+	{
+		"key": "alt+h",
+		"command": "workbench.action.previousEditor",
+		"when": "editorTextFocus && vim.mode == 'Normal'"
+	},
+	{
+		"key": "alt+l",
+		"command": "workbench.action.nextEditor",
+		"when": "editorTextFocus && vim.mode == 'Normal'"
+	},
+	{
+		"key": "alt+j",
+		"command": "workbench.action.navigateLeft"
+	},
+	{
+		"key": "alt+k",
+		"command": "workbench.action.navigateRight"
+	},
+	{
+		"key": "enter",
+		"command": "search.action.focusSearchList",
+		"when": "inSearchEditor && inputBoxFocus && hasSearchResult || inputBoxFocus && searchViewletVisible && hasSearchResult"
+	},
+	{
+		"key": "escape",
+		"command": "workbench.action.findInFiles",
+		"when": "searchViewletVisible && hasSearchResult && searchViewletFocus"
+	},
+	{
+		"key": "escape",
+		"command": "workbench.action.focusFirstEditorGroup",
+		"when": "inSearchEditor && inputBoxFocus|| inputBoxFocus && searchViewletVisible"
+	},
+	{
+		"key": "escape",
+		"command": "workbench.action.focusFirstEditorGroup",
+		"when": "explorerViewletVisible && filesExplorerFocus && !inputFocus"
+	},
+	{
+		"key": "ctrl+=",
+		"command": "workbench.action.zoomIn"
+	},
+	{
+		"key": "ctrl+-",
+		"command": "workbench.action.zoomOut"
+	}
+]
