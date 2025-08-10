@@ -6,12 +6,12 @@
 		"isAIItem": false
 	},
 	{
-		"key": "space e",
+		"key": "ctrl e",
 		"command": "workbench.action.focusActiveEditorGroup",
 		"when": "terminalFocus"
 	},
 	{
-		"key": "space p",
+		"key": "ctrl p",
 		"command": "workbench.action.openRecent"
 	},
 	{
