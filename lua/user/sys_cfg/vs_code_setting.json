@@ -186,6 +186,26 @@
 		},
 		{
 			"before": [
+				"<leader>",
+				"b",
+				"r"
+			],
+			"commands": [
+				"workbench.action.closeEditorsToTheRight"
+			]
+		},
+		{
+			"before": [
+				"<leader>",
+				"b",
+				"l"
+			],
+			"commands": [
+				"workbench.action.closeEditorsToTheLeft"
+			]
+		},
+		{
+			"before": [
 				"k"
 			],
 			"after": [
