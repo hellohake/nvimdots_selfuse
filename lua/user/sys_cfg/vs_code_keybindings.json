@@ -25,18 +25,29 @@
 		"isAIItem": false
 	},
 	{
-		"key": "alt+h",
+		"key": "alt+i",
 		"command": "workbench.action.previousEditor",
 		"when": "editorTextFocus && vim.mode == 'Normal'"
 	},
 	{
-		"key": "alt+l",
+		"key": "alt+o",
 		"command": "workbench.action.nextEditor",
+		"when": "editorTextFocus && vim.mode == 'Normal'"
+	},
+	{
+		"key": "alt+l",
+		"command": "workbench.action.decreaseViewSize",
+		"when": "editorTextFocus && vim.mode == 'Normal'"
+	},
+	{
+		"key": "alt+h",
+		"command": "workbench.action.increaseViewSize",
 		"when": "editorTextFocus && vim.mode == 'Normal'"
 	},
 	{
 		"key": "alt+j",
 		"command": "workbench.action.navigateLeft"
+		//"command": "workbench.action.navigateLeft"
 	},
 	{
 		"key": "alt+k",

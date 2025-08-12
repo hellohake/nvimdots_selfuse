@@ -35,29 +35,11 @@
 		},
 		{
 			"before": [
-				"m",
-				"s"
-			],
-			"commands": [
-				"workbench.view.extension.bookmarks"
-			]
-		},
-		{
-			"before": [
 				"leader",
 				"t"
 			],
 			"commands": [
 				"workbench.action.terminal.toggleTerminal"
-			]
-		},
-		{
-			"before": [
-				"m",
-				"m"
-			],
-			"commands": [
-				"bookmarks.toggleLabeled"
 			]
 		},
 		{
@@ -249,6 +231,49 @@
 			],
 			"commands": [
 				"gitlens.toggleFileBlame"
+			]
+		},
+		{
+			"before": [
+				"<a-h>"
+			],
+			"commands": [
+				"workbench.action.decreaseViewSize"
+			]
+		},
+		{
+			"before": [
+				"<a-l>"
+			],
+			"commands": [
+				"workbench.action.increaseViewSize"
+			]
+		},
+		{
+			"before": [
+				"m",
+				"m"
+			],
+			"commands": [
+				"bookmarks.toggle"
+			]
+		},
+		{
+			"before": [
+				"m",
+				"d"
+			],
+			"commands": [
+				"bookmarks.clearFromAllFiles"
+			]
+		},
+		{
+			"before": [
+				"m",
+				"l"
+			],
+			"commands": [
+				"bookmarks.listFromAllFiles"
 			]
 		}
 	],
