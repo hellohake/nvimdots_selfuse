@@ -1,309 +1,153 @@
 {
-	"files.autoSave": "afterDelay",
-	"files.autoSaveDelay": 1000,
-	"editor.minimap.enabled": true,
-	"editor.minimap.showSlider": "always",
-	"vim.easymotion": true,
-	"vim.surround": true,
-	"vim.incsearch": true,
-	"vim.useSystemClipboard": true,
-	"editor.lineNumbers": "relative",
-	"vim.leader": "<space>",
-	"vim.easymotionKeys": "hklyuiopnmqwertzxcvbasdgjf",
-	"vim.easymotionJumpToAnywhereRegex": "\\b[A-Za-z0-9]|[A-Za-z0-9]\\b|_.|#.|[a-z][A-Z]",
-	"vim.camelCaseMotion.enable": true,
-	"vim.handleKeys": {
-		"<C-n>": false
-	},
-	"vim.normalModeKeyBindings": [
-		{
-			"before": [
-				"<leader>",
-				"l",
-				"p"
-			],
-			"commands": [
-				"editor.action.marker.nextInFiles"
-			]
-		},
-		{
-			"before": [
-				"<leader>",
-				"q"
-			],
-			"commands": [
-				":q"
-			]
-		},
-		{
-			"before": [
-				"leader",
-				"t"
-			],
-			"commands": [
-				"workbench.action.terminal.toggleTerminal"
-			]
-		},
-		{
-			"before": [
-				"<leader>",
-				"w"
-			],
-			"after": [
-				"leader",
-				"leader",
-				"s"
-			]
-		},
-		{
-			"before": [
-				"leader",
-				"k"
-			],
-			"commands": [
-				"editor.action.showHover"
-			]
-		},
-		{
-			"before": [
-				"<leader>",
-				"s"
-			],
-			"commands": [
-				"workbench.files.action.showActiveFileInExplorer"
-			]
-		},
-		{
-			"before": [
-				"<leader>",
-				"f",
-				"f"
-			],
-			"commands": [
-				"workbench.action.quickOpen"
-			]
-		},
-		{
-			"before": [
-				"<leader>",
-				"f",
-				"w"
-			],
-			"commands": [
-				"workbench.action.findInFiles"
-			]
-		},
-		{
-			"before": [
-				"<c-l>"
-			],
-			"after": [
-				"<c-w>",
-				"l"
-			]
-		},
-		{
-			"before": [
-				"<c-h>"
-			],
-			"after": [
-				"<c-w>",
-				"h"
-			]
-		},
-		{
-			"before": [
-				"g",
-				"h"
-			],
-			"commands": [
-				"editor.action.referenceSearch.trigger"
-			]
-		},
-		{
-			"before": [
-				"g",
-				"r"
-			],
-			"commands": [
-				"editor.action.rename"
-			]
-		},
-		{
-			"before": [
-				"<leader>",
-				"g",
-				"o"
-			],
-			"commands": [
-				"editor.action.peekImplementation"
-			]
-		},
-		{
-			"before": [
-				"g",
-				"m"
-			],
-			"commands": [
-				"editor.action.goToImplementation"
-			]
-		},
-		{
-			"before": [
-				"<leader>",
-				"h"
-			],
-			"commands": [
-				"workbench.action.closePanel",
-				"workbench.action.closeSidebar"
-			]
-		},
-		{
-			"before": [
-				"<leader>",
-				"b",
-				"o"
-			],
-			"commands": [
-				"workbench.action.closeOtherEditors"
-			]
-		},
-		{
-			"before": [
-				"<leader>",
-				"b",
-				"r"
-			],
-			"commands": [
-				"workbench.action.closeEditorsToTheRight"
-			]
-		},
-		{
-			"before": [
-				"<leader>",
-				"b",
-				"l"
-			],
-			"commands": [
-				"workbench.action.closeEditorsToTheLeft"
-			]
-		},
-		{
-			"before": [
-				"k"
-			],
-			"after": [
-				"k",
-				"z",
-				"z"
-			]
-		},
-		{
-			"before": [
-				"j"
-			],
-			"after": [
-				"j",
-				"z",
-				"z"
-			]
-		}
-	],
-	"vim.normalModeKeyBindingsNonRecursive": [
-		{
-			"before": [
-				"<S-h>"
-			],
-			"commands": [
-				"scrollLeft"
-			]
-		},
-		{
-			"before": [
-				"<S-l>"
-			],
-			"commands": [
-				"scrollRight"
-			]
-		},
-		{
-			"before": [
-				"g",
-				"b"
-			],
-			"commands": [
-				"gitlens.toggleFileBlame"
-			]
-		},
-		{
-			"before": [
-				"<a-h>"
-			],
-			"commands": [
-				"workbench.action.decreaseViewSize"
-			]
-		},
-		{
-			"before": [
-				"<a-l>"
-			],
-			"commands": [
-				"workbench.action.increaseViewSize"
-			]
-		},
-		{
-			"before": [
-				"m",
-				"m"
-			],
-			"commands": [
-				"bookmarks.toggle"
-			]
-		},
-		{
-			"before": [
-				"m",
-				"d"
-			],
-			"commands": [
-				"bookmarks.clearFromAllFiles"
-			]
-		},
-		{
-			"before": [
-				"m",
-				"l"
-			],
-			"commands": [
-				"bookmarks.listFromAllFiles"
-			]
-		},
-		{
-			"before": [
-				"<leader>",
-				"o"
-			],
-			"commands": [
-				"outline.focus"
-			]
-		}
-	],
-	"vim.insertModeKeyBindings": [
-		{
-			"before": [
-				"j",
-				"k"
-			],
-			"after": [
-				"<Esc>"
-			]
-		}
-	],
-	"vim.operatorPendingModeKeyBindings": [],
-	"[json]": {
-		"editor.defaultFormatter": "esbenp.prettier-vscode"
-	},
-	"workbench.iconTheme": "material-icon-theme",
-	"workbench.colorTheme": "One Dark Pro Darker",
-	"gitlens.blame.format": "${author}${message|50?} ${agoOrDate|14-}"
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1000,
+  "editor.minimap.enabled": true,
+  "editor.minimap.showSlider": "always",
+  "vim.easymotion": true,
+  "vim.surround": true,
+  "vim.incsearch": true,
+  "vim.useSystemClipboard": true,
+  "editor.lineNumbers": "relative",
+  "vim.leader": "<space>",
+  "vim.easymotionKeys": "hklyuiopnmqwertzxcvbasdgjf",
+  "vim.easymotionJumpToAnywhereRegex": "\\b[A-Za-z0-9]|[A-Za-z0-9]\\b|_.|#.|[a-z][A-Z]",
+  "vim.camelCaseMotion.enable": true,
+  "vim.handleKeys": {
+    "<C-n>": false
+  },
+  "vim.normalModeKeyBindings": [
+    {
+      "before": ["<leader>", "l", "p"],
+      "commands": ["editor.action.marker.nextInFiles"]
+    },
+    {
+      "before": ["<leader>", "q"],
+      "commands": [":q"]
+    },
+    {
+      "before": ["leader", "t"],
+      "commands": ["workbench.action.terminal.toggleTerminal"]
+    },
+    {
+      "before": ["<leader>", "w"],
+      "after": ["leader", "leader", "s"]
+    },
+    {
+      "before": ["leader", "k"],
+      "commands": ["editor.action.showHover"]
+    },
+    {
+      "before": ["<leader>", "s"],
+      "commands": ["workbench.files.action.showActiveFileInExplorer"]
+    },
+    {
+      "before": ["<leader>", "f", "f"],
+      "commands": ["workbench.action.quickOpen"]
+    },
+    {
+      "before": ["<leader>", "f", "w"],
+      "commands": ["workbench.action.findInFiles"]
+    },
+    {
+      "before": ["<c-l>"],
+      "after": ["<c-w>", "l"]
+    },
+    {
+      "before": ["<c-h>"],
+      "after": ["<c-w>", "h"]
+    },
+    {
+      "before": ["g", "h"],
+      "commands": ["editor.action.referenceSearch.trigger"]
+    },
+    {
+      "before": ["g", "r"],
+      "commands": ["editor.action.rename"]
+    },
+    {
+      "before": ["<leader>", "g", "o"],
+      "commands": ["editor.action.peekImplementation"]
+    },
+    {
+      "before": ["g", "m"],
+      "commands": ["editor.action.goToImplementation"]
+    },
+    {
+      "before": ["<leader>", "h"],
+      "commands": [
+        "workbench.action.closePanel",
+        "workbench.action.closeSidebar"
+      ]
+    },
+    {
+      "before": ["<leader>", "b", "o"],
+      "commands": ["workbench.action.closeOtherEditors"]
+    },
+    {
+      "before": ["<leader>", "b", "r"],
+      "commands": ["workbench.action.closeEditorsToTheRight"]
+    },
+    {
+      "before": ["<leader>", "b", "l"],
+      "commands": ["workbench.action.closeEditorsToTheLeft"]
+    },
+    {
+      "before": ["k"],
+      "after": ["k", "z", "z"]
+    },
+    {
+      "before": ["j"],
+      "after": ["j", "z", "z"]
+    }
+  ],
+  "vim.normalModeKeyBindingsNonRecursive": [
+    {
+      "before": ["<S-h>"],
+      "commands": ["scrollLeft"]
+    },
+    {
+      "before": ["<S-l>"],
+      "commands": ["scrollRight"]
+    },
+    {
+      "before": ["g", "b"],
+      "commands": ["gitlens.toggleFileBlame"]
+    },
+    {
+      "before": ["m", "m"],
+      "commands": ["bookmarks.toggle"]
+    },
+    {
+      "before": ["m", "d"],
+      "commands": ["bookmarks.clearFromAllFiles"]
+    },
+    {
+      "before": ["m", "l"],
+      "commands": ["bookmarks.listFromAllFiles"]
+    },
+    {
+      "before": ["<leader>", "f", "m"],
+      "commands": ["editor.action.formatDocument"]
+    },
+    {
+      "before": ["<leader>", "o"],
+      "commands": ["outline.focus"]
+    }
+  ],
+  "vim.insertModeKeyBindings": [
+    {
+      "before": ["j", "k"],
+      "after": ["<Esc>"]
+    }
+  ],
+  "vim.operatorPendingModeKeyBindings": [],
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "workbench.iconTheme": "material-icon-theme",
+  "workbench.colorTheme": "One Dark Pro Darker",
+  "gitlens.blame.format": "${author}${message|50?} ${agoOrDate|14-}",
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
 }
