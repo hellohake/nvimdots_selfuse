@@ -226,10 +226,35 @@ return function()
 
 		cwd = {
 			function()
-				return icons.ui.FolderWithHeart .. utils.abbreviate_path(vim.fs.normalize(vim.fn.getcwd()))
+				local path = vim.fn.getcwd()
+
+				-- 【修改点 1】定义你要隐藏的绝对路径前缀
+				-- 注意：Lua 的正则中 "." 是特殊字符，需要写成 "%." 来转义
+				local prefix_to_remove = "/data00/home/lihao%.hellohake"
+
+				-- 【修改点 2】执行替换，将前缀变为空字符串
+				path = path:gsub(prefix_to_remove, "")
+
+				-- 【修改点 3】清理开头可能残留的斜杠 "/"
+				if path:sub(1, 1) == "/" then
+					path = path:sub(2)
+				end
+
+				-- (可选) 如果替换后路径依然太长，可以只展示最后两级目录
+				-- Uncomment 下面这行可以启用：
+				-- path = vim.fn.fnamemodify(vim.fn.getcwd(), ":p:h:t") .. "/" .. vim.fn.fnamemodify(vim.fn.getcwd(), ":t")
+
+				return icons.ui.FolderWithHeart .. path
 			end,
 			color = utils.gen_hl("subtext0", true, true, nil, "bold"),
 		},
+
+		-- cwd = {
+		-- 	function()
+		-- 		return icons.ui.FolderWithHeart .. utils.abbreviate_path(vim.fs.normalize(vim.fn.getcwd()))
+		-- 	end,
+		-- 	color = utils.gen_hl("subtext0", true, true, nil, "bold"),
+		-- },
 
 		file_location = {
 			function()
@@ -278,6 +303,7 @@ return function()
 					"branch",
 					icon = icons.git_nosep.Branch,
 					color = utils.gen_hl("subtext0", true, true, nil, "bold"),
+					priority = 100,
 					cond = conditionals.has_git,
 				},
 				{

@@ -18,7 +18,10 @@ return function()
 			scroll_strategy = "limit",
 			results_title = false,
 			layout_strategy = "horizontal",
-			path_display = { "absolute" },
+			--path_display = { "absolute" },
+			-- path_display = { "smart" },
+			path_display = { "truncate" },
+			wrap_results = true,
 			selection_strategy = "reset",
 			sorting_strategy = "ascending",
 			color_devicons = true,
@@ -55,7 +58,7 @@ return function()
 		},
 		extensions = {
 			fzf = {
-				fuzzy = false,
+				fuzzy = true,
 				override_generic_sorter = true,
 				override_file_sorter = true,
 				case_mode = "smart_case",

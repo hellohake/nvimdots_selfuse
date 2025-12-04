@@ -1,5 +1,4 @@
 -- https://github.com/neovim/nvim-lspconfig/blob/master/lua/lspconfig/configs/gopls.lua
-return {}
 -- return {
 -- 	cmd = { "gopls", "-remote.debug=:0", "-remote=auto" },
 -- 	filetypes = { "go", "gomod", "gosum", "gotmpl", "gohtmltmpl", "gotexttmpl" },
