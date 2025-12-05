@@ -1,5 +1,5 @@
 return {
-	cmd = { "sh", "-c", "GOMEMLIMIT=200GiB gopls -remote=auto" },
+	cmd = { "sh", "-c", "GOMEMLIMIT=150GiB gopls -remote=auto" },
 
 	filetypes = { "go", "gomod", "gosum", "gotmpl", "gohtmltmpl", "gotexttmpl" },
 	flags = { allow_incremental_sync = true, debounce_text_changes = 1000 },
