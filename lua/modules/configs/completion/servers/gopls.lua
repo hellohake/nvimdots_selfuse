@@ -1,37 +1,39 @@
+local socket_path = "/dev/shm/gopls-daemon-lihao.sock"
+local gopls_bin = "/data00/home/lihao.hellohake/.local/share/nvim/mason/packages/gopls/gopls"
+-- gopls针对大项目专门优化配置
+-- 使用mason gopls v0.20.0
 return {
-	cmd = { "sh", "-c", "GOMEMLIMIT=150GiB gopls -remote=auto" },
-
+	cmd = { gopls_bin, "-remote=unix;" .. socket_path },
 	filetypes = { "go", "gomod", "gosum", "gotmpl", "gohtmltmpl", "gotexttmpl" },
-	flags = { allow_incremental_sync = true, debounce_text_changes = 1000 },
 
-	capabilities = {
-		textDocument = {
-			completion = {
-				contextSupport = true,
-				dynamicRegistration = true,
-				completionItem = {
-					commitCharactersSupport = true,
-					deprecatedSupport = true,
-					preselectSupport = true,
-					insertReplaceSupport = true,
-					labelDetailsSupport = true,
-					snippetSupport = true,
-					documentationFormat = { "markdown", "plaintext" },
-					resolveSupport = {
-						properties = {
-							"documentation",
-							"details",
-							"additionalTextEdits",
-						},
-					},
-				},
-			},
-		},
+	flags = {
+		allow_incremental_sync = true,
+		debounce_text_changes = 500,
 	},
 
 	settings = {
 		gopls = {
-			["ui.diagnostic.staticcheck"] = true,
+			["ui.diagnostic.staticcheck"] = false,
+			["ui.diagnostic.analyses"] = {
+				fieldalignment = false,
+				nilness = false,
+				unusedparams = false,
+				unusedwrite = false,
+				useany = false,
+				shadow = false,
+			},
+			codelenses = {
+				generate = false,
+				gc_details = false,
+				test = false,
+				tidy = false,
+				vendor = false,
+				regenerate_cgo = false,
+				upgrade_dependency = false,
+			},
+			["ui.semanticTokens"] = false,
+
+			diagnosticsDelay = "60s",
 
 			directoryFilters = {
 				"-node_modules",
@@ -39,32 +41,22 @@ return {
 				"-dist",
 				"-vendor",
 				"-.git",
-				"-**/*.generated.go", -- 排除自动生成的文件
-				"-**/testdata", -- 排除测试数据
+				"-**/*.generated.go",
+				"-**/testdata",
+				"-**/mock",
+				"-**/mocks",
 			},
 
-			["ui.diagnostic.analyses"] = {
-				fieldalignment = false,
-				nilness = true,
-				unusedparams = false,
-				unusedwrite = false,
-				useany = true,
-			},
-
-			["ui.navigation.importShortcut"] = "Definition",
 			usePlaceholders = true,
-			completeUnimported = true,
-			symbolMatcher = "Fuzzy",
+			completeUnimported = false,
 
-			codelenses = {
-				generate = true,
-				gc_details = false,
-				test = true,
-				tidy = true,
-				vendor = true,
-				regenerate_cgo = true,
-				upgrade_dependency = false,
-			},
+			symbolMatcher = "FastFuzzy",
+
+			hoverKind = "FullDocumentation",
 		},
 	},
+
+	on_attach = function(client, bufnr)
+		client.server_capabilities.semanticTokensProvider = nil
+	end,
 }
