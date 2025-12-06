@@ -1,8 +1,9 @@
--- https://github.com/neovim/nvim-lspconfig/blob/master/lua/lspconfig/configs/gopls.lua
 -- return {
--- 	cmd = { "gopls", "-remote.debug=:0", "-remote=auto" },
+-- 	cmd = { "sh", "-c", "GOMEMLIMIT=150GiB gopls -remote=auto" },
+
 -- 	filetypes = { "go", "gomod", "gosum", "gotmpl", "gohtmltmpl", "gotexttmpl" },
--- 	flags = { allow_incremental_sync = true, debounce_text_changes = 500 },
+-- 	flags = { allow_incremental_sync = true, debounce_text_changes = 1000 },
+
 -- 	capabilities = {
 -- 		textDocument = {
 -- 			completion = {
@@ -27,23 +28,42 @@
 -- 			},
 -- 		},
 -- 	},
+
 -- 	settings = {
 -- 		gopls = {
--- 			staticcheck = true,
--- 			semanticTokens = true,
+-- 			["ui.diagnostic.staticcheck"] = true,
+
+-- 			directoryFilters = {
+-- 				"-node_modules",
+-- 				"-bazel-out",
+-- 				"-dist",
+-- 				"-vendor",
+-- 				"-.git",
+-- 				"-**/*.generated.go", -- 排除自动生成的文件
+-- 				"-**/testdata", -- 排除测试数据
+-- 			},
+
+-- 			["ui.diagnostic.analyses"] = {
+-- 				fieldalignment = false,
+-- 				nilness = true,
+-- 				unusedparams = false,
+-- 				unusedwrite = false,
+-- 				useany = true,
+-- 			},
+
+-- 			["ui.navigation.importShortcut"] = "Definition",
 -- 			usePlaceholders = true,
 -- 			completeUnimported = true,
 -- 			symbolMatcher = "Fuzzy",
--- 			buildFlags = { "-tags", "integration" },
--- 			-- semanticTokenTypes = { string = false },
+
 -- 			codelenses = {
 -- 				generate = true,
--- 				gc_details = true,
+-- 				gc_details = false,
 -- 				test = true,
 -- 				tidy = true,
 -- 				vendor = true,
 -- 				regenerate_cgo = true,
--- 				upgrade_dependency = true,
+-- 				upgrade_dependency = false,
 -- 			},
 -- 		},
 -- 	},

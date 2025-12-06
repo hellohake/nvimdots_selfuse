@@ -1,70 +1,70 @@
--- return {
--- 	cmd = { "sh", "-c", "GOMEMLIMIT=150GiB gopls -remote=auto" },
+return {
+	cmd = { "sh", "-c", "GOMEMLIMIT=150GiB gopls -remote=auto" },
 
--- 	filetypes = { "go", "gomod", "gosum", "gotmpl", "gohtmltmpl", "gotexttmpl" },
--- 	flags = { allow_incremental_sync = true, debounce_text_changes = 1000 },
+	filetypes = { "go", "gomod", "gosum", "gotmpl", "gohtmltmpl", "gotexttmpl" },
+	flags = { allow_incremental_sync = true, debounce_text_changes = 1000 },
 
--- 	capabilities = {
--- 		textDocument = {
--- 			completion = {
--- 				contextSupport = true,
--- 				dynamicRegistration = true,
--- 				completionItem = {
--- 					commitCharactersSupport = true,
--- 					deprecatedSupport = true,
--- 					preselectSupport = true,
--- 					insertReplaceSupport = true,
--- 					labelDetailsSupport = true,
--- 					snippetSupport = true,
--- 					documentationFormat = { "markdown", "plaintext" },
--- 					resolveSupport = {
--- 						properties = {
--- 							"documentation",
--- 							"details",
--- 							"additionalTextEdits",
--- 						},
--- 					},
--- 				},
--- 			},
--- 		},
--- 	},
+	capabilities = {
+		textDocument = {
+			completion = {
+				contextSupport = true,
+				dynamicRegistration = true,
+				completionItem = {
+					commitCharactersSupport = true,
+					deprecatedSupport = true,
+					preselectSupport = true,
+					insertReplaceSupport = true,
+					labelDetailsSupport = true,
+					snippetSupport = true,
+					documentationFormat = { "markdown", "plaintext" },
+					resolveSupport = {
+						properties = {
+							"documentation",
+							"details",
+							"additionalTextEdits",
+						},
+					},
+				},
+			},
+		},
+	},
 
--- 	settings = {
--- 		gopls = {
--- 			["ui.diagnostic.staticcheck"] = true,
+	settings = {
+		gopls = {
+			["ui.diagnostic.staticcheck"] = true,
 
--- 			directoryFilters = {
--- 				"-node_modules",
--- 				"-bazel-out",
--- 				"-dist",
--- 				"-vendor",
--- 				"-.git",
--- 				"-**/*.generated.go", -- 排除自动生成的文件
--- 				"-**/testdata", -- 排除测试数据
--- 			},
+			directoryFilters = {
+				"-node_modules",
+				"-bazel-out",
+				"-dist",
+				"-vendor",
+				"-.git",
+				"-**/*.generated.go", -- 排除自动生成的文件
+				"-**/testdata", -- 排除测试数据
+			},
 
--- 			["ui.diagnostic.analyses"] = {
--- 				fieldalignment = false,
--- 				nilness = true,
--- 				unusedparams = false,
--- 				unusedwrite = false,
--- 				useany = true,
--- 			},
+			["ui.diagnostic.analyses"] = {
+				fieldalignment = false,
+				nilness = true,
+				unusedparams = false,
+				unusedwrite = false,
+				useany = true,
+			},
 
--- 			["ui.navigation.importShortcut"] = "Definition",
--- 			usePlaceholders = true,
--- 			completeUnimported = true,
--- 			symbolMatcher = "Fuzzy",
+			["ui.navigation.importShortcut"] = "Definition",
+			usePlaceholders = true,
+			completeUnimported = true,
+			symbolMatcher = "Fuzzy",
 
--- 			codelenses = {
--- 				generate = true,
--- 				gc_details = false,
--- 				test = true,
--- 				tidy = true,
--- 				vendor = true,
--- 				regenerate_cgo = true,
--- 				upgrade_dependency = false,
--- 			},
--- 		},
--- 	},
--- }
+			codelenses = {
+				generate = true,
+				gc_details = false,
+				test = true,
+				tidy = true,
+				vendor = true,
+				regenerate_cgo = true,
+				upgrade_dependency = false,
+			},
+		},
+	},
+}
