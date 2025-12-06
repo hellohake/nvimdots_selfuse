@@ -1,80 +1,10 @@
-# If you come from bash you might have to change your $PATH.
-# export PATH=$HOME/bin:/usr/local/bin:$PATH
 zmodload zsh/zprof
-# Path to your oh-my-zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
 
-# Set name of the theme to load --- if set to "random", it will
-# load a random theme each time oh-my-zsh is loaded, in which case,
-# to know which specific one was loaded, run: echo $RANDOM_THEME
 # See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
-# ZSH_THEME="af-magic"
-# ZSH_THEME="arrow"
-# ZSH_THEME="avit"
-# ZSH_THEME="amuse"
-# ZSH_THEME="avit"
 ZSH_THEME="gnzh"
 
-# Set list of themes to pick from when loading at random
-# Setting this variable when ZSH_THEME=random will cause zsh to load
-# a theme from this variable instead of looking in $ZSH/themes/
-# If set to an empty array, this variable will have no effect.
-# ZSH_THEME_RANDOM_CANDIDATES=( "robbyrussell" "agnoster" )
-
-# Uncomment the following line to use case-sensitive completion.
-# CASE_SENSITIVE="true"
-
-# Uncomment the following line to use hyphen-insensitive completion.
-# Case-sensitive completion must be off. _ and - will be interchangeable.
-# HYPHEN_INSENSITIVE="true"
-
-# Uncomment one of the following lines to change the auto-update behavior
-# zstyle ':omz:update' mode disabled  # disable automatic updates
-# zstyle ':omz:update' mode auto      # update automatically without asking
-# zstyle ':omz:update' mode reminder  # just remind me to update when it's time
-
-# Uncomment the following line to change how often to auto-update (in days).
-# zstyle ':omz:update' frequency 13
-
-# Uncomment the following line if pasting URLs and other text is messed up.
-# DISABLE_MAGIC_FUNCTIONS="true"
-
-# Uncomment the following line to disable colors in ls.
-# DISABLE_LS_COLORS="true"
-
-# Uncomment the following line to disable auto-setting terminal title.
-# DISABLE_AUTO_TITLE="true"
-
-# Uncomment the following line to enable command auto-correction.
 ENABLE_CORRECTION="true"
-
-# Uncomment the following line to display red dots whilst waiting for completion.
-# You can also set it to another string to have that shown instead of the default red dots.
-# e.g. COMPLETION_WAITING_DOTS="%F{yellow}waiting...%f"
-# Caution: this setting can cause issues with multiline prompts in zsh < 5.7.1 (see #5765)
-# COMPLETION_WAITING_DOTS="true"
-
-# Uncomment the following line if you want to disable marking untracked files
-# under VCS as dirty. This makes repository status check for large repositories
-# much, much faster.
-# DISABLE_UNTRACKED_FILES_DIRTY="true"
-
-# Uncomment the following line if you want to change the command execution time
-# stamp shown in the history command output.
-# You can set one of the optional three formats:
-# "mm/dd/yyyy"|"dd.mm.yyyy"|"yyyy-mm-dd"
-# or set a custom format using the strftime function format specifications,
-# see 'man strftime' for details.
-# HIST_STAMPS="mm/dd/yyyy"
-
-# Would you like to use another custom folder than $ZSH/custom?
-# ZSH_CUSTOM=/path/to/new-custom-folder
-
-# Which plugins would you like to load?
-# Standard plugins can be found in $ZSH/plugins/
-# Custom plugins may be added to $ZSH_CUSTOM/plugins/
-# Example format: plugins=(rails git textmate ruby lighthouse)
-# Add wisely, as too many plugins slow down shell startup.
 
 # plugins+=(vi-mode)
 plugins+=(zsh-vi-mode) # https://github.com/jeffreytse/zsh-vi-mode
@@ -82,45 +12,13 @@ plugins=(git zsh-interactive-cd copypath z fzf colorize jsontools)
 
 source $ZSH/oh-my-zsh.sh
 
-# User configuration
-
-# export MANPATH="/usr/local/man:$MANPATH"
-
-# You may need to manually set your language environment
-# export LANG=en_US.UTF-8
-
-# Preferred editor for local and remote sessions
-# if [[ -n $SSH_CONNECTION ]]; then
-#   export EDITOR='vim'
-# else
-#   export EDITOR='mvim'
-# fi
-
-# Compilation flags
-# export ARCHFLAGS="-arch x86_64"
-
-# Set personal aliases, overriding those provided by oh-my-zsh libs,
-# plugins, and themes. Aliases can be placed here, though oh-my-zsh
-# users are encouraged to define aliases within the ZSH_CUSTOM folder.
-# For a full list of active aliases, run `alias`.
-#
-# Example aliases
-# alias zshconfig="mate ~/.zshrc"
-# alias ohmyzsh="mate ~/.oh-my-zsh"
-
-# 不用指定版本时、移除指定的环境变量 https://unix.stackexchange.com/questions/108873/removing-a-directory-from-path#comment167586_108876
-# PATH=$(echo "$PATH" | sed -e 's|:/home/lihao.hellohake/github_repo/go1.20.14/bin||')
-# export PATH=/home/lihao.hellohake/github_repo/go1.20.14/bin:$PATH
-
 export PATH=$PATH:/opt/tiger/toutiao/lib:/opt/tiger/jdk/jdk1.8/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/tiger/ss_bin:/usr/local/jdk/bin:/usr/sbin/:/opt/tiger/ss_lib/bin:/opt/tiger/ss_lib/python_package/lib/python2.7/site-packages/django/bin:/opt/tiger/yarn_deploy/hadoop/bin/:/opt/tiger/yarn_deploy/hive/bin/:/opt/tiger/yarn_deploy/jdk/bin/:/opt/tiger/hadoop_deploy/jython-2.5.2/bin:/opt/tiger/dev_toolkit/bin:/usr/local/tao/agent/modules/bvc/bin
-
 
 alias vim='nvim'
 
-#source /usr/share/powerlevel9k/powerlevel9k.zsh-theme
 source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-bindkey -v # 启用vi 模式 bindkey -L 查看所有绑定快捷键
+bindkey -v # 启用vi 模式
 bindkey '^j' autosuggest-accept
 bindkey '^k' forward-word  #https://github.com/zsh-users/zsh-autosuggestions/issues/265
 bindkey '^u' backward-kill-line
@@ -129,19 +27,39 @@ bindkey '^n' down-line-or-history
 
 # export ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#ff00ff,bg=cyan,bold,underline"
 
-# source /home/lihao.hellohake/github_repo/zsh_plugin/zsh-interactive-cd/zsh-interactive-cd.plugin.zsh
-
 export http_proxy=http://sys-proxy-rd-relay.byted.org:8118  https_proxy=http://sys-proxy-rd-relay.byted.org:8118  no_proxy=*.byted.org
+function Proxy() {
+	ip=${SSH_CLIENT/ */}
+	if [ "$1" == "on" ]; then
+		export https_proxy=$ip:8118
+		export http_proxy=$ip:8118
+		echo Proxy On
+	else
+		unset https_proxy
+		unset http_proxy
+		echo Proxy Off
+	fi
+}
 
 #export PATH="$PATH:/home/lihao.hellohake/github_repo/nvim-linux64-0.9.5/bin"
 export PATH="$PATH:/home/lihao.hellohake/github_repo/nvim-0.10.4/bin"
 
-#go配置
+# go配置
 export PATH="$PATH:/usr/local/go/bin:/home/lihao.hellohake/go/bin"
 export GOPATH=$HOME/go
+# 不用指定版本时、移除指定的环境变量 https://unix.stackexchange.com/questions/108873/removing-a-directory-from-path#comment167586_108876
+# PATH=$(echo "$PATH" | sed -e 's|:/home/lihao.hellohake/github_repo/go1.20.14/bin||')
+# export PATH=/home/lihao.hellohake/github_repo/go1.20.14/bin:$PATH
+export PATH="/home/lihao.hellohake/github_repo/go1.25.5/bin:$PATH"
+# gopls配置 for 性能
+# pgrep -af gopls
+export GOPLS_SCRIPT="$HOME/start_gopls.sh"
+alias gostart='pgrep -f "gopls serve" > /dev/null && echo "⚠️  Gopls is ALREADY running (PID: $(pgrep -f "gopls serve" | head -1)). Use gorestart if needed." || (nohup "$GOPLS_SCRIPT" > /dev/null 2>&1 & echo "🚀 Gopls Service Started!")'
+alias gostop='pkill -9 -f "gopls serve"; rm -f /dev/shm/gopls-daemon-*.sock; echo "🛑 Gopls Service Killed & Socket Cleaned!"'
+alias gorestart='gostop; sleep 1; nohup "$GOPLS_SCRIPT" > /dev/null 2>&1 & echo "♻️  Gopls Service Restarted!"'
+alias gostatus='ps -eo pid,user,%cpu,%mem,cmd | grep "gopls serve" | grep -v grep || echo "🔴 gopls 未运行 (No running process). 请执行 [ gostart ] 启动服务."'
 
 export TMUX_TMPDIR=~/.tmux/tmp
-
 #export PATH="$PATH:/home/lihao.hellohake/node_modules/tree-sitter-cli"
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
@@ -152,11 +70,25 @@ export NVM_DIR="$HOME/.nvm"
 [ -f "$HOME/.bytebm/config/config.sh" ] && . "$HOME/.bytebm/config/config.sh"
 
 . /usr/share/autojump/autojump.sh
+
 export no_proxy=.byteintl.net,.byted.org,.bytedance.net
 
-export RUNTIME_IDC_NAME=boe
-export BYTED_HOST_IPV6=1
+#export RUNTIME_IDC_NAME=boe
+#export RUNTIME_IDC_NAME=boe
+#export RUNTIME_IDC_NAME=hl
+export RUNTIME_IDC_NAME=lf
+export TCE_PSM="ecom.search.stream"
+#export TCE_PSM="ecom.search.guide_data_producer"
+export CONSUL_HTTP_HOST=10.37.39.172
+export CONSUL_HTTP_PORT=2280
+export BYTED_HOST_IPV6=::1
+export MY_HOST_IPV6=::1
+export TCE_STAGE=prod
+export IS_TCE_DOCKER_ENV=1
+#export SEC_TOKEN_STRING=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ2ZXJzaW9uIjowLCJhdXRob3JpdHkiOiJUQ0UiLCJwcmltYXJ5QXV0aFR5cGUiOiJwc20iLCJwc20iOiJlY29tLnNlYXJjaC5zdHJlYW0iLCJ1c2VyIjoicWllc2FpIiwiZXhwaXJlVGltZSI6MTc2MzEwODQzOCwiZXh0ZW5zaW9uIjp7ImNsdXN0ZXJfbmFtZSI6ImRlZmF1bHQiLCJpZGMiOiJMUSIsImxvZ2ljYWxfY2x1c3RlciI6ImRlZmF1bHQiLCJwaHlzaWNhbF9jbHVzdGVyIjoiQnJhaW4iLCJzZXJ2aWNlX3R5cGUiOiJhcHBfZW5naW5lIiwiem9uZSI6IkNoaW5hLU5vcnRoIn19.YOfr59OQfl-OBDogSOzqjez1FKSjeWgLEqR_UEYTmn5mcKET3z8w3TXufD4zeKHl9a7xASYbMb-t_JMAtDV1hyCIf3C7PC9ltTaKm8rqfrYALjc_ctGaSEvG1Knp7zzYgUIcO8XpDntsEctStFVZl1enwJooxK4j0S0icZ4G6iH92KAcXCHZ8dful_kNg2y_tX0Luur71YFpg9BddlESTQlU3ruVX4RvAyGib7C0Zz2oIMfX-CB7T-hp9jGOczfePUBosuvxgnsKfpBSAqbJWnWCVlNiAUjC7r2GdNiflF0FafhkYNlO1qHcYFlQgj56PUxAaSBEIIjImzhJXBJcSg
+
 # export TCE_PSM='life.open.operation_sop'
+. /usr/share/autojump/autojump.sh
 
 prompt_context() {
   if [[ "$USER" != "$DEFAULT_USER" || -n "$SSH_CLIENT" ]]; then
@@ -173,3 +105,14 @@ export TLDR_LANG=zh_CN
 . "$HOME/.cargo/env"
 # zsh启动测速
 # zprof
+
+# Added by coco installer
+export PATH="/home/lihao.hellohake/.local/bin:$PATH"
+
+export HOME=/data00/home/lihao.hellohake
+# 自定义 Prompt 格式
+# %n = 用户名
+# %~ = 相对路径 (会自动将 $HOME 显示为 ~)
+# %{$fg[cyan]%} = 颜色设置
+PROMPT='%{$fg[cyan]%}%n%{$reset_color%} %{$fg[blue]%}%~%{$reset_color%} $(git_prompt_info)
+$ '
