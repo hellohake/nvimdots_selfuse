@@ -2,6 +2,17 @@ local bind = require("keymap.bind")
 local map_cmd = bind.map_cmd
 local map_cr = bind.map_cr
 
+_G.search_visual_selection = function()
+	vim.cmd('noau normal! gv"vy')
+	local text = vim.fn.getreg("v")
+	vim.fn.setreg("v", {})
+
+	text = string.gsub(text, "\n", "")
+	if #text > 0 then
+		require("telescope.builtin").grep_string({ search = text })
+	end
+end
+
 return {
 	["i|jk"] = map_cmd("<Esc>"):with_noremap():with_silent():with_desc("Esc Mapping"),
 	["i|jj"] = map_cmd("<Esc>"):with_noremap():with_silent():with_desc("Esc Mapping"),
@@ -33,4 +44,6 @@ return {
 		:with_noremap()
 		:with_silent()
 		:with_desc("Telescope: Project Bookmarks"),
+	["n|<leader>sw"] = map_cr("Telescope grep_string"):with_desc("Search word under cursor"),
+	["v|<leader>fw"] = map_cr("lua _G.search_visual_selection()"):with_desc("Search selection"),
 }

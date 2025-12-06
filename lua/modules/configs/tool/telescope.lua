@@ -2,6 +2,14 @@ return function()
 	local icons = { ui = require("modules.utils.icons").get("ui", true) }
 	local lga_actions = require("telescope-live-grep-args.actions")
 
+	vim.api.nvim_create_autocmd("User", {
+		pattern = "TelescopePreviewerLoaded",
+		callback = function()
+			vim.wo.wrap = true
+			vim.wo.linebreak = true -- 智能折行，不在单词中间截断
+		end,
+	})
+
 	require("modules.utils").load_plugin("telescope", {
 		defaults = {
 			vimgrep_arguments = {
