@@ -24,4 +24,13 @@ return {
 	-- noice
 	["n|<leader>nh"] = map_cr("Noice history"):with_noremap():with_silent():with_desc("Noice history"),
 	["n|<leader>e"] = map_cr("Noice dismiss"):with_noremap():with_silent():with_desc("Noice dismiss"),
+
+	["n|<leader>m"] = map_cr("<CMD>Telescope vim_bookmarks current_file<CR>")
+		:with_noremap()
+		:with_silent()
+		:with_desc("Telescope: File Bookmarks"),
+	["n|<leader>fm"] = map_cr("<CMD>Telescope vim_bookmarks all<CR>")
+		:with_noremap()
+		:with_silent()
+		:with_desc("Telescope: Project Bookmarks"),
 }
