@@ -45,5 +45,5 @@ return {
 		:with_silent()
 		:with_desc("Telescope: Project Bookmarks"),
 	["n|<leader>sw"] = map_cr("Telescope grep_string"):with_desc("Search word under cursor"),
-	["v|<leader>fw"] = map_cr("lua _G.search_visual_selection()"):with_desc("Search selection"),
+	["v|<leader>sw"] = map_cr("lua _G.search_visual_selection()"):with_desc("Search selection"),
 }

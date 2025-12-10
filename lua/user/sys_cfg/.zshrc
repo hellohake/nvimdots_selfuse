@@ -5,10 +5,11 @@ export ZSH="$HOME/.oh-my-zsh"
 ZSH_THEME="gnzh"
 
 ENABLE_CORRECTION="true"
+export FUNCNEST=100
 
 # plugins+=(vi-mode)
-plugins+=(zsh-vi-mode) # https://github.com/jeffreytse/zsh-vi-mode
 plugins=(git zsh-interactive-cd copypath z fzf colorize jsontools)
+plugins+=(zsh-vi-mode) # https://github.com/jeffreytse/zsh-vi-mode
 
 source $ZSH/oh-my-zsh.sh
 
@@ -18,7 +19,6 @@ alias vim='nvim'
 
 source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-bindkey -v # 启用vi 模式
 bindkey '^j' autosuggest-accept
 bindkey '^k' forward-word  #https://github.com/zsh-users/zsh-autosuggestions/issues/265
 bindkey '^u' backward-kill-line
@@ -86,6 +86,7 @@ export MY_HOST_IPV6=::1
 export TCE_STAGE=prod
 export IS_TCE_DOCKER_ENV=1
 #export SEC_TOKEN_STRING=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ2ZXJzaW9uIjowLCJhdXRob3JpdHkiOiJUQ0UiLCJwcmltYXJ5QXV0aFR5cGUiOiJwc20iLCJwc20iOiJlY29tLnNlYXJjaC5zdHJlYW0iLCJ1c2VyIjoicWllc2FpIiwiZXhwaXJlVGltZSI6MTc2MzEwODQzOCwiZXh0ZW5zaW9uIjp7ImNsdXN0ZXJfbmFtZSI6ImRlZmF1bHQiLCJpZGMiOiJMUSIsImxvZ2ljYWxfY2x1c3RlciI6ImRlZmF1bHQiLCJwaHlzaWNhbF9jbHVzdGVyIjoiQnJhaW4iLCJzZXJ2aWNlX3R5cGUiOiJhcHBfZW5naW5lIiwiem9uZSI6IkNoaW5hLU5vcnRoIn19.YOfr59OQfl-OBDogSOzqjez1FKSjeWgLEqR_UEYTmn5mcKET3z8w3TXufD4zeKHl9a7xASYbMb-t_JMAtDV1hyCIf3C7PC9ltTaKm8rqfrYALjc_ctGaSEvG1Knp7zzYgUIcO8XpDntsEctStFVZl1enwJooxK4j0S0icZ4G6iH92KAcXCHZ8dful_kNg2y_tX0Luur71YFpg9BddlESTQlU3ruVX4RvAyGib7C0Zz2oIMfX-CB7T-hp9jGOczfePUBosuvxgnsKfpBSAqbJWnWCVlNiAUjC7r2GdNiflF0FafhkYNlO1qHcYFlQgj56PUxAaSBEIIjImzhJXBJcSg
+
 
 # export TCE_PSM='life.open.operation_sop'
 . /usr/share/autojump/autojump.sh
