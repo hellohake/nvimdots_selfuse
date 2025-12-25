@@ -4,7 +4,7 @@ return function()
 		detection_methods = { "lsp", "pattern" },
 		patterns = { ".git", "_darcs", ".hg", ".bzr", ".svn", "Makefile", "package.json" },
 		ignore_lsp = { "null-ls", "copilot" },
-		exclude_dirs = {},
+		exclude_dirs = { "**/go/pkg/mod/**" },
 		show_hidden = false,
 		silent_chdir = true,
 		scope_chdir = "global",
