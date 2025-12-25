@@ -153,6 +153,13 @@ return function()
 					["@keyword.return"] = { fg = cp.pink, style = clear },
 					["@error.c"] = { fg = cp.none, style = clear },
 					["@error.cpp"] = { fg = cp.none, style = clear },
+
+					-- For render-markdown.nvim
+					RenderMarkdownCode = { bg = cp.surface0 },
+					RenderMarkdownCodeInline = { bg = cp.surface0 },
+					-- Overwrite potential red backgrounds
+					RenderMarkdownError = { bg = cp.none, fg = cp.red },
+					["@error"] = { fg = cp.red, bg = cp.none },
 				}
 			end,
 		},

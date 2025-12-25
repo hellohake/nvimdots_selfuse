@@ -1,3 +1,3 @@
 let l:bm_file_version = 1
-let l:bm_sessions = {'default': {'/data00/home/lihao.hellohake/.config/nvim/lua/user/keymap/editor.lua': [{'sign_idx': 9500, 'line_nr': 39, 'content': '	["n|<leader>m"] = map_cr("<CMD>Telescope vim_bookmarks current_file<CR>")'},],}}
+let l:bm_sessions = {'default': {'/data00/home/lihao.hellohake/.config/nvim/lua/user/keymap/editor.lua': [{'sign_idx': 9500, 'line_nr': 70, 'content': '	["n|<leader>m"] = map_cr("<CMD>Telescope vim_bookmarks current_file<CR>")'},],}}
 let l:bm_current_session = 'default'

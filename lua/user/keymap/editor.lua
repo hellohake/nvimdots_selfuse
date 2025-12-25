@@ -2,6 +2,37 @@ local bind = require("keymap.bind")
 local map_cmd = bind.map_cmd
 local map_cr = bind.map_cr
 
+_G.copy_relative_path_with_line = function()
+	local path = vim.fn.expand("%") -- 相对 cwd
+	if path == "" then
+		return
+	end
+	local line = vim.fn.line(".")
+	local text = path .. ":" .. line
+	vim.fn.setreg("+", text)
+	vim.notify("Copied: " .. text)
+end
+
+_G.copy_git_relative_path_with_line = function()
+	local git_root = vim.fn.systemlist("git rev-parse --show-toplevel")[1]
+	if not git_root or git_root == "" then
+		vim.notify("Not in a git repo", vim.log.levels.WARN)
+		return
+	end
+
+	local file = vim.fn.expand("%:p")
+	if file == "" then
+		return
+	end
+
+	local rel = file:gsub("^" .. git_root .. "/", "")
+	local line = vim.fn.line(".")
+	local text = rel .. ":" .. line
+
+	vim.fn.setreg("+", text)
+	vim.notify("Copied: " .. text)
+end
+
 _G.search_visual_selection = function()
 	vim.cmd('noau normal! gv"vy')
 	local text = vim.fn.getreg("v")
@@ -46,4 +77,12 @@ return {
 		:with_desc("Telescope: Project Bookmarks"),
 	["n|<leader>sw"] = map_cr("Telescope grep_string"):with_desc("Search word under cursor"),
 	["v|<leader>sw"] = map_cr("lua _G.search_visual_selection()"):with_desc("Search selection"),
+	["n|<leader>cg"] = map_cr("lua _G.copy_relative_path_with_line()")
+		:with_noremap()
+		:with_silent()
+		:with_desc("Copy global path with line"),
+	["n|<leader>cp"] = map_cr("lua _G.copy_git_relative_path_with_line()")
+		:with_noremap()
+		:with_silent()
+		:with_desc("Copy relative path with line"),
 }

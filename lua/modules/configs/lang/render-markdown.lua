@@ -1,4 +1,12 @@
 return function()
+	local set_hl = vim.api.nvim_set_hl
+	set_hl(0, "RenderMarkdownCode", { bg = "#2e2e2e", default = false })
+	set_hl(0, "RenderMarkdownCodeInline", { bg = "#3e3e3e", default = false })
+	set_hl(0, "RenderMarkdownError", { link = "Normal", default = false })
+	set_hl(0, "RenderMarkdownWarn", { link = "Normal", default = false })
+	set_hl(0, "RenderMarkdownInfo", { link = "Normal", default = false })
+	set_hl(0, "RenderMarkdownHint", { link = "Normal", default = false })
+
 	require("modules.utils").load_plugin("render-markdown", {
 		-- Whether Markdown should be rendered by default or not
 		enabled = true,
@@ -17,5 +25,11 @@ return function()
 		-- The level of logs to write to file: vim.fn.stdpath('state') .. '/render-markdown.log'
 		-- Only intended to be used for plugin development / debugging
 		log_level = "error",
+		-- Explicitly set code block highlights
+		code = {
+			highlight = "RenderMarkdownCode",
+			highlight_inline = "RenderMarkdownCodeInline",
+			style = "full",
+		},
 	})
 end
