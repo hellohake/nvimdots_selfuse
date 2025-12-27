@@ -85,4 +85,5 @@ return {
 		:with_noremap()
 		:with_silent()
 		:with_desc("Copy relative path with line"),
+	["n|<leader>gc"] = map_cr("DiffviewOpen master"):with_noremap():with_silent():with_desc("git: Diff against master"),
 }
