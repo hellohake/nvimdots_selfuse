@@ -13,6 +13,22 @@ tool["MattesGroeger/vim-bookmarks"] = {
 
 		-- 开启默认快捷键 (mm:打标, mi:注释, mn/mp:跳转)
 		vim.g.bookmark_no_default_key_mappings = 0
+
+		-- 解决在只读目录(如 go/pkg/mod)下无法保存书签的问题
+		-- 当进入只读目录时禁用自动保存，避免报错；离开时恢复
+		vim.api.nvim_create_autocmd({ "BufEnter", "BufWinEnter" }, {
+			pattern = "*/go/pkg/mod/*",
+			callback = function()
+				vim.g.bookmark_auto_save = 0
+			end,
+		})
+
+		vim.api.nvim_create_autocmd({ "BufLeave" }, {
+			pattern = "*/go/pkg/mod/*",
+			callback = function()
+				vim.g.bookmark_auto_save = 1
+			end,
+		})
 	end,
 	config = function()
 		pcall(function()
