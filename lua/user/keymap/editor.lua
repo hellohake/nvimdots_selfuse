@@ -44,13 +44,14 @@ _G.search_visual_selection = function()
 	end
 end
 
-_G.toggle_diffview = function()
+_G.toggle_diffview = function(args)
 	local lib = require("diffview.lib")
 	local view = lib.get_current_view()
 	if view then
 		vim.cmd("DiffviewClose")
 	else
-		vim.cmd("DiffviewOpen")
+		args = args or ""
+		vim.cmd("DiffviewOpen " .. args)
 	end
 end
 
@@ -95,6 +96,9 @@ return {
 		:with_noremap()
 		:with_silent()
 		:with_desc("Copy relative path with line"),
-	["n|<leader>gc"] = map_cr("DiffviewOpen master"):with_noremap():with_silent():with_desc("git: Diff against master"),
+	["n|<leader>gc"] = map_cr("lua _G.toggle_diffview('master')")
+		:with_noremap()
+		:with_silent()
+		:with_desc("git: Toggle diff against master"),
 	["n|<leader>gd"] = map_cr("lua _G.toggle_diffview()"):with_noremap():with_silent():with_desc("git: Toggle diffview"),
 }
