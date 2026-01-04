@@ -1,6 +1,7 @@
 local bind = require("keymap.bind")
 local map_cmd = bind.map_cmd
 local map_cr = bind.map_cr
+local map_callback = bind.map_callback
 
 _G.copy_relative_path_with_line = function()
 	local path = vim.fn.expand("%") -- 相对 cwd
@@ -55,6 +56,31 @@ _G.toggle_diffview = function(args)
 	end
 end
 
+_G.smart_toggle_bookmark = function()
+	local service = require("bookmarks.domain.service")
+	local repo = require("bookmarks.domain.repo")
+	local location = require("bookmarks.domain.location").get_current_location()
+	local existing = repo.find_bookmark_by_location(location)
+
+	if existing then
+		-- 如果已存在，传入空字符串表示取消标记
+		service.toggle_mark("", location)
+	else
+		-- 如果不存在，抓取当前行内容（去首尾空格）作为名称
+		local content = vim.api.nvim_get_current_line():gsub("^%s+", ""):gsub("%s+$", "")
+		if content == "" then
+			content = "Empty Line"
+		end
+		service.toggle_mark(content, location)
+	end
+	-- 刷新侧边栏图标
+	require("bookmarks.sign").safe_refresh_signs()
+	-- 尝试刷新树状视图
+	pcall(function()
+		require("bookmarks.tree.operate").refresh()
+	end)
+end
+
 return {
 	["i|jk"] = map_cmd("<Esc>"):with_noremap():with_silent():with_desc("Esc Mapping"),
 	["i|jj"] = map_cmd("<Esc>"):with_noremap():with_silent():with_desc("Esc Mapping"),
@@ -78,14 +104,30 @@ return {
 	["n|<leader>nh"] = map_cr("Noice history"):with_noremap():with_silent():with_desc("Noice history"),
 	["n|<leader>e"] = map_cr("Noice dismiss"):with_noremap():with_silent():with_desc("Noice dismiss"),
 
-	["n|<leader>m"] = map_cr("<CMD>Telescope vim_bookmarks current_file<CR>")
+	["n|<leader>m"] = map_callback(function()
+			require("bookmarks").goto_bookmark()
+		end)
 		:with_noremap()
 		:with_silent()
-		:with_desc("Telescope: File Bookmarks"),
-	["n|<leader>fm"] = map_cr("<CMD>Telescope vim_bookmarks all<CR>")
+		:with_desc("Bookmarks: List with preview"),
+	["n|mm"] = map_callback(function()
+			_G.smart_toggle_bookmark()
+		end)
 		:with_noremap()
 		:with_silent()
-		:with_desc("Telescope: Project Bookmarks"),
+		:with_desc("Bookmarks: Smart toggle mark"),
+	["n|mn"] = map_callback(function()
+			require("bookmarks").goto_next_bookmark()
+		end)
+		:with_noremap()
+		:with_silent()
+		:with_desc("Bookmarks: Next mark"),
+	["n|mp"] = map_callback(function()
+			require("bookmarks").goto_prev_bookmark()
+		end)
+		:with_noremap()
+		:with_silent()
+		:with_desc("Bookmarks: Prev mark"),
 	["n|<leader>sw"] = map_cr("Telescope grep_string"):with_desc("Search word under cursor"),
 	["v|<leader>sw"] = map_cr("lua _G.search_visual_selection()"):with_desc("Search selection"),
 	["n|<leader>cg"] = map_cr("lua _G.copy_relative_path_with_line()")

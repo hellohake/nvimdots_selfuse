@@ -116,5 +116,21 @@ The designated place for customization:
 -   **Keymap Conflicts**:
     -   如果按下 Leader key 后光标位移而非弹出提示，通常是由于 `init.lua` 中未对空格键进行 `Nop` 映射，或插件加载过晚。
 -   **Diagnostic Filtering**:
-    -   对于产生大量噪声的文件（如 Go 的 `_test.go`），建议在 `trouble.nvim` 或 LSP 处理器中使用 `filter` 逻辑进行排除，以保持工作区整洁。
-    -   示例：在 `trouble` 的 `modes` 中使用 `all` 组合过滤器，利用 `match` 匹配文件名模式。
+    -   根据“只关注正式文件”原则，在 `trouble.nvim` 中彻底排除 `_test.go` 文件，从而忽略测试包循环依赖。
+    -   示例：在 `trouble` 的 `modes` 中使用 `all` 组合过滤器，确保正式文件中的循环依赖等错误不会被意外忽略。
+- **Bookmark Management**:
+    -   **核心工具**: 使用 `LintaoAmons/bookmarks.nvim` (v3+)，基于 `extmarks` 实现标记随代码自动移动。
+    -   **持久化**: 依赖 `kkharji/sqlite.lua` 将书签存储在 SQLite 数据库中（默认路径 `stdpath("data")`）。
+    -   **项目隔离**: 
+        -   通过 `Active List` 机制实现项目间隔离。
+        -   自动化逻辑：监听 `VimEnter` 和 `DirChanged` 事件，根据当前 CWD 文件夹名自动切换或创建对应的 `Active List`。
+    -   **交互优化**:
+        -   实现 `_G.smart_toggle_bookmark` 函数以绕过原生输入框。
+        -   `mm`: 第一次按下自动抓取行内容（去空格）作为书签名并静默保存；在已有标记行按下则直接取消标记。
+    -   **快捷键规范**:
+        -   `mm`: 智能静默切换标记。
+        -   `mn`/`mp`: 基于行号顺序在当前文件中跳转。
+        -   `<leader>m`: 调用内置 Telescope 选择器，支持实时代码预览。
+    -   **边界 Case**:
+        -   若 `sqlite3` 运行库缺失，插件将无法加载。
+        -   Telescope 扩展加载：该插件不注册标准 Telescope 扩展名，需通过 Lua API 直接调用。
