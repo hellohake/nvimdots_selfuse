@@ -10,7 +10,19 @@ tool["LintaoAmons/bookmarks.nvim"] = {
 		{ "stevearc/dressing.nvim" },
 	},
 	config = function()
-		require("bookmarks").setup()
+		require("bookmarks").setup({
+			picker = {
+				---@param bookmark Bookmarks.Node
+				---@param bookmarks Bookmarks.Node[]
+				entry_display = function(bookmark, bookmarks)
+					local name = bookmark.name
+					local filename = vim.fn.fnamemodify(bookmark.location.path, ":t")
+					-- 重点：使用 4 个字符缩写，对应 Neovim 0.10+ 的 pathshorten(path, len)
+					local path = vim.fn.pathshorten(bookmark.location.path, 4)
+					return string.format("%s │ %s │ %s", name, filename, path)
+				end,
+			},
+		})
 
 		-- 项目隔离逻辑：自动为每个项目创建/切换独立的书签列表
 		local function switch_project_list()
