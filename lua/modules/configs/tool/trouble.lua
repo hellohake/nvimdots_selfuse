@@ -24,10 +24,15 @@ return function()
 			project_diagnostics = {
 				mode = "diagnostics",
 				filter = {
-					any = {
+					all = {
 						{
 							function(item)
 								return item.filename:find(vim.fn.getcwd(), 1, true)
+							end,
+						},
+						{
+							function(item)
+								return not item.filename:match("_test%.go$")
 							end,
 						},
 					},

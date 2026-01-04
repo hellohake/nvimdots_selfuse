@@ -28,11 +28,6 @@ For NixOS or Nix users, the project uses a Flake-based setup:
 -   **Flake**: `flake.nix` provides the environment configuration.
 -   **NixOS Module**: Exports a `homeManagerModules.nvimdots` for integration into system configs.
 
-### Plugin Management
-Managed via `lazy.nvim` commands inside Neovim:
--   `Lazy sync`: Sync/Update plugins.
--   `Lazy profile`: Check startup time.
-
 ## 3. Code Style
 
 The project enforces code style using **StyLua**. Configuration is defined in `stylua.toml`:
@@ -56,45 +51,70 @@ Testing is primarily handled through Nix-based environment checks to ensure the 
 -   **User Isolation**: All personal configurations, including secrets or private settings, should be placed in `lua/user/`. This directory is populated from `lua/user_template/` and is intended to be gitignored or managed separately.
 -   **Plugin Sources**: Plugins are fetched from GitHub. `lua/core/pack.lua` handles the cloning logic, supporting both SSH and HTTPS based on user preference.
 
-## 6. Configuration
+## 6. Configuration Layers
 
 The configuration is split into three main layers:
 
-### Core (`lua/core/`)
+### 6.1 Core (`lua/core/`)
 Handles the initialization of Neovim:
--   `init.lua`: Sets up paths, leader keys, environment (GUI, clipboard, shell), and loads other core components.
+-   `init.lua`: Sets up paths, leader keys (defualt `<Space>`), environment, and bootstrap sequence.
+    -   **Leader Key**: 默认映射为空格。为防止冲突，需显式禁用空格在 Normal/Visual 模式下的默认位移行为 (`vim.api.nvim_set_keymap("n", "<Space>", "<Nop>", ...)` )。
 -   `pack.lua`: Bootstraps `lazy.nvim`. It dynamically discovers and loads plugins from both `lua/modules/plugins/*.lua` and `lua/user/plugins/*.lua`.
 -   `global.lua`: Defines global variables and paths.
--   `options.lua` & `settings.lua`: Global editor options.
+-   `options.lua` & `settings.lua`: Global editor options. `timeoutlen` 建议保持在 500ms 左右以兼顾快捷键响应与 Which-key 弹出。
 
-### Modules (`lua/modules/`)
+### 6.2 Modules (`lua/modules/`)
 Contains the bulk of the configuration, organized by functionality:
 -   **Categories**: `completion`, `editor`, `lang`, `tool`, `ui`.
 -   **Structure**:
-    -   `plugins/`: Plugin declaration files (returning tables of plugin specs).
+    -   `plugins/`: Plugin declaration files.
     -   `configs/`: Detailed configuration logic for each plugin.
 
-### User (`lua/user/`)
+### 6.3 User (`lua/user/`)
 The designated place for customization:
--   **Plugins**: Files in `lua/user/plugins/` are automatically detected and merged with the core plugins.
--   **Settings**: `lua/user/options.lua` and `lua/user/settings.lua` allow overriding global defaults.
--   **Keymaps**: `lua/user/keymap/` allows defining custom keybindings.
+-   **Plugins**: `lua/user/plugins/*.lua` 自动加载并与核心插件列表合并。
+-   **Settings**: `lua/user/options.lua` 和 `lua/user/settings.lua` 允许覆盖全局默认值。
+-   **Keymaps**: `lua/user/keymap/` 用于定义个人快捷键。
+-   **System Config**: `lua/user/sys_cfg/` 存放 IDE 风格配置（如 vscode 键位/设置），供特定环境参考。
 
 ## 7. Customization & Extension Mechanisms
 
-The project utilizes a custom module loading system to allow flexible configuration overrides.
+### 7.1 Plugin Loading (`lua/modules/utils/init.lua`)
+-   **`load_plugin(plugin_name, opts)`**: 核心配置加载器。
+-   **逻辑**:
+    1.  尝试加载 `lua/user/configs/<filename>.lua`。
+    2.  若返回 **table**：递归合并 (`tbl_recursive_merge`) 到默认配置。
+    3.  若返回 **function**：完全接管配置逻辑，调用该函数并传入默认 `opts`。
+    4.  最后调用插件的 `setup` 方法。
 
-### Plugin Loading (`lua/modules/utils/init.lua`)
--   **`load_plugin(plugin_name, opts)`**: This function is the standard way to configure plugins in `lua/modules/configs/`.
--   **Mechanism**:
-    1.  It attempts to load a corresponding user configuration from `lua/user/configs/<plugin_config_filename>.lua`.
-    2.  If the user config returns a **table**, it recursively merges (`tbl_recursive_merge`) the user options into the default options.
-    3.  If the user config returns a **function**, it replaces the default configuration logic or allows for complete control.
-    4.  Finally, it calls the plugin's `setup` function with the merged/modified options.
+### 7.2 Highlighting & Themes
+-   **Palette System**: 使用 `lua/modules/utils/init.lua` 定义的中央色板（默认 Catppuccin）。
+-   **Overrides**: 支持全局高亮 (`set_global_hl`) 和主题特定覆盖。
 
-### Highlighting & Themes
--   **Palette System**: The project uses a central palette (defaulting to Catppuccin's palette) defined in `lua/modules/utils/init.lua`.
--   **Overrides**:
-    -   Global highlights can be set via `set_global_hl`.
-    -   Theme-specific overrides (e.g., for `catppuccin`) are handled in the respective theme configuration files (e.g., `lua/modules/configs/ui/catppuccin.lua`).
-    -   **Important**: Some plugins (like `render-markdown`) may require explicit highlight group definitions (`vim.api.nvim_set_hl`) in their setup function to avoid inheriting unwanted default links (e.g., `ColorColumn` red background).
+## 8. LSP & Completion Architecture
+
+### 8.1 LSP Setup (`lua/modules/configs/completion/`)
+-   使用 `mason.nvim` 管理工具链，`mason-lspconfig.lua` 作为核心调度器。
+-   **Server Configs**: 各语言服务器配置位于 `modules/configs/completion/servers/`。
+-   **全局逻辑**: 在 `mason-lspconfig` 的 `opts` 中定义全局 `on_attach`。
+    -   **Boundary Fix**: 为兼容 Neovim 0.10.x 及处理部分 LSP 返回能力不一致的问题，全局 `on_attach` 中通常会将 `semanticTokensProvider` 显式设为 `nil` 以禁用可能导致崩溃的语义着色功能。该补丁应优先于具体服务器配置执行。
+
+## 9. Keymapping System
+
+### 9.1 Binding Helpers (`lua/keymap/bind.lua`)
+-   提供 `map_cr`, `map_cu`, `map_cmd`, `map_callback` 等辅助函数。
+-   支持链式调用，如 `:with_silent():with_noremap():with_desc("...")`。
+-   **分层设计**: 分为 `builtins` (核心内置) 和 `plugins` (插件相关)，便于管理和覆盖。
+
+## 10. Common Boundary Cases & Best Practices
+
+-   **Lazy Loading**:
+    -   UI/Tool 类插件（如 `which-key`, `noice`）建议使用 `event = "VeryLazy"` 以确保不影响启动速度且能正确响应 Leader key。
+    -   避免使用 `CursorHold` 作为首选加载事件，除非明确需要该触发时机，因为它依赖 `updatetime`。
+-   **Neovim Versioning**:
+    -   本配置主要针对 Neovim 0.10+。对于 0.11+ 版本，某些内置 Lua 错误（如语义令牌空指针）已在核心修复，但配置层面的防护性代码（如 `on_attach` 拦截）仍建议保留以保证多版本兼容性。
+-   **Keymap Conflicts**:
+    -   如果按下 Leader key 后光标位移而非弹出提示，通常是由于 `init.lua` 中未对空格键进行 `Nop` 映射，或插件加载过晚。
+-   **Diagnostic Filtering**:
+    -   对于产生大量噪声的文件（如 Go 的 `_test.go`），建议在 `trouble.nvim` 或 LSP 处理器中使用 `filter` 逻辑进行排除，以保持工作区整洁。
+    -   示例：在 `trouble` 的 `modes` 中使用 `all` 组合过滤器，利用 `match` 匹配文件名模式。

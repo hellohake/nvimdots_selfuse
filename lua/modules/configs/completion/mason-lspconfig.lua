@@ -30,6 +30,9 @@ M.setup = function()
 			vim.lsp.protocol.make_client_capabilities(),
 			require("cmp_nvim_lsp").default_capabilities()
 		),
+		on_attach = function(client, _)
+			client.server_capabilities.semanticTokensProvider = nil
+		end,
 	}
 	---A handler to setup all servers defined under `completion/servers/*.lua`
 	---@param lsp_name string

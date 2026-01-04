@@ -81,7 +81,7 @@ local function load_options()
 		tabstop = 4,
 		termguicolors = true,
 		timeout = true,
-		timeoutlen = 300,
+		timeoutlen = 500,
 		ttimeout = true,
 		ttimeoutlen = 0,
 		undodir = global.cache_dir .. "/undo/",

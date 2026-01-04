@@ -24,11 +24,8 @@ end
 
 local leader_map = function()
 	vim.g.mapleader = " "
-	-- NOTE:
-	--  > Uncomment the following if you're using a <leader> other than <Space>, and you wish
-	--  > to disable advancing one character by pressing <Space> in normal/visual mode.
-	-- vim.api.nvim_set_keymap("n", " ", "", { noremap = true })
-	-- vim.api.nvim_set_keymap("x", " ", "", { noremap = true })
+	vim.api.nvim_set_keymap("n", "<Space>", "<Nop>", { noremap = true, silent = true })
+	vim.api.nvim_set_keymap("x", "<Space>", "<Nop>", { noremap = true, silent = true })
 end
 
 local gui_config = function()

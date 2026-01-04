@@ -63,7 +63,7 @@ tool["folke/trouble.nvim"] = {
 }
 tool["folke/which-key.nvim"] = {
 	lazy = true,
-	event = { "CursorHold", "CursorHoldI" },
+	event = "VeryLazy",
 	config = require("tool.which-key"),
 }
 tool["gelguy/wilder.nvim"] = {
