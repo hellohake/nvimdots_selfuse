@@ -63,22 +63,16 @@ _G.smart_toggle_bookmark = function()
 	local existing = repo.find_bookmark_by_location(location)
 
 	if existing then
-		-- 如果已存在，传入空字符串表示取消标记
+		-- 如果已存在，直接取消标记（传入空字符串作为名称即可静默取消）
 		service.toggle_mark("", location)
+		require("bookmarks.sign").safe_refresh_signs()
+		pcall(function()
+			require("bookmarks.tree.operate").refresh()
+		end)
 	else
-		-- 如果不存在，抓取当前行内容（去首尾空格）作为名称
-		local content = vim.api.nvim_get_current_line():gsub("^%s+", ""):gsub("%s+$", "")
-		if content == "" then
-			content = "Empty Line"
-		end
-		service.toggle_mark(content, location)
+		-- 如果不存在，调用插件原生的 toggle_mark 以弹出输入框让用户输入内容
+		require("bookmarks").toggle_mark()
 	end
-	-- 刷新侧边栏图标
-	require("bookmarks.sign").safe_refresh_signs()
-	-- 尝试刷新树状视图
-	pcall(function()
-		require("bookmarks.tree.operate").refresh()
-	end)
 end
 
 return {

@@ -125,8 +125,8 @@ The designated place for customization:
         -   通过 `Active List` 机制实现项目间隔离。
         -   自动化逻辑：监听 `VimEnter` 和 `DirChanged` 事件，根据当前 CWD 文件夹名自动切换或创建对应的 `Active List`。
     -   **交互优化**:
-        -   实现 `_G.smart_toggle_bookmark` 函数以绕过原生输入框。
-        -   `mm`: 第一次按下自动抓取行内容（去空格）作为书签名并静默保存；在已有标记行按下则直接取消标记。
+        -   实现 `_G.smart_toggle_bookmark` 函数。
+        -   `mm`: 如果当前行无标记，弹出输入框支持自定义名称；如果当前行已有标记，直接静默取消，无需二次确认或输入。
     -   **快捷键规范**:
         -   `mm`: 智能静默切换标记。
         -   `mn`/`mp`: 基于行号顺序在当前文件中跳转。
