@@ -118,19 +118,36 @@ The designated place for customization:
 -   **Diagnostic Filtering**:
     -   根据“只关注正式文件”原则，在 `trouble.nvim` 中彻底排除 `_test.go` 文件，从而忽略测试包循环依赖。
     -   示例：在 `trouble` 的 `modes` 中使用 `all` 组合过滤器，确保正式文件中的循环依赖等错误不会被意外忽略。
+- **Search & Telescope**:
+    -   `<leader>fw` 使用 `live_grep_args`，支持传递原生 `ripgrep` 参数。
+    -   **核心规范**: 恢复了 `auto_quoting = true` 以保证普通搜索体验。
+    -   **快捷键优化**: 实现了自定义 `quote_prompt_with_postfix` 逻辑，**彻底解决了按下快捷键时出现双重转义（如 `\"`）的问题**。
+    -   **搜索流程**:
+        1. 输入关键词。
+        2. 若需添加参数（如字面量搜索或过滤），直接按 `<C-g>` 或 `<C-i>`。
+        3. 快捷键会自动判断当前是否已加引号，并智能追加参数，不会产生重复转义。
+    -   **内置快捷键 (在搜索框内按)**:
+        -   `<C-k>`: 智能添加双引号（若未添加）。
+        -   `<C-g>`: 智能加引号并追加 `-F`（字面量搜索）。
+        -   `<C-i>`: 智能加引号并追加 `--iglob`（过滤文件）。
+    -   **忽略目录**: `kitex_gen/`、`build/` 等目录在 `telescope.lua` 中默认被忽略。若需搜索这些目录，需临时在搜索框后添加 `--no-ignore` 或从配置文件中移除对应项。
+
 - **Bookmark Management**:
     -   **核心工具**: 使用 `LintaoAmons/bookmarks.nvim` (v3+)，基于 `extmarks` 实现标记随代码自动移动。
     -   **持久化**: 依赖 `kkharji/sqlite.lua` 将书签存储在 SQLite 数据库中（默认路径 `stdpath("data")`）。
+    -   **冲突预防**: 由于多个插件可能使用相同的 Repo 名称（如 `crusj/bookmarks.nvim`），在 `lazy.nvim` 配置中显式指定 `name = "bookmarks"` 以确保加载正确的模块路径。
     -   **项目隔离**: 
         -   通过 `Active List` 机制实现项目间隔离。
         -   自动化逻辑：监听 `VimEnter` 和 `DirChanged` 事件，根据当前 CWD 文件夹名自动切换或创建对应的 `Active List`。
+        -   **稳定性**: 使用 `vim.defer_fn(..., 100)` 延迟执行切换逻辑，避免在插件初始化尚未完成时调用 API 导致报错。
     -   **交互优化**:
         -   实现 `_G.smart_toggle_bookmark` 函数。
-        -   `mm`: 如果当前行无标记，弹出输入框支持自定义名称；如果当前行已有标记，直接静默取消，无需二次确认或输入。
+        -   `mm`: 智能静默切换。若当前行无标记，弹出输入框输入名称；若已有标记，直接删除（传入空字符串实现静默取消）。
+        -   **预览显示**: 在 Telescope 预览框中使用 `fnamemodify(path, ":~")` 将绝对路径（如 `/data00/home/xxx`）优化为以 `~` 开头的友好路径。
+    -   **开发规范**:
+        -   **LSP 诊断清理**: 在 Lua 回调中，对未使用的参数使用 `_` 命名（如 `entry_display = function(bookmark, _)`），避免触发 `unused-local` 警告。
+        -   **注释规范**: 避免在配置文件中使用会导致 LSP 报告 `undefined-doc-name` 的模糊类型注释（如 `Bookmarks.Node`）。
     -   **快捷键规范**:
         -   `mm`: 智能静默切换标记。
         -   `mn`/`mp`: 基于行号顺序在当前文件中跳转。
         -   `<leader>m`: 调用内置 Telescope 选择器，支持实时代码预览。
-    -   **边界 Case**:
-        -   若 `sqlite3` 运行库缺失，插件将无法加载。
-        -   Telescope 扩展加载：该插件不注册标准 Telescope 扩展名，需通过 Lua API 直接调用。

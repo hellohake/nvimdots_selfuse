@@ -10,6 +10,30 @@ return function()
 		end,
 	})
 
+	local function quote_prompt_with_postfix(postfix)
+		return function(prompt_bufnr)
+			local action_state = require("telescope.actions.state")
+			local picker = action_state.get_current_picker(prompt_bufnr)
+			local prompt = picker:_get_prompt()
+			local trimmed = vim.trim(prompt)
+			if trimmed == "" then
+				return
+			end
+
+			-- 核心逻辑：检查是否已经包裹了双引号，避免重复转义
+			if trimmed:sub(1, 1) == '"' and trimmed:sub(-1) == '"' then
+				-- 如果已经有引号了，且还没加过该后缀，则直接追加后缀
+				if not trimmed:find(postfix, 1, true) then
+					picker:set_prompt(trimmed .. postfix)
+				end
+			else
+				-- 没有引号，清理掉可能残留的首尾单边引号，然后统一重新包裹
+				local clean = trimmed:gsub('^"', ""):gsub('"$', "")
+				picker:set_prompt('"' .. clean .. '"' .. postfix)
+			end
+		end
+	end
+
 	require("modules.utils").load_plugin("telescope", {
 		defaults = {
 			vimgrep_arguments = {
@@ -77,11 +101,12 @@ return function()
 				ignore_patterns = { "*.git/*", "*/tmp/*" },
 			},
 			live_grep_args = {
-				auto_quoting = true, -- enable/disable auto-quoting
+				auto_quoting = true, -- 恢复为 true
 				mappings = { -- extend mappings
 					i = {
-						["<C-k>"] = lga_actions.quote_prompt(),
-						["<C-i>"] = lga_actions.quote_prompt({ postfix = " --iglob " }),
+						["<C-k>"] = quote_prompt_with_postfix(""),
+						["<C-i>"] = quote_prompt_with_postfix(" --iglob "),
+						["<C-g>"] = quote_prompt_with_postfix(" -F "),
 					},
 				},
 			},

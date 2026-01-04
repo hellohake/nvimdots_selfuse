@@ -1,8 +1,7 @@
 local tool = {}
 
 tool["LintaoAmons/bookmarks.nvim"] = {
-	dir = "/data00/home/lihao.hellohake/github_repo/nvim_plugin/bookmarks.nvim",
-	name = "lintao-bookmarks",
+	name = "bookmarks",
 	lazy = false,
 	dependencies = {
 		{ "kkharji/sqlite.lua" },
@@ -12,13 +11,10 @@ tool["LintaoAmons/bookmarks.nvim"] = {
 	config = function()
 		require("bookmarks").setup({
 			picker = {
-				---@param bookmark Bookmarks.Node
-				---@param bookmarks Bookmarks.Node[]
-				entry_display = function(bookmark, bookmarks)
+				entry_display = function(bookmark, _)
 					local name = bookmark.name
 					local filename = vim.fn.fnamemodify(bookmark.location.path, ":t")
-					-- 重点：使用 4 个字符缩写，对应 Neovim 0.10+ 的 pathshorten(path, len)
-					local path = vim.fn.pathshorten(bookmark.location.path, 4)
+					local path = vim.fn.fnamemodify(bookmark.location.path, ":~")
 					return string.format("%s │ %s │ %s", name, filename, path)
 				end,
 			},
