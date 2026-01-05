@@ -2,9 +2,26 @@ return function()
 	local icons = { ui = require("modules.utils.icons").get("ui", true) }
 	local actions = require("glance").actions
 
+	vim.api.nvim_create_autocmd("FileType", {
+		pattern = "Glance",
+		callback = function()
+			vim.schedule(function()
+				vim.opt_local.wrap = true
+			end)
+		end,
+	})
+
+	-- 自定义高亮以区分目录和文件 (适配 elflord 主题，确保清晰不刺眼)
+	vim.api.nvim_set_hl(0, "GlanceListFilename", { fg = "#90ee90", bold = true }) -- 浅绿色文件名
+	vim.api.nvim_set_hl(0, "GlanceListFilepath", { fg = "#87ceeb" })              -- 天蓝色目录路径
+	vim.api.nvim_set_hl(0, "GlanceListCount", { fg = "#ffd700" })                 -- 金色计数
+	vim.api.nvim_set_hl(0, "GlanceWinBarFilename", { fg = "#90ee90", bold = true })
+	vim.api.nvim_set_hl(0, "GlanceWinBarFilepath", { fg = "#87ceeb", italic = true })
+
 	require("modules.utils").load_plugin("glance", {
-		height = 20,
+		height = 25,
 		zindex = 50,
+		detached = true,
 		preview_win_opts = {
 			cursorline = true,
 			number = true,
@@ -17,7 +34,7 @@ return function()
 		},
 		list = {
 			position = "right",
-			width = 0.33, -- 33% width relative to the active window, min 0.1, max 0.5
+			width = 0.5,
 		},
 		folds = {
 			folded = true, -- Automatically fold list on startup
