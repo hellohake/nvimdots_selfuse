@@ -3,6 +3,9 @@ return {
 		lazy = false,
 		config = function()
 			require("auto-session").setup({
+				auto_save = true,
+				auto_restore = true,
+				auto_restore_last_session = false,
 				suppressed_dirs = { "~/", "~/Projects", "~/Downloads", "/" },
 				git_use_branch_name = true,
 				cwd_change_handling = true,

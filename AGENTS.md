@@ -156,7 +156,20 @@ The designated place for customization:
     -   **插件替换**: 使用 `auto-session` 替代内置的 `persisted.nvim`。需在 `user/settings.lua` 中将 `persisted.nvim` 加入 `disabled_plugins` 以彻底消除启动报错。
     -   **多分支隔离**: 启用 `git_use_branch_name = true`。会话文件命名采用 `项目路径 + 分支名` 的复合键，确保不同分支的窗口布局、缓冲区状态互不干扰。
     -   **项目感知搜索**: `<leader>ss` 调用 `session-lens` 时，通过 `default_text = fnamemodify(getcwd(), ":t")` 实现项目内隔离，默认仅显示当前项目的相关会话，按 `退格键` 可恢复全局搜索。
+    -   **自动保存与恢复逻辑**: 
+        -   `auto_save = true`: 退出项目时自动保存当前状态。
+        -   `auto_restore = true`: 进入项目目录时自动恢复该项目的状态。
+        -   **关键边界**: `auto_restore_last_session` 必须设为 `false`，以严格保持项目隔离，防止在没有会话记录的新项目中意外加载其他项目的全局最后会话。
     -   **UI 兼容性补丁**: 
         -   **Path Display**: 为防止 Telescope 在某些三方插件（如 `git-worktree`）中由于 `truncate` 策略导致 `layout` 字段空指针崩溃，全局默认应设为 `smart`。
         -   **Highlight Fallback**: 针对非 Catppuccin 主题（如 `elflord`），需手动定义 `TelescopeResultsIdentifier` 等高亮组链接（Link to `Identifier`），避免 Finder 渲染时抛出 `hl_group: Expected Lua string` 错误。
     -   **猴子补丁 (Monkey Patch)**: 对于存在代码缺陷的三方插件（如 `git-worktree` 的 Telescope 扩展），应在 `user/plugins/` 的 `config` 回调中进行函数重写。核心逻辑是修复其 `make_display` 函数中的数据结构，确保传递给渲染器的是纯字符串而非含有 `nil` 高亮组的 table。
+
+- **User Configuration Extension (核心机制)**:
+    -   **配置路径**: 优先使用 `lua/user/` 目录进行自定义。该目录已被 gitignore，且结构与 `lua/modules/` 对齐。
+    -   **加载逻辑 (`modules.utils.load_plugin`)**: 
+        -   该函数会自动检测 `lua/user/configs/` 下同名的 Lua 文件。
+        -   **合并模式**: 若用户文件返回 table，则递归合并到默认 opts。
+        -   **接管模式**: 若用户文件返回 function，该 function 将完全接管 setup 逻辑，系统不再调用默认 setup。
+    -   **全局变量覆盖**: 在 `lua/user/settings.lua` 和 `lua/user/options.lua` 中定义的键值对会自动覆盖 `lua/core/` 中的同名默认设置。
+    -   **插件开关**: 在 `user/settings.lua` 的 `disabled_plugins` 中列出插件全名（如 `"olimorris/persisted.nvim"`）可将其从加载列表中彻底移除。
