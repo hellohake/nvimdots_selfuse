@@ -99,12 +99,18 @@ return {
 	["n|<leader>e"] = map_cr("Noice dismiss"):with_noremap():with_silent():with_desc("Noice dismiss"),
 
 	["n|<leader>m"] = map_callback(function()
+			if _G.switch_bookmark_project_list then
+				_G.switch_bookmark_project_list()
+			end
 			require("bookmarks").goto_bookmark()
 		end)
 		:with_noremap()
 		:with_silent()
 		:with_desc("Bookmarks: List with preview"),
 	["n|mm"] = map_callback(function()
+			if _G.switch_bookmark_project_list then
+				_G.switch_bookmark_project_list()
+			end
 			_G.smart_toggle_bookmark()
 		end)
 		:with_noremap()
