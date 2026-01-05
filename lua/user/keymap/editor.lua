@@ -137,4 +137,26 @@ return {
 		:with_silent()
 		:with_desc("git: Toggle diff against master"),
 	["n|<leader>gd"] = map_cr("lua _G.toggle_diffview()"):with_noremap():with_silent():with_desc("git: Toggle diffview"),
+	-- auto-session
+	["n|<leader>ss"] = map_callback(function()
+			require("auto-session.pickers.telescope").extension_search_session({
+				picker_opts = {
+					default_text = vim.fn.fnamemodify(vim.fn.getcwd(), ":t"),
+				},
+			})
+		end)
+		:with_noremap()
+		:with_silent()
+		:with_desc("Session: Search (Current Project)"),
+	["n|<leader>as"] = map_cr("AutoSession save"):with_noremap():with_silent():with_desc("Session: Save"),
+	-- git-worktree
+	["n|<leader>gw"] = map_callback(function()
+			require("telescope").extensions.git_worktree.git_worktrees({
+				path_display = { "absolute" },
+			})
+		end)
+		:with_noremap()
+		:with_silent()
+		:with_desc("Git: Worktrees"),
+	["n|<leader>gn"] = map_cr("Telescope git_worktree create_git_worktree"):with_noremap():with_silent():with_desc("Git: Create worktree"),
 }

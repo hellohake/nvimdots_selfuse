@@ -138,7 +138,7 @@ The designated place for customization:
     -   **冲突预防**: 由于多个插件可能使用相同的 Repo 名称（如 `crusj/bookmarks.nvim`），在 `lazy.nvim` 配置中显式指定 `name = "bookmarks"` 以确保加载正确的模块路径。
     -   **项目隔离**: 
         -   通过 `Active List` 机制实现项目间隔离。
-        -   自动化逻辑：监听 `VimEnter` 和 `DirChanged` 事件，根据当前 CWD 文件夹名自动切换或创建对应的 `Active List`。
+        -   自动化逻辑：监听 `VimEnter` 和 `DirChanged` 事件，根据当前 CWD 文件夹名自动切换 or 创建对应的 `Active List`。
         -   **稳定性**: 使用 `vim.defer_fn(..., 100)` 延迟执行切换逻辑，避免在插件初始化尚未完成时调用 API 导致报错。
     -   **交互优化**:
         -   实现 `_G.smart_toggle_bookmark` 函数。
@@ -151,3 +151,12 @@ The designated place for customization:
         -   `mm`: 智能静默切换标记。
         -   `mn`/`mp`: 基于行号顺序在当前文件中跳转。
         -   `<leader>m`: 调用内置 Telescope 选择器，支持实时代码预览。
+
+- **Session & Workflow Management (新增)**:
+    -   **插件替换**: 使用 `auto-session` 替代内置的 `persisted.nvim`。需在 `user/settings.lua` 中将 `persisted.nvim` 加入 `disabled_plugins` 以彻底消除启动报错。
+    -   **多分支隔离**: 启用 `git_use_branch_name = true`。会话文件命名采用 `项目路径 + 分支名` 的复合键，确保不同分支的窗口布局、缓冲区状态互不干扰。
+    -   **项目感知搜索**: `<leader>ss` 调用 `session-lens` 时，通过 `default_text = fnamemodify(getcwd(), ":t")` 实现项目内隔离，默认仅显示当前项目的相关会话，按 `退格键` 可恢复全局搜索。
+    -   **UI 兼容性补丁**: 
+        -   **Path Display**: 为防止 Telescope 在某些三方插件（如 `git-worktree`）中由于 `truncate` 策略导致 `layout` 字段空指针崩溃，全局默认应设为 `smart`。
+        -   **Highlight Fallback**: 针对非 Catppuccin 主题（如 `elflord`），需手动定义 `TelescopeResultsIdentifier` 等高亮组链接（Link to `Identifier`），避免 Finder 渲染时抛出 `hl_group: Expected Lua string` 错误。
+    -   **猴子补丁 (Monkey Patch)**: 对于存在代码缺陷的三方插件（如 `git-worktree` 的 Telescope 扩展），应在 `user/plugins/` 的 `config` 回调中进行函数重写。核心逻辑是修复其 `make_display` 函数中的数据结构，确保传递给渲染器的是纯字符串而非含有 `nil` 高亮组的 table。

@@ -12,4 +12,8 @@ settings["formatter_block_list"] = {
 	thrift = false,
 }
 
+settings["disabled_plugins"] = {
+	"olimorris/persisted.nvim",
+}
+
 return settings

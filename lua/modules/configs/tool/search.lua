@@ -105,7 +105,13 @@ return function()
 					{
 						name = "Sessions",
 						tele_func = function()
-							extensions.persisted.persisted()
+							if extensions["session-lens"] then
+								extensions["session-lens"]["session-lens"]()
+							elseif extensions.persisted then
+								extensions.persisted.persisted()
+							else
+								vim.cmd("AutoSession search")
+							end
 						end,
 					},
 					{
