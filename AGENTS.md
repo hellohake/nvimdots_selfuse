@@ -12,38 +12,41 @@
 -   **User (`lua/user/`)**: **Agent 与用户的核心工作区**。
     -   `configs/`: 存放覆盖默认插件配置的脚本。
     -   `plugins/`: 存放用户自定义的新插件。
-    -   `sys_cfg/`: **重要**。存放由 `sync_cfg` 自动同步的外部系统配置（.zshrc, .tmux.conf 等）。
+    -   `sys_cfg/`: **核心同步区**。存放由 `sync_cfg` 自动从系统同步的 `.zshrc`, `.tmux.conf` 等。**Agent 修改系统配置后应确保同步至此。**
 
 ### 1.2 插件加载原则 (`load_plugin`)
-Agent 必须理解 `lua/modules/utils/init.lua` 中的加载逻辑：
 -   **优先覆盖**：系统会自动检测 `user/configs/` 下同名文件。
--   **Monkey Patching**：若修复复杂逻辑（如修复 Telescope 渲染 Bug），应在 `user/configs/` 返回一个 function 来完全接管 `setup`。
+-   **Monkey Patching**：若修复复杂逻辑，应在 `user/configs/` 返回一个 function 来完全接管 `setup`。
 
 ---
 
 ## 2. Shell & 终端环境优化 (专家级配置)
 
-针对远程 SSH、大型单体仓库 (Monorepo) 及多面板协作进行了深度调优。
+针对远程 SSH、大型单体仓库 (Monorepo) 及多面板协作进行了深度性能调优。
 
-### 2.1 Zsh 极致性能
--   **补全系统缓存**：使用 `compinit -C` 并配合 24 小时缓存检查，避免在远程 I/O 上扫描数千个补全脚本。
--   **NVM 懒加载**：通过函数封装实现 `node/npm/nvm` 按需加载，解决 Shell 启动超过 1 分钟的性能顽疾。
--   **幂等加载**：插件加载均包含 `(( $+functions[...] ))` 检查，彻底杜绝 `maximum nested function level` 递归报错。
--   **路径校准**：显式校准物理路径 `$HOME`，确保 `%~` 缩写正常及 LSP 根目录识别精准。
+### 2.1 Zsh 极致性能与启动优化
+-   **补全系统缓存**：使用 `compinit -C` 并配合 `extendedglob` 选项进行精准的 24 小时缓存检查，避免在远程 I/O 上扫描数千个补全脚本。
+-   **环境加载缓存**：
+    -   `brew shellenv` 结果缓存至 `~/.cache/zsh_brew_cache`，避免每次启动执行 Ruby 二进制文件。
+    -   `thefuck` 等 Python 驱动的别名直接硬编码为 Zsh 函数，消除进程启动开销。
+-   **NVM 懒加载**：通过函数封装实现 `node/npm/nvm` 按需加载，解决 Shell 启动延迟。
+-   **路径校准与缩写**：显式校准 `$HOME` 为物理路径或一致的软链接路径，确保 `%~` 缩写正常（如 `~/.config/nvim`）及 LSP 根目录识别精准。
+-   **Prompt 优化**：使用两行式 Prompt。第一行包含“用户、缩略路径（保留末级目录）、Git 分支、时间”；第二行固定为 `$ `。
 
-### 2.2 Tmux 高级协作
--   **OSC 52 透传**：配置 `set-clipboard on` 和 `allow-passthrough on`，支持穿透 SSH 复制文本到本地 Mac 剪贴板。
--   **全局同步 (`sourceall`)**：一键刷新所有 tmux 面板配置，具备自动跳过非 Shell 程序及当前面板的智能过滤逻辑。
+### 2.2 Tmux 高级协作与并行化
+-   **OSC 52 透传**：配置 `set-clipboard on` 和 `allow-passthrough on`，支持穿透 SSH 复制文本。
+-   **并行刷新 (`sourceall`)**：使用 `xargs -P 4` 并行刷新所有 tmux 面板配置。通过 `SKIP_SYNC=1` 环境变量避免多面板同时刷新时的 I/O 竞争与卡顿。
 
 ### 2.3 自动配置同步 (`sync_cfg`)
-`.zshrc` 中的 `sync_cfg` 函数在每次 Shell 启动或 `source` 时运行，自动将 `~/.zshrc`, `~/.tmux.conf`, `~/start_gopls.sh` 同步至 `lua/user/sys_cfg/`，确保环境配置随代码仓库一同进行版本管理。
+-   `.zshrc` 中的 `sync_cfg` 具备幂等性，仅在文件有实际更新（`-nt` 检查）时同步。
+-   同步路径：`~/.zshrc` -> `lua/user/sys_cfg/.zshrc`。
 
 ---
 
-## 3. LSP 与 开发工具链 (Golang 示例)
+## 3. LSP 与 开发工具链
 
 -   **Gopls 守护进程**：使用 `start_gopls.sh` 脚本管理 gopls 生命周期，提升多项目下的补全稳定性。
--   **快捷键管理**：统一使用 `lua/keymap/bind.lua` 的辅助函数（`map_cr`, `map_cu` 等），支持链式描述和静默执行。
+-   **Git 性能**：在大仓库中通过 `zstyle ':omz:plugins:git' status-ignore-submodules true` 禁用子模块检查，显著加速 Prompt 响应。
 
 ---
 
@@ -51,19 +54,18 @@ Agent 必须理解 `lua/modules/utils/init.lua` 中的加载逻辑：
 
 ### 4.1 核心操作守则
 1.  **禁止直接修改 Core**：所有针对插件的修改必须在 `lua/user/configs/` 中通过覆盖实现。
-2.  **绝对路径安全**：在配置文件中优先使用 `$HOME` 或物理路径，避免依赖可能导致缩写失效的软链接。
-3.  **Idempotency (幂等性)**：所有的 shell 脚本写入必须可重复执行且不产生副作用。
+2.  **Idempotency (幂等性)**：所有的 shell 脚本修改必须支持重复执行。
+3.  **配置双向一致性**：修改 `~/.zshrc` 后，必须运行 `sync_cfg` 确保 nvim 仓库内的备份同步更新。
 
-### 4.2 常用专家快捷键
+### 4.2 常用专家命令
 -   **Leader Key**: `<Space>`
--   **Git Copy Branch**: `copygb` (Shell 命令，带 OSC 52 支持)
--   **Reload All Configs**: `sourceall` (Shell 命令)
+-   **Git Copy Branch**: `copygb` (带 OSC 52 支持)
+-   **Reload All Configs**: `sourceall` (并行加速版)
 -   **Gopls 控制**: `gostart`, `gorestart`, `gostatus`
 
 ---
 
 ## 5. 常见问题排查 (Troubleshooting)
-
--   **加载慢**：运行 `zprof` 分析 `compinit` 或外部 `eval` 调用。
--   **复制失败**：检查 iTerm2 的 `Applications may access clipboard` 设置及 tmux 的 `allow-passthrough`。
--   **路径显示错误**：对比 `pwd` 结果与 `$HOME` 导出路径是否完全一致。
+-   **加载慢**：运行 `zprof` 分析。重点检查 `compinit` 和外部 `eval` 调用。
+-   **路径显示错误**：检查 `HOME` 变量是否与当前 `pwd` 的路径前缀物理一致。
+-   **并发冲突**：在多脚本操作同一文件时，使用 `SKIP_SYNC` 或临时文件锁定。

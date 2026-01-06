@@ -7,7 +7,8 @@ export ZSH="$HOME/.oh-my-zsh"
 # 每天只进行一次完整的 compinit 检查，其余时间使用缓存 (-C)
 autoload -Uz compinit
 _comp_path="$ZSH/cache/zcompdump-$HOST"
-if [[ -n "$_comp_path(#qN.m-1)" ]]; then
+setopt localoptions extendedglob
+if [[ -n "$_comp_path"(#qN.m-1) ]]; then
     compinit -C -d "$_comp_path"
 else
     compinit -i -d "$_comp_path"
@@ -33,6 +34,9 @@ plugins=(
     zsh-autosuggestions
     zsh-syntax-highlighting
 )
+
+# Git 性能优化：大型仓库禁用子模块状态检查，必要时可禁用 dirty-check
+zstyle ':omz:plugins:git' status-ignore-submodules true
 
 source $ZSH/oh-my-zsh.sh
 
@@ -70,11 +74,15 @@ copygb() {
 
 # 自动同步配置文件到 nvim 仓库供 Git 管理
 sync_cfg() {
+    [[ -n "$SKIP_SYNC" ]] && return
     local target_dir="$HOME/.config/nvim/lua/user/sys_cfg"
     if [ -d "$target_dir" ]; then
-        cp ~/.zshrc "$target_dir/.zshrc"
-        cp ~/.tmux.conf "$target_dir/.tmux.conf"
-        [ -f "$HOME/start_gopls.sh" ] && cp "$HOME/start_gopls.sh" "$target_dir/start_gopls.sh"
+        # 仅在文件有更新时同步，避免 sourceall 时的并发冲突
+        [[ ~/.zshrc -nt "$target_dir/.zshrc" ]] && cp ~/.zshrc "$target_dir/.zshrc"
+        [[ ~/.tmux.conf -nt "$target_dir/.tmux.conf" ]] && cp ~/.tmux.conf "$target_dir/.tmux.conf"
+        if [ -f "$HOME/start_gopls.sh" ]; then
+            [[ "$HOME/start_gopls.sh" -nt "$target_dir/start_gopls.sh" ]] && cp "$HOME/start_gopls.sh" "$target_dir/start_gopls.sh"
+        fi
     fi
 }
 # 启动或 source 时自动执行同步
@@ -90,7 +98,8 @@ bindkey '^p' up-line-or-history
 bindkey '^n' down-line-or-history
 
 # 让所有 tmux 面板重新加载 zsh 配置 (自动避开 vim/top 等非 shell 程序，且跳过当前面板)
-alias sourceall='tmux list-panes -a -F "#{pane_id} #{pane_current_command}" | grep -E "zsh$|bash$|sh$" | grep -v "^$(tmux display-message -p "#D") " | awk "{print \$1}" | xargs -I {} tmux send-keys -t {} "source ~/.zshrc" Enter'
+# 使用 -P 4 并行执行，并设置 SKIP_SYNC=1 避免同步冲突
+alias sourceall='tmux list-panes -a -F "#{pane_id} #{pane_current_command}" | grep -E "zsh$|bash$|sh$" | grep -v "^$(tmux display-message -p "#D") " | awk "{print \$1}" | xargs -P 4 -I {} tmux send-keys -t {} "SKIP_SYNC=1 source ~/.zshrc" Enter'
 
 export http_proxy=http://sys-proxy-rd-relay.byted.org:8118  https_proxy=http://sys-proxy-rd-relay.byted.org:8118  no_proxy=*.byted.org
 function Proxy() {
@@ -144,8 +153,31 @@ npx() { _load_nvm; npx "$@" }
 # 性能优化：环境变量与 eval 缓存 (仅在初次 source 时加载)
 # -------------------------------------------------------------------
 if [[ -z "$_CFG_SYNCED" ]]; then
-    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-    eval $(thefuck --alias)
+    # 缓存 brew shellenv 以避免每次启动都运行 brew 二进制文件
+    _brew_cache="$HOME/.cache/zsh_brew_cache"
+    if [[ -f "$_brew_cache" ]]; then
+        source "$_brew_cache"
+    else
+        mkdir -p "$HOME/.cache"
+        /home/linuxbrew/.linuxbrew/bin/brew shellenv > "$_brew_cache" 2>/dev/null
+        source "$_brew_cache"
+    fi
+
+    # thefuck 初始化较慢，直接定义 alias 函数
+    fuck () {
+        TF_PYTHONIOENCODING=$PYTHONIOENCODING;
+        export TF_SHELL=zsh;
+        export TF_ALIAS=fuck;
+        TF_SHELL_ALIASES=$(alias);
+        export TF_SHELL_ALIASES;
+        TF_HISTORY="$(fc -ln -10)";
+        export TF_HISTORY;
+        export PYTHONIOENCODING=utf-8;
+        TF_CMD=$(thefuck THEFUCK_ARGUMENT_PLACEHOLDER $@) && eval $TF_CMD;
+        unset TF_HISTORY;
+        export PYTHONIOENCODING=$TF_PYTHONIOENCODING;
+        test -n "$TF_CMD" && print -s $TF_CMD
+    }
 fi
 export _CFG_SYNCED=1
 
@@ -178,11 +210,11 @@ export TLDR_LANG=zh_CN
 # zprof
 
 # 修正 HOME 路径以确保 %~ 能正确缩写路径 (设置为物理路径以匹配 pwd)
-export HOME="/data00/home/lihao.hellohake"
+export HOME="/home/lihao.hellohake"
 
 # 自定义 Prompt 格式
-# %n = 用户名, %~ = 相对路径, %* = 时间, %D{%Y-%m-%d} = 年月日
-PROMPT='%{$fg[cyan]%}%n%{$reset_color%} %{$fg[blue]%}%~%{$reset_color%} $(git_prompt_info) %{$fg[green]%}[%D{%Y-%m-%d} %*]%{$reset_color%}
+# %n = 用户名, %~ = 相对路径, %* = 时间
+PROMPT='%{$fg[cyan]%}%n%{$reset_color%} %{$fg[blue]%}%40<..<%~%<<%{$reset_color%} $(git_prompt_info) %{$fg[green]%}[%*]%{$reset_color%}
 $ '
 
 # Added by trae-gopls installer
