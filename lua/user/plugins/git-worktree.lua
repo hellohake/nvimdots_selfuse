@@ -6,6 +6,24 @@ return {
 			local git_worktree = require("git-worktree")
 			git_worktree.setup({})
 
+			-- 自动化：创建新 Worktree 时自动为根目录的共享文件创建软链接
+			git_worktree.on_tree_change(function(op, metadata)
+				if op == git_worktree.Operations.Create then
+					local shared_items = { ".coco", ".ai_doc", "AGENTS.md" }
+					local target_path = metadata.path
+					local root = vim.fn.fnamemodify(target_path, ":h")
+
+					for _, item in ipairs(shared_items) do
+						local source = root .. "/" .. item
+						local dest = target_path .. "/" .. item
+						-- 如果源文件存在且目标不存在，则创建软链接
+						if vim.fn.getftype(source) ~= "" and vim.fn.getftype(dest) == "" then
+							os.execute(string.format("ln -s %s %s", source, dest))
+						end
+					end
+				end
+			end)
+
 			-- 猴子补丁修复 Telescope 扩展中的高亮报错
 			local ok, telescope = pcall(require, "telescope")
 			if ok then
@@ -74,7 +92,17 @@ return {
 								action_set.select:replace(function()
 									local selection = require("telescope.actions.state").get_selected_entry()
 									require("telescope.actions").close(prompt_bufnr)
+
+									-- 切换前强制保存所有文件，防止因未保存导致切换失败
+									vim.cmd("silent! wa")
+
+									-- 执行插件切换逻辑
 									git_wt.switch_worktree(selection.path)
+
+									-- 强制延时执行 CD，确保路径切换成功且不被其他插件拦截
+									vim.schedule(function()
+										vim.cmd("cd " .. selection.path)
+									end)
 								end)
 								map("i", "<c-d>", function()
 									local selection = require("telescope.actions.state").get_selected_entry()

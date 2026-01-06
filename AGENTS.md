@@ -1,71 +1,88 @@
 # Architecture & Expert Guide for Agents (Full Summary)
 
-本文档为 `nvimdots` 及其关联的开发环境（Zsh, Tmux, Git, Go）提供专家级的架构总结、配置原则及 Agent 操作指南。
+> **并发修改协议 (Concurrent Modification Protocol)**:
+> 1. **共享感知**: 本项目采用 Git Worktree 模式，核心文件（如 `AGENTS.md`, `.coco/`, `.ai_doc/`）通过软链接 (Symlink) 在各工作区间共享。
+> 2. **原子编辑**: 修改共享文件前必须先 `Read` 全量内容。严禁盲目 `Write` 覆盖，必须使用 `Edit` 工具进行局部精准替换。
+> 3. **精简闭环**: 严禁无脑追加内容。Agent 有责任在修改时合并重复项、精简描述，确保文档结构清晰。
+
+本文档为 `nvimdots` 及其开发环境提供专家级架构总结、配置原则及 Agent 操作指南。
+
+---
 
 ## 1. 配置哲学与核心架构
 
-`nvimdots` 采用高度模块化的设计，旨在提供开箱即用且易于扩展的极致体验。
+`nvimdots` 采用高度模块化的设计，支持开箱即用的扩展。
 
 ### 1.1 模块化分层
--   **Core (`lua/core/`)**: 负责环境初始化（Paths, Global Variables）、全局选项（Options）、事件系统（Autocmds）及插件引导（Pack/Lazy）。
--   **Modules (`lua/modules/`)**: 功能实现区，分为 `completion`, `editor`, `lang`, `tool`, `ui`。每个插件均有独立的 `plugins.lua` 声明和 `configs/` 详细配置。
--   **User (`lua/user/`)**: **Agent 与用户的核心工作区**。
-    -   `configs/`: 存放覆盖默认插件配置的脚本。
-    -   `plugins/`: 存放用户自定义的新插件。
-    -   `sys_cfg/`: **核心同步区**。存放由 `sync_cfg` 自动从系统同步的 `.zshrc`, `.tmux.conf` 等。**Agent 修改系统配置后应确保同步至此。**
+- **Core (`lua/core/`)**: 环境初始化、全局选项、插件引导。
+- **Modules (`lua/modules/`)**: 插件声明与详细配置（`configs/`）。
+- **User (`lua/user/`)**: **Agent 核心工作区**。
+    - `configs/`: 覆盖/扩展默认插件配置。
+    - `plugins/`: 用户自定义插件。
+    - `sys_cfg/`: 存放系统同步的 `.zshrc`, `.tmux.conf` 等（由 `sync_cfg` 维护）。
 
-### 1.2 插件加载原则 (`load_plugin`)
--   **优先覆盖**：系统会自动检测 `user/configs/` 下同名文件。
--   **Monkey Patching**：若修复复杂逻辑，应在 `user/configs/` 返回一个 function 来完全接管 `setup`。
-
----
-
-## 2. Shell & 终端环境优化 (专家级配置)
-
-针对远程 SSH、大型单体仓库 (Monorepo) 及多面板协作进行了深度性能调优。
-
-### 2.1 Zsh 极致性能与启动优化
--   **补全系统缓存**：使用 `compinit -C` 并配合 `extendedglob` 选项进行精准的 24 小时缓存检查，避免在远程 I/O 上扫描数千个补全脚本。
--   **环境加载缓存**：
-    -   `brew shellenv` 结果缓存至 `~/.cache/zsh_brew_cache`，避免每次启动执行 Ruby 二进制文件。
-    -   `thefuck` 等 Python 驱动的别名直接硬编码为 Zsh 函数，消除进程启动开销。
--   **NVM 懒加载**：通过函数封装实现 `node/npm/nvm` 按需加载，解决 Shell 启动延迟。
--   **路径校准与缩写**：显式校准 `$HOME` 为物理路径或一致的软链接路径，确保 `%~` 缩写正常（如 `~/.config/nvim`）及 LSP 根目录识别精准。
--   **Prompt 优化**：使用两行式 Prompt。第一行包含“用户、缩略路径（保留末级目录）、Git 分支、时间”；第二行固定为 `$ `。
-
-### 2.2 Tmux 高级协作与并行化
--   **OSC 52 透传**：配置 `set-clipboard on` 和 `allow-passthrough on`，支持穿透 SSH 复制文本。
--   **并行刷新 (`sourceall`)**：使用 `xargs -P 4` 并行刷新所有 tmux 面板配置。通过 `SKIP_SYNC=1` 环境变量避免多面板同时刷新时的 I/O 竞争与卡顿。
-
-### 2.3 自动配置同步 (`sync_cfg`)
--   `.zshrc` 中的 `sync_cfg` 具备幂等性，仅在文件有实际更新（`-nt` 检查）时同步。
--   同步路径：`~/.zshrc` -> `lua/user/sys_cfg/.zshrc`。
+### 1.2 插件加载与 Monkey Patching
+- 系统优先检测 `user/configs/` 下同名文件。
+- 对于复杂逻辑（如 `git-worktree` 的 Telescope 扩展修复），应在 `user/configs/` 中通过返回 function 接管 `setup`。
 
 ---
 
-## 3. LSP 与 开发工具链
+## 2. Git Worktree 专家级架构
 
--   **Gopls 守护进程**：使用 `start_gopls.sh` 脚本管理 gopls 生命周期，提升多项目下的补全稳定性。
--   **Git 性能**：在大仓库中通过 `zstyle ':omz:plugins:git' status-ignore-submodules true` 禁用子模块检查，显著加速 Prompt 响应。
+本项目推荐采用 **Bare Repository + Worktree** 的平级管理模式。
+
+### 2.1 物理结构标准
+```text
+<project_root>/
+├── .bare/          # 物理 Git 数据（原 .git）
+├── .git            # 指向 .bare 的指针文件
+├── main/           # 主工作区 (master 分支)
+├── feat-xxx/       # 特性工作区
+├── .coco/          # [根部存储] 共享工具配置 (软链接至各子目录)
+├── .ai_doc/        # [根部存储] 共享文档 (软链接至各子目录)
+└── AGENTS.md       # [根部存储] 专家手册 (软链接至各子目录)
+```
+
+### 2.2 操作规范
+- **新建 Worktree**: 在 Neovim 中路径应填 `../分支名`，以确保平级目录结构。
+- **自动化钩子**: 插件已配置 `on_tree_change` 钩子，创建新工作区时会自动为上述共享文件建立软链接。
+- **强制 CD**: 切换工作区已配置 `vim.schedule` 强制跳转，防止 CWD 被其他插件拦截。
+- **切换前自动保存**: 切换工作区会自动执行 `silent! wa`，避免因未保存导致切换失败。
 
 ---
 
-## 4. Agent 操作标准 (Best Practices)
+## 3. Shell & 终端环境优化
 
-### 4.1 核心操作守则
-1.  **禁止直接修改 Core**：所有针对插件的修改必须在 `lua/user/configs/` 中通过覆盖实现。
-2.  **Idempotency (幂等性)**：所有的 shell 脚本修改必须支持重复执行。
-3.  **配置双向一致性**：修改 `~/.zshrc` 后，必须运行 `sync_cfg` 确保 nvim 仓库内的备份同步更新。
+### 3.1 Zsh & Tmux
+- **OSC 52**: 支持穿透 SSH 复制。
+- **并行刷新**: `sourceall` 使用 `xargs -P 4` 并行刷新所有 tmux 面板。
+- **NVM 懒加载**: 解决 Shell 启动延迟。
 
-### 4.2 常用专家命令
--   **Leader Key**: `<Space>`
--   **Git Copy Branch**: `copygb` (带 OSC 52 支持)
--   **Reload All Configs**: `sourceall` (并行加速版)
--   **Gopls 控制**: `gostart`, `gorestart`, `gostatus`
+### 3.2 自动同步 (`sync_cfg`)
+- 修改 `~/.zshrc` 后必须运行 `sync_cfg` 同步至 `lua/user/sys_cfg/`。
 
 ---
 
-## 5. 常见问题排查 (Troubleshooting)
--   **加载慢**：运行 `zprof` 分析。重点检查 `compinit` 和外部 `eval` 调用。
--   **路径显示错误**：检查 `HOME` 变量是否与当前 `pwd` 的路径前缀物理一致。
--   **并发冲突**：在多脚本操作同一文件时，使用 `SKIP_SYNC` 或临时文件锁定。
+## 4. LSP 与 开发维护
+
+- **Gopls 守护进程**: 使用 `start_gopls.sh` 管理。在删除或移动 Worktree 后，若出现 `no package metadata` 报错，应执行 `:gorestart` 或 `:LspRestart`。
+- **Git 性能**: 大仓库禁用子模块状态检查以加速 Prompt。
+
+---
+
+## 5. 常用专家命令 (Keymaps)
+
+- **Leader Key**: `<Space>`
+- **Worktree 管理**:
+    - `<leader>gn`: 创建新工作区 (Path 需加 `../`)
+    - `<leader>gw`: 切换/管理工作区 (Telescope 界面)
+    - `<C-d>` (Telescope 列表内): 删除选中工作区
+- **代码控制**: `copygb` (复制分支名), `sourceall` (重载配置)
+- **LSP 控制**: `gostart`, `gorestart`, `gostatus`
+
+---
+
+## 6. 常见问题 (Troubleshooting)
+- **切换失败**: 检查是否有未保存缓冲区，或路径是否使用了正确的相对路径。
+- **共享文件冲突**: 遵循顶部的 **并发修改协议**，使用分片文件或原子编辑。
+- **LSP 报错**: 运行 `git worktree prune` 清理无效记录后重启 LSP。
