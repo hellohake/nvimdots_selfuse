@@ -53,7 +53,12 @@ function M.lsp(buf)
 			:with_buffer(buf)
 			:with_desc("lsp: Code action for cursor"),
 		["n|gD"] = map_cr("Glance definitions"):with_silent():with_buffer(buf):with_desc("lsp: Preview definition"),
-		["n|gd"] = map_cr("Lspsaga goto_definition"):with_silent():with_buffer(buf):with_desc("lsp: Goto definition"),
+		["n|gd"] = map_callback(function()
+				vim.lsp.buf.definition()
+			end)
+			:with_silent()
+			:with_buffer(buf)
+			:with_desc("lsp: Goto definition"),
 		["n|gh"] = map_cr("Glance references"):with_silent():with_buffer(buf):with_desc("lsp: Show reference"),
 		["n|gm"] = map_cr("Glance implementations")
 			:with_silent()

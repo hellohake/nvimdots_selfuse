@@ -18,6 +18,7 @@ completion["neovim/nvim-lspconfig"] = {
 }
 completion["nvimdev/lspsaga.nvim"] = {
 	lazy = true,
+	cmd = "Lspsaga",
 	event = "LspAttach",
 	config = require("completion.lspsaga"),
 	dependencies = { "nvim-tree/nvim-web-devicons" },

@@ -78,7 +78,7 @@ return function()
 			},
 		},
 		hooks = {
-			before_open = function(results, open, _, method)
+			before_open = function(results, open, jump, method)
 				if #results == 0 then
 					vim.notify(
 						"This method is not supported by any of the servers registered for the current buffer",
@@ -86,11 +86,9 @@ return function()
 						{ title = "Glance" }
 					)
 				elseif #results == 1 and method == "references" then
-					vim.notify(
-						"The identifier under cursor is the only one found",
-						vim.log.levels.INFO,
-						{ title = "Glance" }
-					)
+					-- 如果只有一条引用，且就是当前位置，Glance 默认不打开。
+					-- 这里改为直接打开窗口，让用户确认。或者你可以选择直接 jump(results[1])
+					open(results)
 				else
 					open(results)
 				end

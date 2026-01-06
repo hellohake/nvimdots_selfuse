@@ -130,29 +130,30 @@ The designated place for customization:
         -   `<C-k>`: 智能添加双引号（若未添加）。
         -   `<C-g>`: 智能加引号并追加 `-F`（字面量搜索）。
         -   `<C-i>`: 智能加引号并追加 `--iglob`（过滤文件）。
-    -   **忽略目录**: `kitex_gen/`、`build/` 等目录在 `telescope.lua` 中默认被忽略。若需搜索这些目录，需临时在搜索框后添加 `--no-ignore` 或从配置文件中移除对应项。
+    -   **忽略目录**: `kitex_gen/`、`build/` 等目录在 `telescope.lua` 中默认被忽略。
+
+- **Glance & Code Navigation (核心边界处理)**:
+    -   **路径展示优化**: 针对深层目录项目（如 Golang），`Glance` 默认侧边栏容易截断路径。
+    -   **最佳实践**: 
+        -   启用 `detached = true` 使其使用编辑器的全屏宽度。
+        -   使用 `FileType` 自动命令配合 `vim.schedule` 强制开启 `vim.wo.wrap = true`，确保路径显示完整且支持换行。
+    -   **逻辑优化**: 移除了 `before_open` 钩子中对“仅有一条引用”时的拦截逻辑（原逻辑仅通过 notify 提示而不打开窗口）。修改后，即便只有一条引用也会打开 Glance 预览窗，方便用户确认或跳转。
+    -   **跳转增强**: 将 `gd` (Goto Definition) 的实现从 `Lspsaga` 切换回原生的 `vim.lsp.buf.definition()`。原因：`Lspsaga` 的命令在某些环境下（如 Thrift 文件中）可能由于加载时序或版本兼容性导致 `E492` 报错。原生跳转更稳定且符合预期。
+    -   **配置限制**: `list.position` 仅支持 `left` 或 `right`，不支持 `bottom`。
+    -   **高亮规范**: 对于非 Catppuccin 主题（如 `elflord`），需手动通过 `vim.api.nvim_set_hl` 定义 `GlanceListFilename` 和 `GlanceListFilepath` 以区分文件名和路径。
+
+- **LSP & Language Specifics**:
+    -   **Thrift**: 针对 Thrift 文件无法正确跳转引用的问题，新增了 `lua/modules/configs/completion/servers/thriftls.lua`。
+    -   **路径约束**: 配置 `root_dir` 优先匹配用户指定的 IDL 核心目录（`/data00/home/lihao.hellohake/go/src/code.byted.org/ecom/service_rpc_idl/aweme/search/`），并将其加入 `includeDirs`，从而确保 LSP 能够精准地索引该目录下的定义与引用。
+    -   **基本优化**: 启用了 `allow_incremental_sync = true` 并将 `debounce_text_changes` 设置为 `500`，平衡了响应速度与系统负载。
 
 - **Bookmark Management**:
     -   **核心工具**: 使用 `LintaoAmons/bookmarks.nvim` (v3+)，基于 `extmarks` 实现标记随代码自动移动。
-    -   **持久化**: 依赖 `kkharji/sqlite.lua` 将书签存储在 SQLite 数据库中（默认路径 `stdpath("data")`）。
-    -   **冲突预防**: 由于多个插件可能使用相同的 Repo 名称（如 `crusj/bookmarks.nvim`），在 `lazy.nvim` 配置中显式指定 `name = "bookmarks"` 以确保加载正确的模块路径。
+    -   **持久化**: 依赖 `kkharji/sqlite.lua`。
     -   **项目隔离**: 
         -   通过 `Active List` 机制实现项目间隔离。
-        -   自动化逻辑：监听 `VimEnter` 和 `DirChanged` 事件，根据当前 CWD 文件夹名自动切换 or 创建对应的 `Active List`。
-        -   **多实例防干扰**: 由于插件使用共享的 SQLite 数据库存储“全局激活列表”，在多实例（如 tmux 多个 pane）环境下，实例 B 启动会篡改实例 A 的激活列表。
-        -   **解决方案**: 在 `<leader>m` (列表) 和 `mm` (切换) 的快捷键回调中注入 `switch_bookmark_project_list()` 逻辑，实现“即用即切”，确保每个实例在操作书签前都强制校准回属于自己的项目列表。
-        -   **稳定性**: 使用 `vim.defer_fn(..., 200)` 延迟执行切换逻辑，避免在插件初始化尚未完成时调用 API 导致报错。
-    -   **交互优化**:
-        -   实现 `_G.smart_toggle_bookmark` 函数。
-        -   `mm`: 智能静默切换。若当前行无标记，弹出输入框输入名称；若已有标记，直接删除（传入空字符串实现静默取消）。
-        -   **预览显示**: 在 Telescope 预览框中使用 `fnamemodify(path, ":~")` 将绝对路径（如 `/data00/home/xxx`）优化为以 `~` 开头的友好路径。
-    -   **开发规范**:
-        -   **LSP 诊断清理**: 在 Lua 回调中，对未使用的参数使用 `_` 命名（如 `entry_display = function(bookmark, _)`），避免触发 `unused-local` 警告。
-        -   **注释规范**: 避免在配置文件中使用会导致 LSP 报告 `undefined-doc-name` 的模糊类型注释（如 `Bookmarks.Node`）。
-    -   **快捷键规范**:
-        -   `mm`: 智能静默切换标记。
-        -   `mn`/`mp`: 基于行号顺序在当前文件中跳转。
-        -   `<leader>m`: 调用内置 Telescope 选择器，支持实时代码预览。
+        -   **多实例防干扰**: 实现了 `switch_bookmark_project_list()` 逻辑，在操作书签（`mm`, `<leader>m`）前强制校准回属于当前 CWD 的项目列表，解决 tmux 多面板下的状态冲突。
+    -   **交互优化**: `mm` 实现了智能静默切换逻辑。
 
 - **Session & Workflow Management (新增)**:
     -   **插件替换**: 使用 `auto-session` 替代内置的 `persisted.nvim`。需在 `user/settings.lua` 中将 `persisted.nvim` 加入 `disabled_plugins` 以彻底消除启动报错。
