@@ -1,31 +1,96 @@
 zmodload zsh/zprof
 export ZSH="$HOME/.oh-my-zsh"
 
+# -------------------------------------------------------------------
+# 性能优化：快速补全初始化 (compinit 优化)
+# -------------------------------------------------------------------
+# 每天只进行一次完整的 compinit 检查，其余时间使用缓存 (-C)
+autoload -Uz compinit
+_comp_path="$ZSH/cache/zcompdump-$HOST"
+if [[ -n "$_comp_path(#qN.m-1)" ]]; then
+    compinit -C -d "$_comp_path"
+else
+    compinit -i -d "$_comp_path"
+fi
+ZSH_DISABLE_COMPFIX="true"
+
 # See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
 ZSH_THEME="gnzh"
 
 ENABLE_CORRECTION="true"
-export FUNCNEST=100
+export FUNCNEST=500
 
-# plugins+=(vi-mode)
-plugins=(git zsh-interactive-cd copypath z fzf colorize jsontools)
-plugins+=(zsh-vi-mode) # https://github.com/jeffreytse/zsh-vi-mode
+plugins=(
+    git 
+    zsh-interactive-cd 
+    copypath 
+    copyfile 
+    copybuffer 
+    z 
+    fzf 
+    colorize 
+    jsontools 
+    zsh-autosuggestions
+    zsh-syntax-highlighting
+)
 
 source $ZSH/oh-my-zsh.sh
+
+# 手动关联 fzf 快捷键 (解决 Debian/Ubuntu 下 OMZ fzf 插件可能失效的问题)
+if [ -f /usr/share/doc/fzf/examples/key-bindings.zsh ]; then
+    source /usr/share/doc/fzf/examples/key-bindings.zsh
+fi
 
 export PATH=$PATH:/opt/tiger/toutiao/lib:/opt/tiger/jdk/jdk1.8/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/tiger/ss_bin:/usr/local/jdk/bin:/usr/sbin/:/opt/tiger/ss_lib/bin:/opt/tiger/ss_lib/python_package/lib/python2.7/site-packages/django/bin:/opt/tiger/yarn_deploy/hadoop/bin/:/opt/tiger/yarn_deploy/hive/bin/:/opt/tiger/yarn_deploy/jdk/bin/:/opt/tiger/hadoop_deploy/jython-2.5.2/bin:/opt/tiger/dev_toolkit/bin:/usr/local/tao/agent/modules/bvc/bin
 
 alias vim='nvim'
 
-source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
-source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+# 复制 Git 当前分支名到本地剪贴板 (针对 SSH + tmux 优化)
+copygb() {
+    local branch=$(git branch --show-current 2>/dev/null)
+    if [ -z "$branch" ]; then
+        echo "Not in a git repository."
+        return 1
+    fi
+
+    # 确保 base64 没有任何换行符
+    local encoded=$(printf "%s" "$branch" | base64 | tr -d '\n')
+    
+    if [ -n "$TMUX" ]; then
+        # tmux 封装：\033Ptmux;\033 是开始，\a\033\\ 是结束
+        # 内部是标准的 OSC 52 序列
+        printf "\033Ptmux;\033\033]52;c;%s\a\033\\" "$encoded"
+    else
+        # 标准模式
+        printf "\033]52;c;%s\a" "$encoded"
+    fi
+
+    echo "Branch '$branch' copied to local clipboard."
+}
+
+# 自动同步配置文件到 nvim 仓库供 Git 管理
+sync_cfg() {
+    local target_dir="$HOME/.config/nvim/lua/user/sys_cfg"
+    if [ -d "$target_dir" ]; then
+        cp ~/.zshrc "$target_dir/.zshrc"
+        cp ~/.tmux.conf "$target_dir/.tmux.conf"
+        [ -f "$HOME/start_gopls.sh" ] && cp "$HOME/start_gopls.sh" "$target_dir/start_gopls.sh"
+    fi
+}
+# 启动或 source 时自动执行同步
+sync_cfg
+
+# -------------------------------------------------------------------
+# 快捷键配置 (插件已通过 Oh My Zsh 自动加载)
+# -------------------------------------------------------------------
 bindkey '^j' autosuggest-accept
-bindkey '^k' forward-word  #https://github.com/zsh-users/zsh-autosuggestions/issues/265
+bindkey '^k' forward-word
 bindkey '^u' backward-kill-line
 bindkey '^p' up-line-or-history
 bindkey '^n' down-line-or-history
 
-# export ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#ff00ff,bg=cyan,bold,underline"
+# 让所有 tmux 面板重新加载 zsh 配置 (自动避开 vim/top 等非 shell 程序，且跳过当前面板)
+alias sourceall='tmux list-panes -a -F "#{pane_id} #{pane_current_command}" | grep -E "zsh$|bash$|sh$" | grep -v "^$(tmux display-message -p "#D") " | awk "{print \$1}" | xargs -I {} tmux send-keys -t {} "source ~/.zshrc" Enter'
 
 export http_proxy=http://sys-proxy-rd-relay.byted.org:8118  https_proxy=http://sys-proxy-rd-relay.byted.org:8118  no_proxy=*.byted.org
 function Proxy() {
@@ -61,34 +126,42 @@ alias gostatus='ps -eo pid,user,%cpu,%mem,cmd | grep "gopls serve" | grep -v gre
 
 export TMUX_TMPDIR=~/.tmux/tmp
 #export PATH="$PATH:/home/lihao.hellohake/node_modules/tree-sitter-cli"
+# -------------------------------------------------------------------
+# 性能优化：NVM 懒加载
+# -------------------------------------------------------------------
 export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+_load_nvm() {
+    unset -f nvm node npm npx
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+}
+nvm() { _load_nvm; nvm "$@" }
+node() { _load_nvm; node "$@" }
+npm() { _load_nvm; npm "$@" }
+npx() { _load_nvm; npx "$@" }
 
+# -------------------------------------------------------------------
+# 性能优化：环境变量与 eval 缓存 (仅在初次 source 时加载)
+# -------------------------------------------------------------------
+if [[ -z "$_CFG_SYNCED" ]]; then
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+    eval $(thefuck --alias)
+fi
+export _CFG_SYNCED=1
 
-# https://bytedance.larkoffice.com/wiki/wikcn9pPaYLxtsxY29OLzY4RgUg
+# --- 恢复环境变量 ---
 [ -f "$HOME/.bytebm/config/config.sh" ] && . "$HOME/.bytebm/config/config.sh"
-
-. /usr/share/autojump/autojump.sh
-
+export LANG=zh_CN.UTF-8
+export FZF_CTRL_T_COMMAND='fd --type f --hidden --follow --exclude .git'
 export no_proxy=.byteintl.net,.byted.org,.bytedance.net
-
-#export RUNTIME_IDC_NAME=boe
-#export RUNTIME_IDC_NAME=boe
-#export RUNTIME_IDC_NAME=hl
 export RUNTIME_IDC_NAME=lf
 export TCE_PSM="ecom.search.stream"
-#export TCE_PSM="ecom.search.guide_data_producer"
 export CONSUL_HTTP_HOST=10.37.39.172
 export CONSUL_HTTP_PORT=2280
 export BYTED_HOST_IPV6=::1
 export MY_HOST_IPV6=::1
 export TCE_STAGE=prod
 export IS_TCE_DOCKER_ENV=1
-#export SEC_TOKEN_STRING=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ2ZXJzaW9uIjowLCJhdXRob3JpdHkiOiJUQ0UiLCJwcmltYXJ5QXV0aFR5cGUiOiJwc20iLCJwc20iOiJlY29tLnNlYXJjaC5zdHJlYW0iLCJ1c2VyIjoicWllc2FpIiwiZXhwaXJlVGltZSI6MTc2MzEwODQzOCwiZXh0ZW5zaW9uIjp7ImNsdXN0ZXJfbmFtZSI6ImRlZmF1bHQiLCJpZGMiOiJMUSIsImxvZ2ljYWxfY2x1c3RlciI6ImRlZmF1bHQiLCJwaHlzaWNhbF9jbHVzdGVyIjoiQnJhaW4iLCJzZXJ2aWNlX3R5cGUiOiJhcHBfZW5naW5lIiwiem9uZSI6IkNoaW5hLU5vcnRoIn19.YOfr59OQfl-OBDogSOzqjez1FKSjeWgLEqR_UEYTmn5mcKET3z8w3TXufD4zeKHl9a7xASYbMb-t_JMAtDV1hyCIf3C7PC9ltTaKm8rqfrYALjc_ctGaSEvG1Knp7zzYgUIcO8XpDntsEctStFVZl1enwJooxK4j0S0icZ4G6iH92KAcXCHZ8dful_kNg2y_tX0Luur71YFpg9BddlESTQlU3ruVX4RvAyGib7C0Zz2oIMfX-CB7T-hp9jGOczfePUBosuvxgnsKfpBSAqbJWnWCVlNiAUjC7r2GdNiflF0FafhkYNlO1qHcYFlQgj56PUxAaSBEIIjImzhJXBJcSg
-
-
-# export TCE_PSM='life.open.operation_sop'
 . /usr/share/autojump/autojump.sh
 
 prompt_context() {
@@ -96,24 +169,24 @@ prompt_context() {
     prompt_segment black default "%(!.%{%F{yellow}%}.)$USER"
   fi
 }
-
-# Do the initialization when the script is sourced (i.e. Initialize instantly)
 ZVM_INIT_MODE=sourcing
+# --------------------
 
-eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-eval $(thefuck --alias)
 export TLDR_LANG=zh_CN
 . "$HOME/.cargo/env"
 # zsh启动测速
 # zprof
 
-# Added by coco installer
-export PATH="/home/lihao.hellohake/.local/bin:$PATH"
+# 修正 HOME 路径以确保 %~ 能正确缩写路径 (设置为物理路径以匹配 pwd)
+export HOME="/data00/home/lihao.hellohake"
 
-export HOME=/data00/home/lihao.hellohake
 # 自定义 Prompt 格式
-# %n = 用户名
-# %~ = 相对路径 (会自动将 $HOME 显示为 ~)
-# %{$fg[cyan]%} = 颜色设置
-PROMPT='%{$fg[cyan]%}%n%{$reset_color%} %{$fg[blue]%}%~%{$reset_color%} $(git_prompt_info)
+# %n = 用户名, %~ = 相对路径, %* = 时间, %D{%Y-%m-%d} = 年月日
+PROMPT='%{$fg[cyan]%}%n%{$reset_color%} %{$fg[blue]%}%~%{$reset_color%} $(git_prompt_info) %{$fg[green]%}[%D{%Y-%m-%d} %*]%{$reset_color%}
 $ '
+
+# Added by trae-gopls installer
+export PATH="$HOME/.local/bin:$PATH"
+
+# Added by coco installer
+export PATH="/data00/home/lihao.hellohake/.local/bin:$PATH"
