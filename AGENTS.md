@@ -1,178 +1,69 @@
-# Architecture Overview
+# Architecture & Expert Guide for Agents (Full Summary)
 
-This document provides a high-level overview of the `nvimdots` codebase, a modular and customizable Neovim configuration.
+本文档为 `nvimdots` 及其关联的开发环境（Zsh, Tmux, Git, Go）提供专家级的架构总结、配置原则及 Agent 操作指南。
 
-## 1. Project Overview
+## 1. 配置哲学与核心架构
 
-`nvimdots` is a feature-rich, modular Neovim configuration designed for performance and extensibility.
+`nvimdots` 采用高度模块化的设计，旨在提供开箱即用且易于扩展的极致体验。
 
--   **Purpose**: To provide a fast, "out-of-the-box" usable Neovim environment that is easy to extend and customize.
--   **Plugin Manager**: Uses [lazy.nvim](https://github.com/folke/lazy.nvim) for efficient plugin management.
--   **Structure**:
-    -   **Root**: `init.lua` acts as the entry point, delegating to the core module.
-    -   **Core**: Essential settings, event handling, and package management logic.
-    -   **Modules**: Categorized plugin configurations (Completion, Editor, Lang, Tool, UI).
-    -   **User**: Dedicated directory for user customizations (gitignored).
+### 1.1 模块化分层
+-   **Core (`lua/core/`)**: 负责环境初始化（Paths, Global Variables）、全局选项（Options）、事件系统（Autocmds）及插件引导（Pack/Lazy）。
+-   **Modules (`lua/modules/`)**: 功能实现区，分为 `completion`, `editor`, `lang`, `tool`, `ui`。每个插件均有独立的 `plugins.lua` 声明和 `configs/` 详细配置。
+-   **User (`lua/user/`)**: **Agent 与用户的核心工作区**。
+    -   `configs/`: 存放覆盖默认插件配置的脚本。
+    -   `plugins/`: 存放用户自定义的新插件。
+    -   `sys_cfg/`: **重要**。存放由 `sync_cfg` 自动同步的外部系统配置（.zshrc, .tmux.conf 等）。
 
-## 2. Build & Commands
+### 1.2 插件加载原则 (`load_plugin`)
+Agent 必须理解 `lua/modules/utils/init.lua` 中的加载逻辑：
+-   **优先覆盖**：系统会自动检测 `user/configs/` 下同名文件。
+-   **Monkey Patching**：若修复复杂逻辑（如修复 Telescope 渲染 Bug），应在 `user/configs/` 返回一个 function 来完全接管 `setup`。
 
-### Installation
-The project provides automated installation scripts:
+---
 
--   **Unix/Linux/macOS**: `bash scripts/install.sh`
--   **Windows**: `powershell -ExecutionPolicy ByPass -File scripts/install.ps1`
+## 2. Shell & 终端环境优化 (专家级配置)
 
-### Nix Integration
-For NixOS or Nix users, the project uses a Flake-based setup:
+针对远程 SSH、大型单体仓库 (Monorepo) 及多面板协作进行了深度调优。
 
--   **Flake**: `flake.nix` provides the environment configuration.
--   **NixOS Module**: Exports a `homeManagerModules.nvimdots` for integration into system configs.
+### 2.1 Zsh 极致性能
+-   **补全系统缓存**：使用 `compinit -C` 并配合 24 小时缓存检查，避免在远程 I/O 上扫描数千个补全脚本。
+-   **NVM 懒加载**：通过函数封装实现 `node/npm/nvm` 按需加载，解决 Shell 启动超过 1 分钟的性能顽疾。
+-   **幂等加载**：插件加载均包含 `(( $+functions[...] ))` 检查，彻底杜绝 `maximum nested function level` 递归报错。
+-   **路径校准**：显式校准物理路径 `$HOME`，确保 `%~` 缩写正常及 LSP 根目录识别精准。
 
-## 3. Code Style
+### 2.2 Tmux 高级协作
+-   **OSC 52 透传**：配置 `set-clipboard on` 和 `allow-passthrough on`，支持穿透 SSH 复制文本到本地 Mac 剪贴板。
+-   **全局同步 (`sourceall`)**：一键刷新所有 tmux 面板配置，具备自动跳过非 Shell 程序及当前面板的智能过滤逻辑。
 
-The project enforces code style using **StyLua**. Configuration is defined in `stylua.toml`:
+### 2.3 自动配置同步 (`sync_cfg`)
+`.zshrc` 中的 `sync_cfg` 函数在每次 Shell 启动或 `source` 时运行，自动将 `~/.zshrc`, `~/.tmux.conf`, `~/start_gopls.sh` 同步至 `lua/user/sys_cfg/`，确保环境配置随代码仓库一同进行版本管理。
 
--   **Column Width**: 120
--   **Indent**: Tabs (width 4)
--   **Quotes**: Auto-prefer double quotes
--   **Line Endings**: Unix
+---
 
-To format code: `stylua .`
+## 3. LSP 与 开发工具链 (Golang 示例)
 
-## 4. Testing
+-   **Gopls 守护进程**：使用 `start_gopls.sh` 脚本管理 gopls 生命周期，提升多项目下的补全稳定性。
+-   **快捷键管理**：统一使用 `lua/keymap/bind.lua` 的辅助函数（`map_cr`, `map_cu` 等），支持链式描述和静默执行。
 
-Testing is primarily handled through Nix-based environment checks to ensure the configuration loads correctly in a reproducible environment.
+---
 
--   **Environment**: Defined in `nixos/testEnv.nix`.
--   **Validation**: Installation scripts perform pre-flight checks for dependencies (Neovim version, git, etc.).
+## 4. Agent 操作标准 (Best Practices)
 
-## 5. Security
+### 4.1 核心操作守则
+1.  **禁止直接修改 Core**：所有针对插件的修改必须在 `lua/user/configs/` 中通过覆盖实现。
+2.  **绝对路径安全**：在配置文件中优先使用 `$HOME` 或物理路径，避免依赖可能导致缩写失效的软链接。
+3.  **Idempotency (幂等性)**：所有的 shell 脚本写入必须可重复执行且不产生副作用。
 
--   **User Isolation**: All personal configurations, including secrets or private settings, should be placed in `lua/user/`. This directory is populated from `lua/user_template/` and is intended to be gitignored or managed separately.
--   **Plugin Sources**: Plugins are fetched from GitHub. `lua/core/pack.lua` handles the cloning logic, supporting both SSH and HTTPS based on user preference.
+### 4.2 常用专家快捷键
+-   **Leader Key**: `<Space>`
+-   **Git Copy Branch**: `copygb` (Shell 命令，带 OSC 52 支持)
+-   **Reload All Configs**: `sourceall` (Shell 命令)
+-   **Gopls 控制**: `gostart`, `gorestart`, `gostatus`
 
-## 6. Configuration Layers
+---
 
-The configuration is split into three main layers:
+## 5. 常见问题排查 (Troubleshooting)
 
-### 6.1 Core (`lua/core/`)
-Handles the initialization of Neovim:
--   `init.lua`: Sets up paths, leader keys (defualt `<Space>`), environment, and bootstrap sequence.
-    -   **Leader Key**: 默认映射为空格。为防止冲突，需显式禁用空格在 Normal/Visual 模式下的默认位移行为 (`vim.api.nvim_set_keymap("n", "<Space>", "<Nop>", ...)` )。
--   `pack.lua`: Bootstraps `lazy.nvim`. It dynamically discovers and loads plugins from both `lua/modules/plugins/*.lua` and `lua/user/plugins/*.lua`.
--   `global.lua`: Defines global variables and paths.
--   `options.lua` & `settings.lua`: Global editor options. `timeoutlen` 建议保持在 500ms 左右以兼顾快捷键响应与 Which-key 弹出。
-
-### 6.2 Modules (`lua/modules/`)
-Contains the bulk of the configuration, organized by functionality:
--   **Categories**: `completion`, `editor`, `lang`, `tool`, `ui`.
--   **Structure**:
-    -   `plugins/`: Plugin declaration files.
-    -   `configs/`: Detailed configuration logic for each plugin.
-
-### 6.3 User (`lua/user/`)
-The designated place for customization:
--   **Plugins**: `lua/user/plugins/*.lua` 自动加载并与核心插件列表合并。
--   **Settings**: `lua/user/options.lua` 和 `lua/user/settings.lua` 允许覆盖全局默认值。
--   **Keymaps**: `lua/user/keymap/` 用于定义个人快捷键。
--   **System Config**: `lua/user/sys_cfg/` 存放 IDE 风格配置（如 vscode 键位/设置），供特定环境参考。
-
-## 7. Customization & Extension Mechanisms
-
-### 7.1 Plugin Loading (`lua/modules/utils/init.lua`)
--   **`load_plugin(plugin_name, opts)`**: 核心配置加载器。
--   **逻辑**:
-    1.  尝试加载 `lua/user/configs/<filename>.lua`。
-    2.  若返回 **table**：递归合并 (`tbl_recursive_merge`) 到默认配置。
-    3.  若返回 **function**：完全接管配置逻辑，调用该函数并传入默认 `opts`。
-    4.  最后调用插件的 `setup` 方法。
-
-### 7.2 Highlighting & Themes
--   **Palette System**: 使用 `lua/modules/utils/init.lua` 定义的中央色板（默认 Catppuccin）。
--   **Overrides**: 支持全局高亮 (`set_global_hl`) 和主题特定覆盖。
-
-## 8. LSP & Completion Architecture
-
-### 8.1 LSP Setup (`lua/modules/configs/completion/`)
--   使用 `mason.nvim` 管理工具链，`mason-lspconfig.lua` 作为核心调度器。
--   **Server Configs**: 各语言服务器配置位于 `modules/configs/completion/servers/`。
--   **全局逻辑**: 在 `mason-lspconfig` 的 `opts` 中定义全局 `on_attach`。
-    -   **Boundary Fix**: 为兼容 Neovim 0.10.x 及处理部分 LSP 返回能力不一致的问题，全局 `on_attach` 中通常会将 `semanticTokensProvider` 显式设为 `nil` 以禁用可能导致崩溃的语义着色功能。该补丁应优先于具体服务器配置执行。
-
-## 9. Keymapping System
-
-### 9.1 Binding Helpers (`lua/keymap/bind.lua`)
--   提供 `map_cr`, `map_cu`, `map_cmd`, `map_callback` 等辅助函数。
--   支持链式调用，如 `:with_silent():with_noremap():with_desc("...")`。
--   **分层设计**: 分为 `builtins` (核心内置) 和 `plugins` (插件相关)，便于管理和覆盖。
-
-## 10. Common Boundary Cases & Best Practices
-
--   **Lazy Loading**:
-    -   UI/Tool 类插件（如 `which-key`, `noice`）建议使用 `event = "VeryLazy"` 以确保不影响启动速度且能正确响应 Leader key。
-    -   避免使用 `CursorHold` 作为首选加载事件，除非明确需要该触发时机，因为它依赖 `updatetime`。
--   **Neovim Versioning**:
-    -   本配置主要针对 Neovim 0.10+。对于 0.11+ 版本，某些内置 Lua 错误（如语义令牌空指针）已在核心修复，但配置层面的防护性代码（如 `on_attach` 拦截）仍建议保留以保证多版本兼容性。
--   **Keymap Conflicts**:
-    -   如果按下 Leader key 后光标位移而非弹出提示，通常是由于 `init.lua` 中未对空格键进行 `Nop` 映射，或插件加载过晚。
--   **Diagnostic Filtering**:
-    -   根据“只关注正式文件”原则，在 `trouble.nvim` 中彻底排除 `_test.go` 文件，从而忽略测试包循环依赖。
-    -   示例：在 `trouble` 的 `modes` 中使用 `all` 组合过滤器，确保正式文件中的循环依赖等错误不会被意外忽略。
-- **Search & Telescope**:
-    -   `<leader>fw` 使用 `live_grep_args`，支持传递原生 `ripgrep` 参数。
-    -   **核心规范**: 恢复了 `auto_quoting = true` 以保证普通搜索体验。
-    -   **快捷键优化**: 实现了自定义 `quote_prompt_with_postfix` 逻辑，**彻底解决了按下快捷键时出现双重转义（如 `\"`）的问题**。
-    -   **搜索流程**:
-        1. 输入关键词。
-        2. 若需添加参数（如字面量搜索或过滤），直接按 `<C-g>` 或 `<C-i>`。
-        3. 快捷键会自动判断当前是否已加引号，并智能追加参数，不会产生重复转义。
-    -   **内置快捷键 (在搜索框内按)**:
-        -   `<C-k>`: 智能添加双引号（若未添加）。
-        -   `<C-g>`: 智能加引号并追加 `-F`（字面量搜索）。
-        -   `<C-i>`: 智能加引号并追加 `--iglob`（过滤文件）。
-    -   **忽略目录**: `kitex_gen/`、`build/` 等目录在 `telescope.lua` 中默认被忽略。
-
-- **Glance & Code Navigation (核心边界处理)**:
-    -   **路径展示优化**: 针对深层目录项目（如 Golang），`Glance` 默认侧边栏容易截断路径。
-    -   **最佳实践**: 
-        -   启用 `detached = true` 使其使用编辑器的全屏宽度。
-        -   使用 `FileType` 自动命令配合 `vim.schedule` 强制开启 `vim.wo.wrap = true`，确保路径显示完整且支持换行。
-    -   **逻辑优化**: 移除了 `before_open` 钩子中对“仅有一条引用”时的拦截逻辑（原逻辑仅通过 notify 提示而不打开窗口）。修改后，即便只有一条引用也会打开 Glance 预览窗，方便用户确认或跳转。
-    -   **跳转增强**: 将 `gd` (Goto Definition) 的实现从 `Lspsaga` 切换回原生的 `vim.lsp.buf.definition()`。原因：`Lspsaga` 的命令在某些环境下（如 Thrift 文件中）可能由于加载时序或版本兼容性导致 `E492` 报错。原生跳转更稳定且符合预期。
-    -   **配置限制**: `list.position` 仅支持 `left` 或 `right`，不支持 `bottom`。
-    -   **高亮规范**: 对于非 Catppuccin 主题（如 `elflord`），需手动通过 `vim.api.nvim_set_hl` 定义 `GlanceListFilename` 和 `GlanceListFilepath` 以区分文件名和路径。
-
-- **LSP & Language Specifics**:
-    -   **Thrift**: 针对 Thrift 文件无法正确跳转引用的问题，新增了 `lua/modules/configs/completion/servers/thriftls.lua`。
-    -   **路径约束**: 配置 `root_dir` 优先匹配用户指定的 IDL 核心目录（`/data00/home/lihao.hellohake/go/src/code.byted.org/ecom/service_rpc_idl/aweme/search/`），并将其加入 `includeDirs`，从而确保 LSP 能够精准地索引该目录下的定义与引用。
-    -   **基本优化**: 启用了 `allow_incremental_sync = true` 并将 `debounce_text_changes` 设置为 `500`，平衡了响应速度与系统负载。
-
-- **Bookmark Management**:
-    -   **核心工具**: 使用 `LintaoAmons/bookmarks.nvim` (v3+)，基于 `extmarks` 实现标记随代码自动移动。
-    -   **持久化**: 依赖 `kkharji/sqlite.lua`。
-    -   **项目隔离**: 
-        -   通过 `Active List` 机制实现项目间隔离。
-        -   **多实例防干扰**: 实现了 `switch_bookmark_project_list()` 逻辑，在操作书签（`mm`, `<leader>m`）前强制校准回属于当前 CWD 的项目列表，解决 tmux 多面板下的状态冲突。
-    -   **交互优化**: `mm` 实现了智能静默切换逻辑。
-
-- **Session & Workflow Management (新增)**:
-    -   **插件替换**: 使用 `auto-session` 替代内置的 `persisted.nvim`。需在 `user/settings.lua` 中将 `persisted.nvim` 加入 `disabled_plugins` 以彻底消除启动报错。
-    -   **多分支隔离**: 启用 `git_use_branch_name = true`。会话文件命名采用 `项目路径 + 分支名` 的复合键，确保不同分支的窗口布局、缓冲区状态互不干扰。
-    -   **项目感知搜索**: `<leader>ss` 调用 `session-lens` 时，通过 `default_text = fnamemodify(getcwd(), ":t")` 实现项目内隔离，默认仅显示当前项目的相关会话，按 `退格键` 可恢复全局搜索。
-    -   **自动保存与恢复逻辑**: 
-        -   `auto_save = true`: 退出项目时自动保存当前状态。
-        -   `auto_restore = true`: 进入项目目录时自动恢复该项目的状态。
-        -   **关键边界**: `auto_restore_last_session` 必须设为 `false`，以严格保持项目隔离，防止在没有会话记录的新项目中意外加载其他项目的全局最后会话。
-    -   **UI 兼容性补丁**: 
-        -   **Path Display**: 为防止 Telescope 在某些三方插件（如 `git-worktree`）中由于 `truncate` 策略导致 `layout` 字段空指针崩溃，全局默认应设为 `smart`。
-        -   **Highlight Fallback**: 针对非 Catppuccin 主题（如 `elflord`），需手动定义 `TelescopeResultsIdentifier` 等高亮组链接（Link to `Identifier`），避免 Finder 渲染时抛出 `hl_group: Expected Lua string` 错误。
-    -   **猴子补丁 (Monkey Patch)**: 对于存在代码缺陷的三方插件（如 `git-worktree` 的 Telescope 扩展），应在 `user/plugins/` 的 `config` 回调中进行函数重写。核心逻辑是修复其 `make_display` 函数中的数据结构，确保传递给渲染器的是纯字符串而非含有 `nil` 高亮组的 table。
-
-- **User Configuration Extension (核心机制)**:
-    -   **配置路径**: 优先使用 `lua/user/` 目录进行自定义。该目录已被 gitignore，且结构与 `lua/modules/` 对齐。
-    -   **加载逻辑 (`modules.utils.load_plugin`)**: 
-        -   该函数会自动检测 `lua/user/configs/` 下同名的 Lua 文件。
-        -   **合并模式**: 若用户文件返回 table，则递归合并到默认 opts。
-        -   **接管模式**: 若用户文件返回 function，该 function 将完全接管 setup 逻辑，系统不再调用默认 setup。
-    -   **全局变量覆盖**: 在 `lua/user/settings.lua` 和 `lua/user/options.lua` 中定义的键值对会自动覆盖 `lua/core/` 中的同名默认设置。
-    -   **插件开关**: 在 `user/settings.lua` 的 `disabled_plugins` 中列出插件全名（如 `"olimorris/persisted.nvim"`）可将其从加载列表中彻底移除。
+-   **加载慢**：运行 `zprof` 分析 `compinit` 或外部 `eval` 调用。
+-   **复制失败**：检查 iTerm2 的 `Applications may access clipboard` 设置及 tmux 的 `allow-passthrough`。
+-   **路径显示错误**：对比 `pwd` 结果与 `$HOME` 导出路径是否完全一致。
