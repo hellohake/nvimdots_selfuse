@@ -223,3 +223,92 @@ export PATH="$HOME/.local/bin:$PATH"
 
 # Added by coco installer
 export PATH="/data00/home/lihao.hellohake/.local/bin:$PATH"
+
+# -------------------------------------------------------------------
+# Fix: Disable Ctrl-d (EOF) for coco command to prevent accidental exit
+# -------------------------------------------------------------------
+coco() {
+    # Use python pty wrapper to intercept and drop Ctrl-d (0x04)
+    # as 'stty eof undef' is ineffective when coco uses raw mode.
+    python3 ~/.local/bin/coco_wrapper.py "$@"
+}
+
+# -------------------------------------------------------------------
+# Git Worktree Helpers
+# -------------------------------------------------------------------
+
+# 1. 仅修复当前目录的软链接
+gw-init-links() {
+    echo "🔗 Linking shared configurations..."
+    local files=(.coco .ai_doc AGENTS.md)
+    for file in "${files[@]}"; do
+        if [ -e "../$file" ]; then
+            # -sfn: 强制创建软链，如果已存在则覆盖 (no-dereference)
+            ln -sfn "../$file" "./$file" && echo "  ✅ Linked $file"
+        else
+            echo "  ⚠️  Warning: ../$file not found"
+        fi
+    done
+}
+
+# 2. 一键创建 Worktree 并初始化环境
+# 用法: 
+#   gw-add <branch-name>                # 检出已有分支(本地或远端)
+#   gw-add <new-branch-name> <base>     # 基于 base 创建新分支
+gw-add() {
+    local branch=$1
+    local base=$2
+
+    if [ -z "$branch" ]; then
+        echo "Usage:"
+        echo "  gw-add <branch-name>             (Checkout existing branch)"
+        echo "  gw-add <new-branch> <base>       (Create new branch from base)"
+        return 1
+    fi
+
+    # 确定目标目录路径
+    local target_dir="../$branch"
+    
+    # 路径检查逻辑
+    if [ ! -e "../.coco" ] && [ ! -e "../.bare" ]; then
+        if [ -e "./.coco" ]; then
+             echo "⚠️  You seem to be in the root directory."
+             target_dir="./$branch"
+        else
+            echo "⚠️  Warning: Parent directory does not contain .coco or .bare."
+            echo "Are you sure you are in a worktree sibling directory?"
+            echo "Proceeding anyway..."
+        fi
+    fi
+
+    echo "🌲 Setting up worktree for '$branch'..."
+    
+    # 核心逻辑：区分新建分支还是检出已有分支
+    if [ -n "$base" ]; then
+        # Case A: 提供了 base，明确要求创建新分支
+        echo "   Creating NEW branch '$branch' from '$base'..."
+        git worktree add -b "$branch" "$target_dir" "$base" || return 1
+    else
+        # Case B: 没提供 base，尝试作为已有分支检出
+        # Git worktree add <path> <branch> 会自动尝试：
+        # 1. 本地已有分支
+        # 2. 远端同名分支 (自动建立追踪)
+        echo "   Checking out EXISTING branch '$branch'..."
+        if ! git worktree add "$target_dir" "$branch"; then
+            echo ""
+            echo "❌ Failed to checkout '$branch'."
+            echo "   - If this is a new branch, use: gw-add $branch <base-branch>"
+            echo "   - If this is a remote branch, fetch first: git fetch origin"
+            return 1
+        fi
+    fi
+
+    # 进入新目录
+    echo "📂 Entering worktree..."
+    cd "$target_dir" || return 1
+    
+    # 初始化软链接
+    gw-init-links
+    
+    echo "🚀 Worktree ready! You are now in: $(pwd)"
+}
