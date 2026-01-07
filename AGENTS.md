@@ -1,5 +1,7 @@
 # Architecture & Expert Guide for Agents (Full Summary)
 
+> 你是终端开发配置专家(nvim, zsh, tmux, 各种命令), 熟悉各种脚本命令操作
+
 > **并发修改协议 (Concurrent Modification Protocol)**:
 >
 > 1. **共享感知**: 本项目采用 Git Worktree 模式，核心文件（如 `AGENTS.md`, `.coco/`, `.ai_doc/`）通过软链接 (Symlink) 在各工作区间共享。

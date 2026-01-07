@@ -76,12 +76,16 @@ copygb() {
 sync_cfg() {
     [[ -n "$SKIP_SYNC" ]] && return
     local target_dir="$HOME/.config/nvim/lua/user/sys_cfg"
+    local script_dir="$HOME/.config/nvim/scripts"
     if [ -d "$target_dir" ]; then
         # 仅在文件有更新时同步，避免 sourceall 时的并发冲突
         [[ ~/.zshrc -nt "$target_dir/.zshrc" ]] && cp ~/.zshrc "$target_dir/.zshrc"
         [[ ~/.tmux.conf -nt "$target_dir/.tmux.conf" ]] && cp ~/.tmux.conf "$target_dir/.tmux.conf"
         if [ -f "$HOME/start_gopls.sh" ]; then
             [[ "$HOME/start_gopls.sh" -nt "$target_dir/start_gopls.sh" ]] && cp "$HOME/start_gopls.sh" "$target_dir/start_gopls.sh"
+        fi
+        if [ -f "$HOME/gai.sh" ] && [ -d "$script_dir" ]; then
+            [[ "$HOME/gai.sh" -nt "$script_dir/gai.sh" ]] && cp "$HOME/gai.sh" "$script_dir/gai.sh"
         fi
     fi
 }
@@ -91,6 +95,8 @@ sync_cfg
 # -------------------------------------------------------------------
 # 快捷键配置 (插件已通过 Oh My Zsh 自动加载)
 # -------------------------------------------------------------------
+alias gai='~/gai.sh'
+
 setopt IGNORE_EOF    # 禁用 Ctrl-d 退出 shell，防止误关 tmux 面板
 bindkey '^j' autosuggest-accept
 bindkey '^k' forward-word
@@ -253,27 +259,54 @@ gw-init-links() {
 
 # 2. 一键创建 Worktree 并初始化环境
 # 用法: 
-#   gw-add <branch-name>                # 检出已有分支(本地或远端)
-#   gw-add <new-branch-name> <base>     # 基于 base 创建新分支
+#   gw-add <branch>                     # 检出已有分支
+#   gw-add <branch> <base>              # 基于 base 创建新分支
+#   gw-add <branch> -d <dir>            # 自定义目录名
 gw-add() {
-    local branch=$1
-    local base=$2
+    local branch=""
+    local base=""
+    local dirname=""
+    
+    # 解析参数
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -d|--dir)
+                dirname="$2"
+                shift 2
+                ;;
+            *)
+                if [ -z "$branch" ]; then
+                    branch="$1"
+                elif [ -z "$base" ]; then
+                    base="$1"
+                else
+                    echo "Unknown argument: $1"
+                    return 1
+                fi
+                shift
+                ;;
+        esac
+    done
 
     if [ -z "$branch" ]; then
         echo "Usage:"
-        echo "  gw-add <branch-name>             (Checkout existing branch)"
-        echo "  gw-add <new-branch> <base>       (Create new branch from base)"
+        echo "  gw-add <branch> [base] [-d directory_name]"
         return 1
     fi
 
+    # 默认目录名为分支名（如果是路径形式，如 feat/xxx，则保留结构）
+    if [ -z "$dirname" ]; then
+        dirname="$branch"
+    fi
+
     # 确定目标目录路径
-    local target_dir="../$branch"
+    local target_dir="../$dirname"
     
     # 路径检查逻辑
     if [ ! -e "../.coco" ] && [ ! -e "../.bare" ]; then
         if [ -e "./.coco" ]; then
              echo "⚠️  You seem to be in the root directory."
-             target_dir="./$branch"
+             target_dir="./$dirname"
         else
             echo "⚠️  Warning: Parent directory does not contain .coco or .bare."
             echo "Are you sure you are in a worktree sibling directory?"
@@ -281,7 +314,7 @@ gw-add() {
         fi
     fi
 
-    echo "🌲 Setting up worktree for '$branch'..."
+    echo "🌲 Setting up worktree for '$branch' in '$target_dir'..."
     
     # 核心逻辑：区分新建分支还是检出已有分支
     if [ -n "$base" ]; then
@@ -290,9 +323,6 @@ gw-add() {
         git worktree add -b "$branch" "$target_dir" "$base" || return 1
     else
         # Case B: 没提供 base，尝试作为已有分支检出
-        # Git worktree add <path> <branch> 会自动尝试：
-        # 1. 本地已有分支
-        # 2. 远端同名分支 (自动建立追踪)
         echo "   Checking out EXISTING branch '$branch'..."
         if ! git worktree add "$target_dir" "$branch"; then
             echo ""
