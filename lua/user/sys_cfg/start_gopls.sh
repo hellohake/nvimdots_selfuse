@@ -5,9 +5,9 @@ GOPLS_BIN="/data00/home/lihao.hellohake/.local/bin/trae-gopls"
 SOCKET_FILE="/dev/shm/gopls-daemon-lihao.sock"
 LOG_FILE="/tmp/gopls-daemon.log"
 
-export GOMAXPROCS=64
+export GOMAXPROCS=60
 export GOMEMLIMIT=150GiB
-export GOGC=180
+export GOGC=200
 
 echo "========================================"
 echo "Checking Gopls Binary..."

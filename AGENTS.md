@@ -57,9 +57,12 @@
 - **OSC 52**: 支持穿透 SSH 复制。
 - **并行刷新**: `sourceall` 使用 `xargs -P 4` 并行刷新所有 tmux 面板。
 - **NVM 懒加载**: 解决 Shell 启动延迟。
+- **误关保护 (Ctrl-d)**: 在 `.zshrc` 中配置 `setopt IGNORE_EOF` 以防止误按 `Ctrl-d` 导致 tmux 面板关闭，同时不干扰 Vim/Lazygit 等应用的翻页功能。
+- **Tmux 动态信息**: 状态栏动态获取 IP 地址 (`#(hostname -I | awk "{print \$1}")`)。
 
-### 3.2 自动同步 (`sync_cfg`)
-- 修改 `~/.zshrc` 后必须运行 `sync_cfg` 同步至 `lua/user/sys_cfg/`。
+### 3.2 自动同步与备份
+- **sync_cfg**: 核心机制。每次 Zsh 启动或手动执行时，自动将 `~/.zshrc` 和 `~/.tmux.conf` 同步至仓库路径 `lua/user/sys_cfg/`。
+- **配置一致性**: Agent 修改系统配置后，应同时更新 `~/` 路径和仓库备份路径，并执行 `sourceall` 或 `Prefix + r`。
 
 ---
 
@@ -73,16 +76,23 @@
 ## 5. 常用专家命令 (Keymaps)
 
 - **Leader Key**: `<Space>`
+- **Tmux 控制**:
+    - `C-f` (Prefix): 设置为 `C-f` 以避免与 Vim 的 `C-b` 冲突。
+    - `Prefix + r`: 重新加载 `~/.tmux.conf` 配置。
+    - `Prefix + v / S`: 左右/上下分屏（保持当前 CWD）。
 - **Worktree 管理**:
     - `<leader>gn`: 创建新工作区 (Path 需加 `../`)
     - `<leader>gw`: 切换/管理工作区 (Telescope 界面)
     - `<C-d>` (Telescope 列表内): 删除选中工作区
-- **代码控制**: `copygb` (复制分支名), `sourceall` (重载配置)
+- **代码与 Shell 控制**:
+    - `copygb`: 复制当前 Git 分支名（支持 OSC 52）。
+    - `sourceall`: 强制所有 tmux 面板重新加载 shell 配置。
 - **LSP 控制**: `gostart`, `gorestart`, `gostatus`
 
 ---
 
 ## 6. 常见问题 (Troubleshooting)
+- **快捷键失效**: 检查 tmux 运行时绑定 (`tmux list-keys`)，必要时使用 `unbind-key` 清理残留拦截。
 - **切换失败**: 检查是否有未保存缓冲区，或路径是否使用了正确的相对路径。
 - **共享文件冲突**: 遵循顶部的 **并发修改协议**，使用分片文件或原子编辑。
 - **LSP 报错**: 运行 `git worktree prune` 清理无效记录后重启 LSP。

@@ -56,6 +56,16 @@ _G.toggle_diffview = function(args)
 	end
 end
 
+_G.toggle_file_history = function()
+	local lib = require("diffview.lib")
+	local view = lib.get_current_view()
+	if view then
+		vim.cmd("DiffviewClose")
+	else
+		vim.cmd("DiffviewFileHistory %")
+	end
+end
+
 _G.smart_toggle_bookmark = function()
 	local service = require("bookmarks.domain.service")
 	local repo = require("bookmarks.domain.repo")
@@ -143,6 +153,7 @@ return {
 		:with_silent()
 		:with_desc("git: Toggle diff against master"),
 	["n|<leader>gd"] = map_cr("lua _G.toggle_diffview()"):with_noremap():with_silent():with_desc("git: Toggle diffview"),
+	["n|<leader>gh"] = map_cr("lua _G.toggle_file_history()"):with_noremap():with_silent():with_desc("git: Toggle file history"),
 	-- auto-session
 	["n|<leader>ss"] = map_callback(function()
 			require("auto-session.pickers.telescope").extension_search_session({

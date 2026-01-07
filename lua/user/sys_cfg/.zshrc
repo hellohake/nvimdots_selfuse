@@ -91,6 +91,7 @@ sync_cfg
 # -------------------------------------------------------------------
 # 快捷键配置 (插件已通过 Oh My Zsh 自动加载)
 # -------------------------------------------------------------------
+setopt IGNORE_EOF    # 禁用 Ctrl-d 退出 shell，防止误关 tmux 面板
 bindkey '^j' autosuggest-accept
 bindkey '^k' forward-word
 bindkey '^u' backward-kill-line
