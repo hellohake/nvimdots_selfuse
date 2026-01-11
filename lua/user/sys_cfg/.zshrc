@@ -22,15 +22,15 @@ ENABLE_CORRECTION="true"
 export FUNCNEST=500
 
 plugins=(
-    git 
-    zsh-interactive-cd 
-    copypath 
-    copyfile 
-    copybuffer 
-    z 
-    fzf 
-    colorize 
-    jsontools 
+    git
+    zsh-interactive-cd
+    copypath
+    copyfile
+    copybuffer
+    z
+    fzf
+    colorize
+    jsontools
     zsh-autosuggestions
     zsh-syntax-highlighting
 )
@@ -50,7 +50,7 @@ export PATH=$PATH:/opt/tiger/toutiao/lib:/opt/tiger/jdk/jdk1.8/bin:/usr/local/sb
 alias vim='nvim'
 
 # 复制 Git 当前分支名到本地剪贴板 (针对 SSH + tmux 优化)
-copygb() {
+copygit() {
     local branch=$(git branch --show-current 2>/dev/null)
     if [ -z "$branch" ]; then
         echo "Not in a git repository."
@@ -59,7 +59,7 @@ copygb() {
 
     # 确保 base64 没有任何换行符
     local encoded=$(printf "%s" "$branch" | base64 | tr -d '\n')
-    
+
     if [ -n "$TMUX" ]; then
         # tmux 封装：\033Ptmux;\033 是开始，\a\033\\ 是结束
         # 内部是标准的 OSC 52 序列
@@ -258,7 +258,7 @@ gw-init-links() {
 }
 
 # 2. 一键创建 Worktree 并初始化环境
-# 用法: 
+# 用法:
 #   gw-add <branch>                     # 检出已有分支
 #   gw-add <branch> <base>              # 基于 base 创建新分支
 #   gw-add <branch> -d <dir>            # 自定义目录名
@@ -266,10 +266,29 @@ gw-add() {
     local branch=""
     local base=""
     local dirname=""
-    
+
+    # 帮助信息函数
+    show_help() {
+        echo "用法: gw-add <分支名> [基准分支] [-d 目录名]"
+        echo ""
+        echo "选项:"
+        echo "  -h, --help       显示此帮助信息"
+        echo "  -d, --dir <目录> 指定自定义目录名 (默认: 与分支名相同)"
+        echo ""
+        echo "示例:"
+        echo "  gw-add feature/login             # 检出已有分支到 ../feature/login"
+        echo "  gw-add feature/new main          # 基于 main 创建新分支"
+        echo "  gw-add hotfix/bug -d ../hotfix   # 检出到自定义目录"
+        return 0
+    }
+
     # 解析参数
     while [[ $# -gt 0 ]]; do
         case $1 in
+            -h|--help)
+                show_help
+                return 0
+                ;;
             -d|--dir)
                 dirname="$2"
                 shift 2
@@ -279,8 +298,11 @@ gw-add() {
                     branch="$1"
                 elif [ -z "$base" ]; then
                     base="$1"
+                elif [ -z "$dirname" ]; then
+                    dirname="$1"
                 else
                     echo "Unknown argument: $1"
+                    show_help
                     return 1
                 fi
                 shift
@@ -289,24 +311,56 @@ gw-add() {
     done
 
     if [ -z "$branch" ]; then
-        echo "Usage:"
-        echo "  gw-add <branch> [base] [-d directory_name]"
+        show_help
         return 1
     fi
 
-    # 默认目录名为分支名（如果是路径形式，如 feat/xxx，则保留结构）
+    # 默认目录名为分支名
     if [ -z "$dirname" ]; then
         dirname="$branch"
     fi
 
     # 确定目标目录路径
-    local target_dir="../$dirname"
-    
+    local target_dir=""
+
+    # 规则: 必须在同级目录创建 (../xxx)，不允许子目录或绝对路径
+    # 1. 绝对路径 -> 报错
+    if [[ "$dirname" == /* ]]; then
+        echo "错误: 不允许使用绝对路径 ('$dirname')."
+        echo "Worktree 必须创建在与当前目录同级的位置 (例如: gw-add branch ../dir)."
+        return 1
+    fi
+
+    # 2. 相对路径处理
+    if [[ "$dirname" == ./* ]]; then
+         echo "错误: 不允许在当前目录下创建 ('$dirname')."
+         echo "Worktree 必须创建在与当前目录同级的位置."
+         return 1
+    elif [[ "$dirname" == ../* ]]; then
+         # 已经是 ../ 开头，直接使用
+         target_dir="$dirname"
+    else
+         # 只有文件名/相对路径，自动添加 ../
+         target_dir="../$dirname"
+    fi
+
+    # 3. 再次检查是否有多级 ../
+    # 简单的字符串检查: 如果去掉第一个 ../ 后还包含 ../，则报错
+    local stripped="${target_dir#../}"
+    if [[ "$stripped" == *../* ]]; then
+         echo "错误: 路径层级过深 ('$target_dir')."
+         echo "Worktree 必须创建在与当前目录同级的位置."
+         return 1
+    fi
+
     # 路径检查逻辑
     if [ ! -e "../.coco" ] && [ ! -e "../.bare" ]; then
         if [ -e "./.coco" ]; then
              echo "⚠️  You seem to be in the root directory."
-             target_dir="./$dirname"
+             # 如果在根目录，且用户没指定路径前缀，则直接在当前目录下创建
+             if [[ "$target_dir" == ../* ]]; then
+                 target_dir="./${dirname}"
+             fi
         else
             echo "⚠️  Warning: Parent directory does not contain .coco or .bare."
             echo "Are you sure you are in a worktree sibling directory?"
@@ -315,12 +369,28 @@ gw-add() {
     fi
 
     echo "🌲 Setting up worktree for '$branch' in '$target_dir'..."
-    
+
     # 核心逻辑：区分新建分支还是检出已有分支
     if [ -n "$base" ]; then
-        # Case A: 提供了 base，明确要求创建新分支
-        echo "   Creating NEW branch '$branch' from '$base'..."
-        git worktree add -b "$branch" "$target_dir" "$base" || return 1
+        # 检查 base 是否存在，若不存在且为 main，提示 master
+        if ! git rev-parse --verify "$base" >/dev/null 2>&1; then
+            if [[ "$base" == "main" ]] && git rev-parse --verify "master" >/dev/null 2>&1; then
+                echo "⚠️  分支 'main' 不存在, 但 'master' 存在. 已自动使用 'master' 代替."
+                base="master"
+            fi
+        fi
+
+        # 检查目标分支是否存在
+        if git rev-parse --verify "$branch" >/dev/null 2>&1; then
+            echo "⚠️  分支 '$branch' 已存在。"
+            echo "   切换为检出已有分支 (忽略基准分支 '$base')..."
+            # 降级为检出逻辑
+            git worktree add "$target_dir" "$branch" || return 1
+        else
+            # Case A: 提供了 base，明确要求创建新分支
+            echo "   Creating NEW branch '$branch' from '$base'..."
+            git worktree add -b "$branch" "$target_dir" "$base" || return 1
+        fi
     else
         # Case B: 没提供 base，尝试作为已有分支检出
         echo "   Checking out EXISTING branch '$branch'..."
@@ -336,9 +406,9 @@ gw-add() {
     # 进入新目录
     echo "📂 Entering worktree..."
     cd "$target_dir" || return 1
-    
+
     # 初始化软链接
     gw-init-links
-    
+
     echo "🚀 Worktree ready! You are now in: $(pwd)"
 }

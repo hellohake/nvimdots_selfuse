@@ -3,8 +3,8 @@ local map_cmd = bind.map_cmd
 local map_cr = bind.map_cr
 local map_callback = bind.map_callback
 
-_G.copy_relative_path_with_line = function()
-	local path = vim.fn.expand("%") -- 相对 cwd
+_G.copy_global_path_with_line = function()
+	local path = vim.fn.expand("%:p") -- 绝对路径
 	if path == "" then
 		return
 	end
@@ -140,7 +140,7 @@ return {
 		:with_desc("Bookmarks: Prev mark"),
 	["n|<leader>sw"] = map_cr("Telescope grep_string"):with_desc("Search word under cursor"),
 	["v|<leader>sw"] = map_cr("lua _G.search_visual_selection()"):with_desc("Search selection"),
-	["n|<leader>cg"] = map_cr("lua _G.copy_relative_path_with_line()")
+	["n|<leader>cg"] = map_cr("lua _G.copy_global_path_with_line()")
 		:with_noremap()
 		:with_silent()
 		:with_desc("Copy global path with line"),

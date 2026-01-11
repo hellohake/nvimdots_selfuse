@@ -22,7 +22,13 @@ tool["LintaoAmons/bookmarks.nvim"] = {
 
 		-- 项目隔离逻辑：自动为每个项目创建/切换独立的书签列表
 		_G.switch_bookmark_project_list = function()
-			local project_name = vim.fn.fnamemodify(vim.fn.getcwd(), ":t")
+			-- Fix: Git Worktree 模式下目录名可能重复 (如 main)，导致不同项目书签混淆
+			-- 修改为取 "父目录名-当前目录名" 作为唯一标识 (例: projectA-main vs projectB-main)
+			local cwd = vim.fn.getcwd()
+			local parent_name = vim.fn.fnamemodify(cwd, ":h:t")
+			local current_name = vim.fn.fnamemodify(cwd, ":t")
+			local project_name = string.format("%s-%s", parent_name, current_name)
+
 			local ok, Service = pcall(require, "bookmarks.domain.service")
 			local ok2, Repo = pcall(require, "bookmarks.domain.repo")
 			if not (ok and ok2) then
