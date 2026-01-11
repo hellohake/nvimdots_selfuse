@@ -58,6 +58,7 @@ return {
 	},
 
 	on_attach = function(client, bufnr)
-		-- client.server_capabilities.semanticTokensProvider = nil
+		-- 禁用 semanticTokens 以解决 Glance 插件查看引用时的 "Invalid buffer id" 报错
+		client.server_capabilities.semanticTokensProvider = nil
 	end,
 }
