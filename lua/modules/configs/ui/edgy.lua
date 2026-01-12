@@ -12,6 +12,13 @@ return function()
 	require("modules.utils").load_plugin("edgy", {
 		close_when_all_hidden = true,
 		exit_when_last = true,
+		-- 全局选项配置，用于控制侧边栏的最小/基准宽度
+		options = {
+			left = { size = 10 }, -- 将左侧边栏的基准宽度设为 10，允许用户手动缩小到此值
+			bottom = { size = 10 },
+			right = { size = 10 }, -- 同样放宽右侧限制
+			top = { size = 10 },
+		},
 		wo = { winbar = false },
 		keys = {
 			["q"] = false,
@@ -48,12 +55,12 @@ return function()
 			},
 		},
 		left = {
-			{
-				ft = "NvimTree",
-				pinned = true,
-				open = "NvimTreeOpen",
-				size = { width = 30 },
-			},
+			-- {
+			-- 	ft = "NvimTree",
+			-- 	pinned = true,
+			-- 	open = "NvimTreeOpen",
+			-- 	size = { width = 30 },
+			-- },
 		},
 		right = {
 			{

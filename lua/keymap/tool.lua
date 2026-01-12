@@ -8,10 +8,8 @@ require("keymap.helpers")
 
 local mappings = {
 	plugins = {
-		-- Plugin: edgy
-		["n|<C-n>"] = map_callback(function()
-				require("edgy").toggle("left")
-			end)
+		-- Plugin: nvim-tree
+		["n|<C-n>"] = map_cr("NvimTreeToggle")
 			:with_noremap()
 			:with_silent()
 			:with_desc("filetree: Toggle"),

@@ -3,6 +3,13 @@ local map_cmd = bind.map_cmd
 local map_cr = bind.map_cr
 local map_callback = bind.map_callback
 
+-- Emergency Fix: 如果 Leader 键失效，运行 :FixLeader 命令即可修复
+vim.api.nvim_create_user_command("FixLeader", function()
+	vim.g.mapleader = " "
+	vim.keymap.set({ "n", "x" }, "<Space>", "<Nop>", { noremap = true, silent = true })
+	vim.notify("Leader key (Space) has been reset! Try pressing it now.", vim.log.levels.INFO)
+end, { desc = "Fix broken leader key (Space)" })
+
 _G.copy_global_path_with_line = function()
 	local path = vim.fn.expand("%:p") -- 绝对路径
 	if path == "" then

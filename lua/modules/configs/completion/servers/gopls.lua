@@ -59,6 +59,14 @@ return {
 
 	on_attach = function(client, bufnr)
 		-- 禁用 semanticTokens 以解决 Glance 插件查看引用时的 "Invalid buffer id" 报错
-		client.server_capabilities.semanticTokensProvider = nil
+		-- 使用 dummy table 而非 nil，防止 diffview 等场景下出现 "attempt to index field 'semanticTokensProvider' (a nil value)"
+		client.server_capabilities.semanticTokensProvider = {
+			full = false,
+			range = false,
+			legend = {
+				tokenTypes = {},
+				tokenModifiers = {},
+			},
+		}
 	end,
 }
