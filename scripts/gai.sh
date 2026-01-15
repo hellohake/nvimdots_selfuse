@@ -55,9 +55,21 @@ fi
 
 # 4. 执行 git push
 info "执行: git push..."
-git push
+
+# 获取当前分支
+CURRENT_BRANCH=$(git branch --show-current)
+# 检查是否有上游分支
+UPSTREAM=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null)
+
+if [ -z "$UPSTREAM" ]; then
+    warn "当前分支没有对应的上游分支，尝试建立追踪: origin $CURRENT_BRANCH"
+    git push --set-upstream origin "$CURRENT_BRANCH"
+else
+    git push
+fi
 
 PUSH_EXIT=$?
+
 if [ $PUSH_EXIT -ne 0 ]; then
     error "git push 失败"
     
