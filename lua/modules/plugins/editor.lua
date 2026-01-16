@@ -15,6 +15,7 @@ editor["olimorris/persisted.nvim"] = {
 	config = require("editor.persisted"),
 }
 editor["m4xshen/autoclose.nvim"] = {
+	enabled = false,
 	lazy = true,
 	event = "InsertEnter",
 	config = require("editor.autoclose"),

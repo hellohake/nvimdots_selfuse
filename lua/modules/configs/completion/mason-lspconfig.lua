@@ -24,12 +24,28 @@ M.setup = function()
 		update_in_insert = false,
 	})
 
+	-- 复用同一个 signatureHelp 浮窗，避免多 client / 多次触发导致叠出多个相同签名框
+	-- 注：截图里的“3 个补全提示”实际是多个 `textDocument/signatureHelp` 浮窗被同时打开。
+	local _orig_signature_help = vim.lsp.handlers["textDocument/signatureHelp"] or vim.lsp.handlers.signature_help
+	if type(_orig_signature_help) == "function" then
+		vim.lsp.handlers["textDocument/signatureHelp"] = function(err, result, ctx, config)
+			config = config or {}
+			config.border = config.border or "rounded"
+			-- focus_id 会让 open_floating_preview 复用窗口，而不是每次新开一个
+			config.focus_id = config.focus_id or "lsp_signature_help"
+			return _orig_signature_help(err, result, ctx, config)
+		end
+	end
+
+	-- 安全加载 blink.cmp，如果插件被禁用或未加载，则回退到默认 capabilities
+	local capabilities = vim.lsp.protocol.make_client_capabilities()
+	local blink_ok, blink = pcall(require, "blink.cmp")
+	if blink_ok then
+		capabilities = blink.get_lsp_capabilities(capabilities)
+	end
+
 	local opts = {
-		capabilities = vim.tbl_deep_extend(
-			"force",
-			vim.lsp.protocol.make_client_capabilities(),
-			require("cmp_nvim_lsp").default_capabilities()
-		),
+		capabilities = capabilities,
 		on_attach = function(client, _)
 			client.server_capabilities.semanticTokensProvider = nil
 		end,
