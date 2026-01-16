@@ -14,7 +14,7 @@ return function()
 		transparent_background = transparent_background,
 		show_end_of_buffer = false, -- show the '~' characters after the end of buffers
 		term_colors = true,
-		compile_path = vim.fn.stdpath("cache") .. "/catppuccin",
+		-- compile_path = vim.fn.stdpath("cache") .. "/catppuccin",
 		styles = {
 			comments = { "italic" },
 			functions = { "bold" },
@@ -160,6 +160,19 @@ return function()
 					-- Overwrite potential red backgrounds
 					RenderMarkdownError = { bg = cp.none, fg = cp.red },
 					["@error"] = { fg = cp.red, bg = cp.none },
+
+					-- High contrast Diff colors
+					-- 使用更高对比度的背景色，接近 VSCode 风格
+					DiffAdd = { bg = "#304635", fg = "NONE" }, -- 更亮的深绿色背景
+					DiffDelete = { bg = "#4f2b30", fg = "NONE" }, -- 更亮的深红色背景
+					DiffChange = { bg = "#253459", fg = "NONE" }, -- 更亮的深蓝色背景
+					DiffText = { bg = "#395075", fg = cp.text }, -- 文本变更区域
+
+					-- 显式覆盖 Diffview 特有的高亮组
+					DiffviewDiffAdd = { link = "DiffAdd" },
+					DiffviewDiffDelete = { link = "DiffDelete" },
+					DiffviewDiffChange = { link = "DiffChange" },
+					DiffviewDiffText = { link = "DiffText" },
 				}
 			end,
 		},
