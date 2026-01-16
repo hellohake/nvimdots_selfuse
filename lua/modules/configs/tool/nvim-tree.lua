@@ -18,8 +18,31 @@ return function()
 		sort_by = "name",
 		sync_root_with_cwd = true,
 		on_attach = function(bufnr)
-			require("nvim-tree.api").config.mappings.default_on_attach(bufnr)
+			local api = require("nvim-tree.api")
+			api.config.mappings.default_on_attach(bufnr)
 			vim.keymap.del("n", "<C-e>", { buffer = bufnr })
+
+			local function opts(desc)
+				return { desc = "nvim-tree: " .. desc, buffer = bufnr, noremap = true, silent = true, nowait = true }
+			end
+
+			local function grep_at_node()
+				local node = api.tree.get_node_under_cursor()
+				if not node then
+					return
+				end
+				local path = node.absolute_path or node.path
+				if node.type ~= "directory" and node.parent then
+					path = node.parent.absolute_path or node.parent.path
+				end
+				require("telescope").extensions.live_grep_args.live_grep_args({
+					search_dirs = { path },
+					prompt_title = "Grep in " .. vim.fn.fnamemodify(path, ":t"),
+				})
+			end
+
+			vim.keymap.set("n", "gs", grep_at_node, opts("Grep in directory"))
+			vim.keymap.set("n", "<leader>fw", grep_at_node, opts("Grep in directory"))
 		end,
 		view = {
 			adaptive_size = false,
