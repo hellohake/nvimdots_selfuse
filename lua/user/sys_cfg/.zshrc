@@ -1,10 +1,16 @@
-zmodload zsh/zprof
-export ZSH="$HOME/.oh-my-zsh"
+# =============================================================================
+# ZSH CONFIGURATION
+# =============================================================================
 
-# -------------------------------------------------------------------
-# 性能优化：快速补全初始化 (compinit 优化)
-# -------------------------------------------------------------------
-# 每天只进行一次完整的 compinit 检查，其余时间使用缓存 (-C)
+# --- 1. CORE & PERFORMANCE ---
+
+# zmodload zsh/zprof                   # Startup profiling (commented out)
+export ZSH="$HOME/.oh-my-zsh"
+export FUNCNEST=500                    # Prevent deep recursion
+ZSH_DISABLE_COMPFIX="true"             # Skip insecure directories check
+ENABLE_CORRECTION="true"               # Command auto-correction
+
+# Smart Completion Initialization (Cache for 24h)
 autoload -Uz compinit
 _comp_path="$ZSH/cache/zcompdump-$HOST"
 setopt localoptions extendedglob
@@ -13,13 +19,11 @@ if [[ -n "$_comp_path"(#qN.m-1) ]]; then
 else
     compinit -i -d "$_comp_path"
 fi
-ZSH_DISABLE_COMPFIX="true"
 
-# See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
+
+# --- 2. THEME & PLUGINS ---
+
 ZSH_THEME="gnzh"
-
-ENABLE_CORRECTION="true"
-export FUNCNEST=500
 
 plugins=(
     git
@@ -35,164 +39,61 @@ plugins=(
     zsh-syntax-highlighting
 )
 
-# Git 性能优化：大型仓库禁用子模块状态检查，必要时可禁用 dirty-check
+# Git performance tuning for large repos
 zstyle ':omz:plugins:git' status-ignore-submodules true
 
 source $ZSH/oh-my-zsh.sh
 
-# 手动关联 fzf 快捷键 (解决 Debian/Ubuntu 下 OMZ fzf 插件可能失效的问题)
-if [ -f /usr/share/doc/fzf/examples/key-bindings.zsh ]; then
+
+# --- 3. KEYBINDINGS ---
+
+# FZF bindings (Debian/Ubuntu fix)
+[ -f /usr/share/doc/fzf/examples/key-bindings.zsh ] && \
     source /usr/share/doc/fzf/examples/key-bindings.zsh
-fi
 
-export PATH=$PATH:/opt/tiger/toutiao/lib:/opt/tiger/jdk/jdk1.8/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/tiger/ss_bin:/usr/local/jdk/bin:/usr/sbin/:/opt/tiger/ss_lib/bin:/opt/tiger/ss_lib/python_package/lib/python2.7/site-packages/django/bin:/opt/tiger/yarn_deploy/hadoop/bin/:/opt/tiger/yarn_deploy/hive/bin/:/opt/tiger/yarn_deploy/jdk/bin/:/opt/tiger/hadoop_deploy/jython-2.5.2/bin:/opt/tiger/dev_toolkit/bin:/usr/local/tao/agent/modules/bvc/bin
+# Shell navigation
+setopt IGNORE_EOF                      # Prevent Ctrl-d exit
+bindkey '^j' autosuggest-accept        # Accept suggestion
+bindkey '^k' forward-word              # Jump word forward
+bindkey '^u' backward-kill-line        # Clear line start
+bindkey '^p' up-line-or-history        # Up
+bindkey '^n' down-line-or-history      # Down
 
-alias vim='nvim'
 
-# 复制 Git 当前分支名到本地剪贴板 (针对 SSH + tmux 优化)
-copygit() {
-    local branch=$(git branch --show-current 2>/dev/null)
-    if [ -z "$branch" ]; then
-        echo "Not in a git repository."
-        return 1
-    fi
+# --- 4. ENVIRONMENT & PATHS ---
 
-    # 确保 base64 没有任何换行符
-    local encoded=$(printf "%s" "$branch" | base64 | tr -d '\n')
+# 4.1 Base System
+export PATH=$PATH:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+export PATH="$HOME/.local/bin:$PATH"
 
-    if [ -n "$TMUX" ]; then
-        # tmux 封装：\033Ptmux;\033 是开始，\a\033\\ 是结束
-        # 内部是标准的 OSC 52 序列
-        printf "\033Ptmux;\033\033]52;c;%s\a\033\\" "$encoded"
-    else
-        # 标准模式
-        printf "\033]52;c;%s\a" "$encoded"
-    fi
-
-    echo "Branch '$branch' copied to local clipboard."
-}
-
-# 自动同步配置文件到 nvim 仓库供 Git 管理
-sync_cfg() {
-    [[ -n "$SKIP_SYNC" ]] && return
-    local target_dir="$HOME/.config/nvim/lua/user/sys_cfg"
-    local script_dir="$HOME/.config/nvim/scripts"
-    if [ -d "$target_dir" ]; then
-        # 仅在文件有更新时同步，避免 sourceall 时的并发冲突
-        [[ ~/.zshrc -nt "$target_dir/.zshrc" ]] && cp ~/.zshrc "$target_dir/.zshrc"
-        [[ ~/.tmux.conf -nt "$target_dir/.tmux.conf" ]] && cp ~/.tmux.conf "$target_dir/.tmux.conf"
-        if [ -f "$HOME/start_gopls.sh" ]; then
-            [[ "$HOME/start_gopls.sh" -nt "$target_dir/start_gopls.sh" ]] && cp "$HOME/start_gopls.sh" "$target_dir/start_gopls.sh"
-        fi
-        if [ -f "$HOME/gai.sh" ] && [ -d "$script_dir" ]; then
-            [[ "$HOME/gai.sh" -nt "$script_dir/gai.sh" ]] && cp "$HOME/gai.sh" "$script_dir/gai.sh"
-        fi
-    fi
-}
-# 启动或 source 时自动执行同步
-sync_cfg
-
-# -------------------------------------------------------------------
-# 快捷键配置 (插件已通过 Oh My Zsh 自动加载)
-# -------------------------------------------------------------------
-alias gai='~/gai.sh'
-
-setopt IGNORE_EOF    # 禁用 Ctrl-d 退出 shell，防止误关 tmux 面板
-bindkey '^j' autosuggest-accept
-bindkey '^k' forward-word
-bindkey '^u' backward-kill-line
-bindkey '^p' up-line-or-history
-bindkey '^n' down-line-or-history
-
-# 让所有 tmux 面板重新加载 zsh 配置 (自动避开 vim/top 等非 shell 程序，且跳过当前面板)
-# 使用 -P 4 并行执行，并设置 SKIP_SYNC=1 避免同步冲突
-alias sourceall='tmux list-panes -a -F "#{pane_id} #{pane_current_command}" | grep -E "zsh$|bash$|sh$" | grep -v "^$(tmux display-message -p "#D") " | awk "{print \$1}" | xargs -P 4 -I {} tmux send-keys -t {} "SKIP_SYNC=1 source ~/.zshrc" Enter'
-
-export http_proxy=http://sys-proxy-rd-relay.byted.org:8118  https_proxy=http://sys-proxy-rd-relay.byted.org:8118  no_proxy=*.byted.org
-function Proxy() {
-	ip=${SSH_CLIENT/ */}
-	if [ "$1" == "on" ]; then
-		export https_proxy=$ip:8118
-		export http_proxy=$ip:8118
-		echo Proxy On
-	else
-		unset https_proxy
-		unset http_proxy
-		echo Proxy Off
-	fi
-}
-
-#export PATH="$PATH:/home/lihao.hellohake/github_repo/nvim-linux64-0.9.5/bin"
-export PATH="$PATH:/home/lihao.hellohake/github_repo/nvim-0.10.4/bin"
-
-# go配置
-export PATH="$PATH:/usr/local/go/bin:/home/lihao.hellohake/go/bin"
+# 4.2 Development Tools
+# Golang
+export PATH="$PATH:/usr/local/go/bin:$HOME/go/bin"
 export GOPATH=$HOME/go
-# 不用指定版本时、移除指定的环境变量 https://unix.stackexchange.com/questions/108873/removing-a-directory-from-path#comment167586_108876
-# PATH=$(echo "$PATH" | sed -e 's|:/home/lihao.hellohake/github_repo/go1.20.14/bin||')
-# export PATH=/home/lihao.hellohake/github_repo/go1.20.14/bin:$PATH
-export PATH="/home/lihao.hellohake/github_repo/go1.25.5/bin:$PATH"
-# gopls配置 for 性能
-# pgrep -af gopls
+export PATH="$HOME/github_repo/go1.25.5/bin:$PATH"
 export GOPLS_SCRIPT="$HOME/start_gopls.sh"
-alias gostart='pgrep -f "gopls serve" > /dev/null && echo "⚠️  Gopls is ALREADY running (PID: $(pgrep -f "gopls serve" | head -1)). Use gorestart if needed." || (nohup "$GOPLS_SCRIPT" > /dev/null 2>&1 & echo "🚀 Gopls Service Started!")'
-alias gostop='pkill -9 -f "gopls serve"; rm -f /dev/shm/gopls-daemon-*.sock; echo "🛑 Gopls Service Killed & Socket Cleaned!"'
-alias gorestart='gostop; sleep 1; nohup "$GOPLS_SCRIPT" > /dev/null 2>&1 & echo "♻️  Gopls Service Restarted!"'
-alias gostatus='ps -eo pid,user,%cpu,%mem,cmd | grep "gopls serve" | grep -v grep || echo "🔴 gopls 未运行 (No running process). 请执行 [ gostart ] 启动服务."'
 
-export TMUX_TMPDIR=~/.tmux/tmp
-#export PATH="$PATH:/home/lihao.hellohake/node_modules/tree-sitter-cli"
-# -------------------------------------------------------------------
-# 性能优化：NVM 懒加载
-# -------------------------------------------------------------------
+# Neovim & Coco
+export PATH="$PATH:$HOME/github_repo/nvim-0.10.4/bin"
+export PATH="/data00/home/lihao.hellohake/.local/bin:$PATH"
+
+# Node/NVM
 export NVM_DIR="$HOME/.nvm"
-_load_nvm() {
-    unset -f nvm node npm npx
-    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-}
-nvm() { _load_nvm; nvm "$@" }
-node() { _load_nvm; node "$@" }
-npm() { _load_nvm; npm "$@" }
-npx() { _load_nvm; npx "$@" }
 
-# -------------------------------------------------------------------
-# 性能优化：环境变量与 eval 缓存 (仅在初次 source 时加载)
-# -------------------------------------------------------------------
-if [[ -z "$_CFG_SYNCED" ]]; then
-    # 缓存 brew shellenv 以避免每次启动都运行 brew 二进制文件
-    _brew_cache="$HOME/.cache/zsh_brew_cache"
-    if [[ -f "$_brew_cache" ]]; then
-        source "$_brew_cache"
-    else
-        mkdir -p "$HOME/.cache"
-        /home/linuxbrew/.linuxbrew/bin/brew shellenv > "$_brew_cache" 2>/dev/null
-        source "$_brew_cache"
-    fi
+# Rust
+[ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
 
-    # thefuck 初始化较慢，直接定义 alias 函数
-    fuck () {
-        TF_PYTHONIOENCODING=$PYTHONIOENCODING;
-        export TF_SHELL=zsh;
-        export TF_ALIAS=fuck;
-        TF_SHELL_ALIASES=$(alias);
-        export TF_SHELL_ALIASES;
-        TF_HISTORY="$(fc -ln -10)";
-        export TF_HISTORY;
-        export PYTHONIOENCODING=utf-8;
-        TF_CMD=$(thefuck THEFUCK_ARGUMENT_PLACEHOLDER $@) && eval $TF_CMD;
-        unset TF_HISTORY;
-        export PYTHONIOENCODING=$TF_PYTHONIOENCODING;
-        test -n "$TF_CMD" && print -s $TF_CMD
-    }
-fi
-export _CFG_SYNCED=1
+# 4.3 Company Environment (Tiger/ByteDance)
+export PATH=$PATH:/opt/tiger/toutiao/lib:/opt/tiger/jdk/jdk1.8/bin
+export PATH=$PATH:/opt/tiger/ss_bin:/usr/local/jdk/bin:/opt/tiger/ss_lib/bin
+export PATH=$PATH:/opt/tiger/ss_lib/python_package/lib/python2.7/site-packages/django/bin
+export PATH=$PATH:/opt/tiger/yarn_deploy/hadoop/bin/:/opt/tiger/yarn_deploy/hive/bin/
+export PATH=$PATH:/opt/tiger/yarn_deploy/jdk/bin/:/opt/tiger/hadoop_deploy/jython-2.5.2/bin
+export PATH=$PATH:/opt/tiger/dev_toolkit/bin:/usr/local/tao/agent/modules/bvc/bin
 
-# --- 恢复环境变量 ---
+# 4.4 Business Variables
 [ -f "$HOME/.bytebm/config/config.sh" ] && . "$HOME/.bytebm/config/config.sh"
 export LANG=zh_CN.UTF-8
-export FZF_CTRL_T_COMMAND='fd --type f --hidden --follow --exclude .git'
-export no_proxy=.byteintl.net,.byted.org,.bytedance.net
 export RUNTIME_IDC_NAME=lf
 export TCE_PSM="ecom.search.stream"
 export CONSUL_HTTP_HOST=10.37.39.172
@@ -201,214 +102,160 @@ export BYTED_HOST_IPV6=::1
 export MY_HOST_IPV6=::1
 export TCE_STAGE=prod
 export IS_TCE_DOCKER_ENV=1
-. /usr/share/autojump/autojump.sh
-
-prompt_context() {
-  if [[ "$USER" != "$DEFAULT_USER" || -n "$SSH_CLIENT" ]]; then
-    prompt_segment black default "%(!.%{%F{yellow}%}.)$USER"
-  fi
-}
-ZVM_INIT_MODE=sourcing
-# --------------------
-
 export TLDR_LANG=zh_CN
-. "$HOME/.cargo/env"
-# zsh启动测速
-# zprof
 
-# 修正 HOME 路径以确保 %~ 能正确缩写路径 (设置为物理路径以匹配 pwd)
-export HOME="/home/lihao.hellohake"
+# 4.5 Network & Proxy
+export http_proxy=http://sys-proxy-rd-relay.byted.org:8118
+export https_proxy=http://sys-proxy-rd-relay.byted.org:8118
+export no_proxy=*.byted.org,.byteintl.net,.bytedance.net
 
-# 自定义 Prompt 格式
-# %n = 用户名, %~ = 相对路径, %* = 时间
-PROMPT='%{$fg[cyan]%}%n%{$reset_color%} %{$fg[blue]%}%40<..<%~%<<%{$reset_color%} $(git_prompt_info) %{$fg[green]%}[%*]%{$reset_color%}
-$ '
+# 4.6 Misc
+export TMUX_TMPDIR=~/.tmux/tmp
+export FZF_CTRL_T_COMMAND='fd --type f --hidden --follow --exclude .git'
+export HOME="/home/lihao.hellohake"    # Fix prompt abbreviation
+[ -f /usr/share/autojump/autojump.sh ] && . /usr/share/autojump/autojump.sh
 
-# Added by trae-gopls installer
-export PATH="$HOME/.local/bin:$PATH"
 
-# Added by coco installer
-export PATH="/data00/home/lihao.hellohake/.local/bin:$PATH"
+# --- 5. ALIASES ---
 
-# -------------------------------------------------------------------
-# Fix: Disable Ctrl-d (EOF) for coco command to prevent accidental exit
-# -------------------------------------------------------------------
-coco() {
-    # Use python pty wrapper to intercept and drop Ctrl-d (0x04)
-    # as 'stty eof undef' is ineffective when coco uses raw mode.
-    python3 ~/.local/bin/coco_wrapper.py "$@"
+alias vim='nvim'
+alias gai='~/gai.sh'
+
+# Tmux: Reload config in all panes (Parallel, skip current)
+alias sourceall='tmux list-panes -a -F "#{pane_id} #{pane_current_command}" | \
+    grep -E "zsh$|bash$|sh$" | \
+    grep -v "^$(tmux display-message -p "#D") " | \
+    awk "{print \$1}" | \
+    xargs -P 4 -I {} tmux send-keys -t {} "SKIP_SYNC=1 source ~/.zshrc" Enter'
+
+# Gopls Management
+alias gostart='pgrep -f "gopls serve" >/dev/null && echo "⚠️  Gopls ALREADY running." || (nohup "$GOPLS_SCRIPT" >/dev/null 2>&1 & echo "🚀 Gopls Started!")'
+alias gostop='pkill -9 -f "gopls serve"; rm -f /dev/shm/gopls-daemon-*.sock; echo "🛑 Gopls Killed!"'
+alias gorestart='gostop; sleep 1; nohup "$GOPLS_SCRIPT" >/dev/null 2>&1 & echo "♻️  Gopls Restarted!"'
+alias gostatus='ps -eo pid,user,%cpu,%mem,cmd | grep "gopls serve" | grep -v grep || echo "🔴 gopls NOT running."'
+
+
+# --- 6. FUNCTIONS ---
+
+# 6.1 Tools & Helpers
+Proxy() {
+    local ip=${SSH_CLIENT/ */}
+    if [ "$1" == "on" ]; then
+        export https_proxy=$ip:8118; export http_proxy=$ip:8118
+        echo "Proxy On ($ip:8118)"
+    else
+        unset https_proxy; unset http_proxy
+        echo "Proxy Off"
+    fi
 }
 
-# -------------------------------------------------------------------
-# Git Worktree Helpers
-# -------------------------------------------------------------------
+coco() { python3 ~/.local/bin/coco_wrapper.py "$@"; }
 
-# 1. 仅修复当前目录的软链接
+copygit() {
+    local branch=$(git branch --show-current 2>/dev/null)
+    [ -z "$branch" ] && { echo "Not a git repo."; return 1; }
+    local encoded=$(printf "%s" "$branch" | base64 | tr -d '\n')
+    [ -n "$TMUX" ] && printf "\033Ptmux;\033\033]52;c;%s\a\033\\" "$encoded" || printf "\033]52;c;%s\a" "$encoded"
+    echo "Branch '$branch' copied."
+}
+
+# 6.2 Worktree Management (gw-add)
 gw-init-links() {
-    echo "🔗 Linking shared configurations..."
-    local files=(.coco .ai_doc AGENTS.md)
-    for file in "${files[@]}"; do
-        if [ -e "../$file" ]; then
-            # -sfn: 强制创建软链，如果已存在则覆盖 (no-dereference)
-            ln -sfn "../$file" "./$file" && echo "  ✅ Linked $file"
-        else
-            echo "  ⚠️  Warning: ../$file not found"
-        fi
+    echo "🔗 Linking shared configs..."
+    for f in .coco .ai_doc AGENTS.md; do
+        [ -e "../$f" ] && ln -sfn "../$f" "./$f" && echo "  ✅ $f" || echo "  ⚠️  ../$f missing"
     done
 }
 
-# 2. 一键创建 Worktree 并初始化环境
-# 用法:
-#   gw-add <branch>                     # 检出已有分支
-#   gw-add <branch> <base>              # 基于 base 创建新分支
-#   gw-add <branch> -d <dir>            # 自定义目录名
 gw-add() {
-    local branch=""
-    local base=""
-    local dirname=""
+    local branch="" base="" dirname=""
+    show_help() { echo "Usage: gw-add <branch> [base] [-d dir]"; }
 
-    # 帮助信息函数
-    show_help() {
-        echo "用法: gw-add <分支名> [基准分支] [-d 目录名]"
-        echo ""
-        echo "选项:"
-        echo "  -h, --help       显示此帮助信息"
-        echo "  -d, --dir <目录> 指定自定义目录名 (默认: 与分支名相同)"
-        echo ""
-        echo "示例:"
-        echo "  gw-add feature/login             # 检出已有分支到 ../feature/login"
-        echo "  gw-add feature/new main          # 基于 main 创建新分支"
-        echo "  gw-add hotfix/bug -d ../hotfix   # 检出到自定义目录"
-        return 0
-    }
-
-    # 解析参数
     while [[ $# -gt 0 ]]; do
         case $1 in
-            -h|--help)
-                show_help
-                return 0
-                ;;
-            -d|--dir)
-                dirname="$2"
-                shift 2
-                ;;
-            *)
-                if [ -z "$branch" ]; then
-                    branch="$1"
-                elif [ -z "$base" ]; then
-                    base="$1"
-                elif [ -z "$dirname" ]; then
-                    dirname="$1"
-                else
-                    echo "Unknown argument: $1"
-                    show_help
-                    return 1
-                fi
-                shift
-                ;;
+            -h|--help) show_help; return 0 ;;
+            -d|--dir) dirname="$2"; shift 2 ;;
+            *) [ -z "$branch" ] && branch="$1" || ([ -z "$base" ] && base="$1" || ([ -z "$dirname" ] && dirname="$1")); shift ;;
         esac
     done
 
-    if [ -z "$branch" ]; then
-        show_help
-        return 1
-    fi
+    [ -z "$branch" ] && { show_help; return 1; }
+    [ -z "$dirname" ] && dirname="$branch"
 
-    # 默认目录名为分支名
-    if [ -z "$dirname" ]; then
-        dirname="$branch"
-    fi
+    local target_dir="../$dirname"
+    [[ "$dirname" == /* || "$dirname" == ./* || "$dirname" == *../* ]] && { echo "Error: Invalid path."; return 1; }
+    
+    # Root handling
+    [ ! -e "../.coco" ] && [ -e "./.coco" ] && [[ "$target_dir" == ../* ]] && target_dir="./${dirname}"
 
-    # 确定目标目录路径
-    local target_dir=""
-
-    # 规则: 必须在同级目录创建 (../xxx)，不允许子目录或绝对路径
-    # 1. 绝对路径 -> 报错
-    if [[ "$dirname" == /* ]]; then
-        echo "错误: 不允许使用绝对路径 ('$dirname')."
-        echo "Worktree 必须创建在与当前目录同级的位置 (例如: gw-add branch ../dir)."
-        return 1
-    fi
-
-    # 2. 相对路径处理
-    if [[ "$dirname" == ./* ]]; then
-         echo "错误: 不允许在当前目录下创建 ('$dirname')."
-         echo "Worktree 必须创建在与当前目录同级的位置."
-         return 1
-    elif [[ "$dirname" == ../* ]]; then
-         # 已经是 ../ 开头，直接使用
-         target_dir="$dirname"
-    else
-         # 只有文件名/相对路径，自动添加 ../
-         target_dir="../$dirname"
-    fi
-
-    # 3. 再次检查是否有多级 ../
-    # 简单的字符串检查: 如果去掉第一个 ../ 后还包含 ../，则报错
-    local stripped="${target_dir#../}"
-    if [[ "$stripped" == *../* ]]; then
-         echo "错误: 路径层级过深 ('$target_dir')."
-         echo "Worktree 必须创建在与当前目录同级的位置."
-         return 1
-    fi
-
-    # 路径检查逻辑
-    if [ ! -e "../.coco" ] && [ ! -e "../.bare" ]; then
-        if [ -e "./.coco" ]; then
-             echo "⚠️  You seem to be in the root directory."
-             # 如果在根目录，且用户没指定路径前缀，则直接在当前目录下创建
-             if [[ "$target_dir" == ../* ]]; then
-                 target_dir="./${dirname}"
-             fi
-        else
-            echo "⚠️  Warning: Parent directory does not contain .coco or .bare."
-            echo "Are you sure you are in a worktree sibling directory?"
-            echo "Proceeding anyway..."
-        fi
-    fi
-
-    echo "🌲 Setting up worktree for '$branch' in '$target_dir'..."
-
-    # 核心逻辑：区分新建分支还是检出已有分支
+    echo "🌲 Setup '$branch' in '$target_dir'..."
+    
     if [ -n "$base" ]; then
-        # 检查 base 是否存在，若不存在且为 main，提示 master
-        if ! git rev-parse --verify "$base" >/dev/null 2>&1; then
-            if [[ "$base" == "main" ]] && git rev-parse --verify "master" >/dev/null 2>&1; then
-                echo "⚠️  分支 'main' 不存在, 但 'master' 存在. 已自动使用 'master' 代替."
-                base="master"
-            fi
-        fi
-
-        # 检查目标分支是否存在
+        [[ "$base" == "main" ]] && ! git rev-parse --verify "$base" >/dev/null 2>&1 && \
+            git rev-parse --verify "master" >/dev/null 2>&1 && base="master"
+        
         if git rev-parse --verify "$branch" >/dev/null 2>&1; then
-            echo "⚠️  分支 '$branch' 已存在。"
-            echo "   切换为检出已有分支 (忽略基准分支 '$base')..."
-            # 降级为检出逻辑
+            echo "⚠️  Branch exists, checkout only."
             git worktree add "$target_dir" "$branch" || return 1
         else
-            # Case A: 提供了 base，明确要求创建新分支
-            echo "   Creating NEW branch '$branch' from '$base'..."
             git worktree add -b "$branch" "$target_dir" "$base" || return 1
         fi
     else
-        # Case B: 没提供 base，尝试作为已有分支检出
-        echo "   Checking out EXISTING branch '$branch'..."
-        if ! git worktree add "$target_dir" "$branch"; then
-            echo ""
-            echo "❌ Failed to checkout '$branch'."
-            echo "   - If this is a new branch, use: gw-add $branch <base-branch>"
-            echo "   - If this is a remote branch, fetch first: git fetch origin"
-            return 1
-        fi
+        git worktree add "$target_dir" "$branch" || { echo "❌ Failed."; return 1; }
     fi
 
-    # 进入新目录
-    echo "📂 Entering worktree..."
-    cd "$target_dir" || return 1
-
-    # 初始化软链接
+    echo "📂 Entering..."; cd "$target_dir" || return 1
     gw-init-links
-
-    echo "🚀 Worktree ready! You are now in: $(pwd)"
+    echo "🚀 Ready: $(pwd)"
 }
+
+# 6.3 Config Sync
+sync_cfg() {
+    [[ -n "$SKIP_SYNC" ]] && return
+    local t_dir="$HOME/.config/nvim/lua/user/sys_cfg"
+    local s_dir="$HOME/.config/nvim/scripts"
+    [ ! -d "$t_dir" ] && return
+
+    [[ ~/.zshrc -nt "$t_dir/.zshrc" ]] && cp ~/.zshrc "$t_dir/.zshrc"
+    [[ ~/.tmux.conf -nt "$t_dir/.tmux.conf" ]] && cp ~/.tmux.conf "$t_dir/.tmux.conf"
+    [ -f "$HOME/start_gopls.sh" ] && [[ "$HOME/start_gopls.sh" -nt "$t_dir/start_gopls.sh" ]] && cp "$HOME/start_gopls.sh" "$t_dir/start_gopls.sh"
+    [ -f "$HOME/gai.sh" ] && [ -d "$s_dir" ] && [[ "$HOME/gai.sh" -nt "$s_dir/gai.sh" ]] && cp "$HOME/gai.sh" "$s_dir/gai.sh"
+}
+sync_cfg # Run on startup
+
+
+# --- 7. LAZY LOADING ---
+
+# NVM Lazy
+_load_nvm() {
+    unset -f nvm node npm npx
+    [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+    [ -s "$NVM_DIR/bash_completion" ] && . "$NVM_DIR/bash_completion"
+}
+for cmd in nvm node npm npx; do eval "$cmd() { _load_nvm; $cmd \"\$@\"; }"; done
+
+# Eval Cache (Brew/TheFuck)
+if [[ -z "$_CFG_SYNCED" ]]; then
+    _brew_cache="$HOME/.cache/zsh_brew_cache"
+    if [[ -f "$_brew_cache" ]]; then source "$_brew_cache"
+    else mkdir -p "$HOME/.cache"; /home/linuxbrew/.linuxbrew/bin/brew shellenv > "$_brew_cache" 2>/dev/null; source "$_brew_cache"; fi
+    
+    fuck() {
+        TF_PYTHONIOENCODING=$PYTHONIOENCODING; export TF_SHELL=zsh; export TF_ALIAS=fuck
+        TF_SHELL_ALIASES=$(alias); export TF_SHELL_ALIASES; TF_HISTORY="$(fc -ln -10)"; export TF_HISTORY
+        export PYTHONIOENCODING=utf-8; TF_CMD=$(thefuck THEFUCK_ARGUMENT_PLACEHOLDER $@) && eval $TF_CMD
+        unset TF_HISTORY; export PYTHONIOENCODING=$TF_PYTHONIOENCODING; test -n "$TF_CMD" && print -s $TF_CMD
+    }
+fi
+export _CFG_SYNCED=1
+
+
+# --- 8. PROMPT & FINALIZATION ---
+
+prompt_context() {
+  [[ "$USER" != "$DEFAULT_USER" || -n "$SSH_CLIENT" ]] && prompt_segment black default "%(!.%{%F{yellow}%}.)$USER"
+}
+PROMPT='%{$fg[cyan]%}%n%{$reset_color%} %{$fg[blue]%}%40<..<%~%<<%{$reset_color%} $(git_prompt_info) %{$fg[green]%}[%*]%{$reset_color%}
+$ '
+
+ZVM_INIT_MODE=sourcing

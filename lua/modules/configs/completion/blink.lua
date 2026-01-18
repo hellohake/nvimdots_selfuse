@@ -21,15 +21,15 @@ return function()
 			["<C-b>"] = { "scroll_documentation_up", "fallback" },
 			["<C-f>"] = { "scroll_documentation_down", "fallback" },
 		},
-	appearance = {
-		use_nvim_cmp_as_default = false,
-		nerd_font_variant = "mono",
-		kind_icons = vim.tbl_extend("force", icons.kind, icons.type, icons.cmp),
-	},
-	snippets = { preset = "luasnip" },
-	-- 避免和其他 LSP UI 叠加导致重复的签名框
-	signature = { enabled = false },
-	completion = {
+		appearance = {
+			use_nvim_cmp_as_default = false,
+			nerd_font_variant = "mono",
+			kind_icons = vim.tbl_extend("force", icons.kind, icons.type, icons.cmp),
+		},
+		snippets = { preset = "luasnip" },
+		-- 避免和其他 LSP UI 叠加导致重复的签名框
+		signature = { enabled = false },
+		completion = {
 			menu = {
 				border = "rounded",
 				winhighlight = "Normal:Pmenu,CursorLine:PmenuSel,Search:PmenuSel",
@@ -46,22 +46,22 @@ return function()
 			ghost_text = {
 				enabled = true,
 			},
-	},
-	sources = {
-		default = { "lsp", "path", "snippets", "buffer" },
-		providers = {
-			lsp = {
-				fallbacks = { "buffer" },
-			},
-			path = {
-				opts = {
-					show_hidden_files_by_default = true,
+		},
+		sources = {
+			default = { "lsp", "path", "snippets", "buffer" },
+			providers = {
+				lsp = {
+					fallbacks = { "buffer" },
+				},
+				path = {
+					opts = {
+						show_hidden_files_by_default = true,
+					},
+				},
+				buffer = {
+					min_keyword_length = 2,
 				},
 			},
-			buffer = {
-				min_keyword_length = 2,
-			},
 		},
-	},
-})
+	})
 end
