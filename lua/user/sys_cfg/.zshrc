@@ -1,11 +1,11 @@
-# =============================================================================
-# ZSH CONFIGURATION
-# =============================================================================
-
 # --- 1. CORE & PERFORMANCE ---
 
 # zmodload zsh/zprof                   # Startup profiling (commented out)
 export ZSH="$HOME/.oh-my-zsh"
+
+# OpenSpec completions (Must be before compinit)
+fpath=("$ZSH/custom/completions" $fpath)
+
 export FUNCNEST=500                    # Prevent deep recursion
 ZSH_DISABLE_COMPFIX="true"             # Skip insecure directories check
 ENABLE_CORRECTION="true"               # Command auto-correction
@@ -124,7 +124,6 @@ alias gai='~/gai.sh'
 # Tmux: Reload config in all panes (Parallel, skip current)
 alias sourceall='tmux list-panes -a -F "#{pane_id} #{pane_current_command}" | \
     grep -E "zsh$|bash$|sh$" | \
-    grep -v "^$(tmux display-message -p "#D") " | \
     awk "{print \$1}" | \
     xargs -P 4 -I {} tmux send-keys -t {} "SKIP_SYNC=1 source ~/.zshrc" Enter'
 
@@ -227,12 +226,13 @@ sync_cfg # Run on startup
 # --- 7. LAZY LOADING ---
 
 # NVM Lazy
+NVM_LAZY_CMDS=(nvm node npm npx openspec openskills)
 _load_nvm() {
-    unset -f nvm node npm npx
+    for cmd in "${NVM_LAZY_CMDS[@]}"; do unset -f "$cmd"; done
     [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
     [ -s "$NVM_DIR/bash_completion" ] && . "$NVM_DIR/bash_completion"
 }
-for cmd in nvm node npm npx; do eval "$cmd() { _load_nvm; $cmd \"\$@\"; }"; done
+for cmd in "${NVM_LAZY_CMDS[@]}"; do eval "$cmd() { _load_nvm; $cmd \"\$@\"; }"; done
 
 # Eval Cache (Brew/TheFuck)
 if [[ -z "$_CFG_SYNCED" ]]; then
