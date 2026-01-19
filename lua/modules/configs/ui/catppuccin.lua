@@ -87,6 +87,10 @@ return function()
 					CursorLine = { bg = cp.surface1 },
 					CursorColumn = { bg = cp.surface1 },
 
+					-- Enhanced Visual mode selection
+					Visual = { bg = cp.surface2, style = { "bold" } },
+					VisualNOS = { link = "Visual" },
+
 					-- For native lsp configs
 					DiagnosticVirtualTextError = { bg = cp.none },
 					DiagnosticVirtualTextWarn = { bg = cp.none },
