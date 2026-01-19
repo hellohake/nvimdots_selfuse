@@ -259,3 +259,10 @@ PROMPT='%{$fg[cyan]%}%n%{$reset_color%} %{$fg[blue]%}%40<..<%~%<<%{$reset_color%
 $ '
 
 ZVM_INIT_MODE=sourcing
+
+# --- 9. AI DOC SYNC ---
+# Auto sync AI docs on shell startup (background & detached)
+if [[ -z "$SKIP_SYNC" && -x "/home/lihao.hellohake/go/src/hello/hello_learn/script/sync_ai_pmt.sh" ]]; then
+    # Use &! to detach the process immediately so it doesn't block shell startup or show job notifications
+    /home/lihao.hellohake/go/src/hello/hello_learn/script/sync_ai_pmt.sh >/dev/null 2>&1 &!
+fi
