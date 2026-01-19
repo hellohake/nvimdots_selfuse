@@ -84,6 +84,8 @@ return function()
 						bg = transparent_background and cp.none or cp.mantle,
 					},
 					CursorLineNr = { fg = cp.green },
+					CursorLine = { bg = cp.surface1 },
+					CursorColumn = { bg = cp.surface1 },
 
 					-- For native lsp configs
 					DiagnosticVirtualTextError = { bg = cp.none },
