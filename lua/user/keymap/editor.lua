@@ -159,8 +159,14 @@ return {
 		:with_noremap()
 		:with_silent()
 		:with_desc("git: Toggle diff against master"),
-	["n|<leader>gd"] = map_cr("lua _G.toggle_diffview()"):with_noremap():with_silent():with_desc("git: Toggle diffview"),
-	["n|<leader>gh"] = map_cr("lua _G.toggle_file_history()"):with_noremap():with_silent():with_desc("git: Toggle file history"),
+	["n|<leader>gd"] = map_cr("lua _G.toggle_diffview()")
+		:with_noremap()
+		:with_silent()
+		:with_desc("git: Toggle diffview"),
+	["n|<leader>gf"] = map_cr("lua _G.toggle_file_history()")
+		:with_noremap()
+		:with_silent()
+		:with_desc("git: Toggle file history"),
 	-- auto-session
 	["n|<leader>ss"] = map_callback(function()
 			require("auto-session.pickers.telescope").extension_search_session({
@@ -182,5 +188,8 @@ return {
 		:with_noremap()
 		:with_silent()
 		:with_desc("Git: Worktrees"),
-	["n|<leader>gn"] = map_cr("Telescope git_worktree create_git_worktree"):with_noremap():with_silent():with_desc("Git: Create worktree"),
+	["n|<leader>gn"] = map_cr("Telescope git_worktree create_git_worktree")
+		:with_noremap()
+		:with_silent()
+		:with_desc("Git: Create worktree"),
 }
