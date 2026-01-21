@@ -74,7 +74,7 @@ export PATH="$HOME/github_repo/go1.25.5/bin:$PATH"
 export GOPLS_SCRIPT="$HOME/start_gopls.sh"
 
 # Neovim & Coco
-export PATH="$PATH:$HOME/github_repo/nvim-0.10.4/bin"
+export PATH="$HOME/github_repo/nvim-0.11.5/bin:$PATH"
 export PATH="/data00/home/lihao.hellohake/.local/bin:$PATH"
 
 # Node/NVM
@@ -168,39 +168,58 @@ gw-init-links() {
 
 gw-add() {
     local branch="" base="" dirname=""
-    show_help() { echo "Usage: gw-add <branch> [base] [-d dir]"; }
 
+    # Improved argument parsing
     while [[ $# -gt 0 ]]; do
         case $1 in
-            -h|--help) show_help; return 0 ;;
+            -h|--help) echo "Usage: gw-add <branch> [base] [dir]"; return 0 ;;
             -d|--dir) dirname="$2"; shift 2 ;;
-            *) [ -z "$branch" ] && branch="$1" || ([ -z "$base" ] && base="$1" || ([ -z "$dirname" ] && dirname="$1")); shift ;;
+            *)
+                if [ -z "$branch" ]; then branch="$1"
+                elif [ -z "$base" ]; then base="$1"
+                elif [ -z "$dirname" ]; then dirname="$1"
+                fi
+                shift
+                ;;
         esac
     done
 
-    [ -z "$branch" ] && { show_help; return 1; }
+    [ -z "$branch" ] && { echo "Usage: gw-add <branch> [base] [dir]"; return 1; }
     [ -z "$dirname" ] && dirname="$branch"
 
     local target_dir="../$dirname"
-    [[ "$dirname" == /* || "$dirname" == ./* || "$dirname" == *../* ]] && { echo "Error: Invalid path."; return 1; }
-    
+    # Allow relative paths starting with ./ or ../ by using them directly
+    if [[ "$dirname" == .* ]]; then
+        target_dir="$dirname"
+    fi
+
     # Root handling
     [ ! -e "../.coco" ] && [ -e "./.coco" ] && [[ "$target_dir" == ../* ]] && target_dir="./${dirname}"
 
     echo "🌲 Setup '$branch' in '$target_dir'..."
-    
+
+    # Handle main/master alias for base
     if [ -n "$base" ]; then
         [[ "$base" == "main" ]] && ! git rev-parse --verify "$base" >/dev/null 2>&1 && \
             git rev-parse --verify "master" >/dev/null 2>&1 && base="master"
-        
-        if git rev-parse --verify "$branch" >/dev/null 2>&1; then
-            echo "⚠️  Branch exists, checkout only."
-            git worktree add "$target_dir" "$branch" || return 1
-        else
-            git worktree add -b "$branch" "$target_dir" "$base" || return 1
-        fi
+    fi
+
+    # Smart Logic: Check existence first
+    if git rev-parse --verify "$branch" >/dev/null 2>&1; then
+        echo "✅ Branch '$branch' exists. Checking out..."
+        git worktree add "$target_dir" "$branch"
     else
-        git worktree add "$target_dir" "$branch" || { echo "❌ Failed."; return 1; }
+        echo "🆕 Branch '$branch' not found. Creating..."
+        if [ -n "$base" ]; then
+            git worktree add -b "$branch" "$target_dir" "$base"
+        else
+            git worktree add -b "$branch" "$target_dir"
+        fi
+    fi
+
+    if [ $? -ne 0 ]; then
+        echo "❌ Worktree creation failed."
+        return 1
     fi
 
     echo "📂 Entering..."; cd "$target_dir" || return 1
@@ -239,7 +258,7 @@ if [[ -z "$_CFG_SYNCED" ]]; then
     _brew_cache="$HOME/.cache/zsh_brew_cache"
     if [[ -f "$_brew_cache" ]]; then source "$_brew_cache"
     else mkdir -p "$HOME/.cache"; /home/linuxbrew/.linuxbrew/bin/brew shellenv > "$_brew_cache" 2>/dev/null; source "$_brew_cache"; fi
-    
+
     fuck() {
         TF_PYTHONIOENCODING=$PYTHONIOENCODING; export TF_SHELL=zsh; export TF_ALIAS=fuck
         TF_SHELL_ALIASES=$(alias); export TF_SHELL_ALIASES; TF_HISTORY="$(fc -ln -10)"; export TF_HISTORY

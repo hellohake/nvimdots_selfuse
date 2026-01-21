@@ -2,7 +2,7 @@ return vim.schedule_wrap(function()
 	local use_ssh = require("core.settings").use_ssh
 
 	vim.api.nvim_set_option_value("foldmethod", "expr", {})
-	vim.api.nvim_set_option_value("foldexpr", "nvim_treesitter#foldexpr()", {})
+	vim.api.nvim_set_option_value("foldexpr", "v:lua.vim.treesitter.foldexpr()", {})
 
 	require("modules.utils").load_plugin("nvim-treesitter", {
 		ensure_installed = require("core.settings").treesitter_deps,
