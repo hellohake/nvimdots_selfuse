@@ -161,7 +161,7 @@ copygit() {
 # 6.2 Worktree Management (gw-add)
 gw-init-links() {
     echo "🔗 Linking shared configs..."
-    for f in .coco .ai_doc AGENTS.md; do
+    for f in .coco .ai_doc AGENTS.md openspec; do
         [ -e "../$f" ] && ln -sfn "../$f" "./$f" && echo "  ✅ $f" || echo "  ⚠️  ../$f missing"
     done
 }

@@ -1,6 +1,7 @@
 local options = {
 	-- Example
 	autoindent = true,
+	timeoutlen = 1000,
 	maxmempattern = 30000,
 	sessionoptions = "blank,buffers,curdir,folds,help,tabpages,winsize,winpos,terminal,localoptions",
 }

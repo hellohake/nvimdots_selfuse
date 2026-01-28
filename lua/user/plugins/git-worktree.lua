@@ -9,7 +9,7 @@ return {
 			-- 自动化：创建新 Worktree 时自动为根目录的共享文件创建软链接
 			git_worktree.on_tree_change(function(op, metadata)
 				if op == git_worktree.Operations.Create then
-					local shared_items = { ".coco", ".ai_doc", "AGENTS.md" }
+					local shared_items = { ".coco", ".ai_doc", "AGENTS.md", "openspec" }
 					local target_path = metadata.path
 					local root = vim.fn.fnamemodify(target_path, ":h")
 
