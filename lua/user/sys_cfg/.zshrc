@@ -95,7 +95,8 @@ export PATH=$PATH:/opt/tiger/dev_toolkit/bin:/usr/local/tao/agent/modules/bvc/bi
 [ -f "$HOME/.bytebm/config/config.sh" ] && . "$HOME/.bytebm/config/config.sh"
 export LANG=zh_CN.UTF-8
 export RUNTIME_IDC_NAME=lf
-export TCE_PSM="ecom.search.stream"
+export TCE_PSM="ecom.search.loader"
+# export TCE_PSM="ecom.search.stream"
 export CONSUL_HTTP_HOST=10.37.39.172
 export CONSUL_HTTP_PORT=2280
 export BYTED_HOST_IPV6=::1
@@ -108,6 +109,7 @@ export TLDR_LANG=zh_CN
 export http_proxy=http://sys-proxy-rd-relay.byted.org:8118
 export https_proxy=http://sys-proxy-rd-relay.byted.org:8118
 export no_proxy=*.byted.org,.byteintl.net,.bytedance.net
+export TLDR_LANGUAGE=zh
 
 # 4.6 Misc
 export TMUX_TMPDIR=~/.tmux/tmp
