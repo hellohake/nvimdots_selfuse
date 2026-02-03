@@ -37,11 +37,10 @@ completion["nvimtools/none-ls.nvim"] = {
 		"jay-babu/mason-null-ls.nvim",
 	},
 }
-completion["saghen/blink.cmp"] = {
+completion["hrsh7th/nvim-cmp"] = {
 	lazy = true,
 	event = "InsertEnter",
-	version = "v1.*",
-	config = require("completion.blink"),
+	config = require("completion.cmp"),
 	dependencies = {
 		{
 			"L3MON4D3/LuaSnip",
@@ -49,7 +48,16 @@ completion["saghen/blink.cmp"] = {
 			config = require("completion.luasnip"),
 			dependencies = { "rafamadriz/friendly-snippets" },
 		},
+		{ "saadparwaiz1/cmp_luasnip" },
+		{ "hrsh7th/cmp-nvim-lsp" },
+		{ "hrsh7th/cmp-path" },
+		{ "hrsh7th/cmp-buffer" },
 	},
+}
+completion["windwp/nvim-autopairs"] = {
+	lazy = true,
+	event = "InsertEnter",
+	config = require("completion.autopairs"),
 }
 if use_copilot then
 	completion["zbirenbaum/copilot.lua"] = {

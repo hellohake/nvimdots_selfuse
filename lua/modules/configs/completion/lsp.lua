@@ -4,8 +4,14 @@ return function()
 	require("completion.mason").setup()
 	require("completion.mason-lspconfig").setup()
 
+	local capabilities = vim.lsp.protocol.make_client_capabilities()
+	local ok, cmp_nvim_lsp = pcall(require, "cmp_nvim_lsp")
+	if ok then
+		capabilities = cmp_nvim_lsp.default_capabilities(capabilities)
+	end
+
 	local opts = {
-		capabilities = require("blink.cmp").get_lsp_capabilities(vim.lsp.protocol.make_client_capabilities()),
+		capabilities = capabilities,
 	}
 	-- Setup lsps that are not supported by `mason.nvim` but supported by `nvim-lspconfig` here.
 	if vim.fn.executable("dart") == 1 then

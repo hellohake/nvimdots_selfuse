@@ -38,9 +38,9 @@ M.setup = function()
 
 	-- 安全加载 blink.cmp，如果插件被禁用或未加载，则回退到默认 capabilities
 	local capabilities = vim.lsp.protocol.make_client_capabilities()
-	local blink_ok, blink = pcall(require, "blink.cmp")
-	if blink_ok then
-		capabilities = blink.get_lsp_capabilities(capabilities)
+	local ok, cmp_nvim_lsp = pcall(require, "cmp_nvim_lsp")
+	if ok then
+		capabilities = cmp_nvim_lsp.default_capabilities(capabilities)
 	end
 
 	local opts = {
