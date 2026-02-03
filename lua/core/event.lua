@@ -27,7 +27,14 @@ vim.api.nvim_create_autocmd("LspAttach", {
 			local inlayhints_enabled = require("core.settings").lsp_inlayhints
 			local client = vim.lsp.get_client_by_id(event.data.client_id)
 			if client and client.server_capabilities.inlayHintProvider ~= nil then
-				vim.lsp.inlay_hint.enable(inlayhints_enabled == true, { bufnr = event.buf })
+				-- 避免在 Go module cache（pkg/mod）里触发 inlayHint 请求：
+				-- 部分依赖（尤其 +incompatible / 生成代码）会导致 gopls 报 `no package metadata`。
+				local bufname = vim.api.nvim_buf_get_name(event.buf)
+				if bufname:find("/pkg/mod/") then
+					vim.lsp.inlay_hint.enable(false, { bufnr = event.buf })
+				else
+					vim.lsp.inlay_hint.enable(inlayhints_enabled == true, { bufnr = event.buf })
+				end
 			end
 		end
 	end,

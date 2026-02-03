@@ -6,7 +6,13 @@ local M = {}
 ---@param buf integer
 function M.lsp(buf)
 	return {
-		["n|gd"] = map_cr("Lspsaga goto_definition"):with_silent():with_buffer(buf):with_desc("lsp: Goto definition"),
+		["n|gd"] = bind
+			.map_callback(function()
+				_G._go_goto_definition_fallback()
+			end)
+			:with_silent()
+			:with_buffer(buf)
+			:with_desc("lsp: Goto definition"),
 	}
 end
 
