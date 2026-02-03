@@ -92,6 +92,43 @@ _G.smart_toggle_bookmark = function()
 	end
 end
 
+-- 关闭“未显示在任何窗口”的隐藏 buffer（保留当前所有可见窗口里的文件）
+-- 场景：左右分屏各显示一个文件，但左侧窗口历史里还有很多“看不见”的 buffer，不想一个个 :bd。
+_G.bufdel_hidden = function()
+	-- 收集所有 tabpage 的可见 buffer
+	local visible = {}
+	for _, tab in ipairs(vim.api.nvim_list_tabpages()) do
+		for _, win in ipairs(vim.api.nvim_tabpage_list_wins(tab)) do
+			local b = vim.api.nvim_win_get_buf(win)
+			visible[b] = true
+		end
+	end
+
+	local deleted, skipped_modified = 0, 0
+	for _, b in ipairs(vim.api.nvim_list_bufs()) do
+		if not visible[b] and vim.api.nvim_buf_is_loaded(b) and vim.bo[b].buflisted then
+			-- 不动特殊 buffer / 终端 / 提示窗口
+			local bt = vim.bo[b].buftype
+			if bt == "" then
+				if vim.bo[b].modified then
+					skipped_modified = skipped_modified + 1
+				else
+					local ok = pcall(vim.api.nvim_buf_delete, b, { force = false })
+					if ok then
+						deleted = deleted + 1
+					end
+				end
+			end
+		end
+	end
+
+	local msg = string.format("已清理隐藏 buffer：%d 个", deleted)
+	if skipped_modified > 0 then
+		msg = msg .. string.format("（跳过未保存：%d 个）", skipped_modified)
+	end
+	vim.notify(msg, vim.log.levels.INFO, { title = "buffer" })
+end
+
 return {
 	["i|jk"] = map_cmd("<Esc>"):with_noremap():with_silent():with_desc("Esc Mapping"),
 	["i|jj"] = map_cmd("<Esc>"):with_noremap():with_silent():with_desc("Esc Mapping"),
@@ -111,6 +148,12 @@ return {
 	["n|<leader>gb"] = map_cr("Git blame"):with_noremap():with_silent():with_desc("Git blame file"),
 	["n|<leader>go"] = map_cr("GoImpl"):with_noremap():with_silent():with_desc("GoImpl"),
 	["n|<leader>bo"] = map_cr("BufDelOthers"):with_noremap():with_silent():with_desc("BufDelOthers"),
+	["n|<leader>bh"] = map_callback(function()
+			_G.bufdel_hidden()
+		end)
+		:with_noremap()
+		:with_silent()
+		:with_desc("BufDelHidden (keep visible)"),
 	-- noice
 	["n|<leader>nh"] = map_cr("Noice history"):with_noremap():with_silent():with_desc("Noice history"),
 	["n|<leader>e"] = map_cr("Noice dismiss"):with_noremap():with_silent():with_desc("Noice dismiss"),
