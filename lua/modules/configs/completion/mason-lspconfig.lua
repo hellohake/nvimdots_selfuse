@@ -45,8 +45,25 @@ M.setup = function()
 
 	local opts = {
 		capabilities = capabilities,
-		on_attach = function(client, _)
-			client.server_capabilities.semanticTokensProvider = nil
+		on_attach = function(client, bufnr)
+			-- 禁用 semantic tokens：不要把 semanticTokensProvider 置为 nil。
+			-- 在 nvim 0.11 中，semantic_tokens 逻辑可能会在异步回调里仍然访问该字段，
+			-- 置 nil 会触发 `attempt to index field 'semanticTokensProvider' (a nil value)`。
+			if client.server_capabilities and client.server_capabilities.semanticTokensProvider ~= nil then
+				client.server_capabilities.semanticTokensProvider = {
+					full = false,
+					range = false,
+					legend = {
+						tokenTypes = {},
+						tokenModifiers = {},
+					},
+				}
+			end
+			pcall(function()
+				if vim.lsp.semantic_tokens and vim.lsp.semantic_tokens.stop then
+					vim.lsp.semantic_tokens.stop(bufnr, client.id)
+				end
+			end)
 		end,
 	}
 	---A handler to setup all servers defined under `completion/servers/*.lua`

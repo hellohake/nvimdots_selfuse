@@ -117,7 +117,15 @@ _G._go_goto_definition_fallback = function()
 	end
 
 	local params = vim.lsp.util.make_position_params(0, "utf-16")
-	local resp = vim.lsp.buf_request_sync(bufnr, "textDocument/definition", params, 1200)
+	-- gopls 在大仓库/依赖跳转时可能会比较慢；不要因为超时就误触发兜底搜索。
+	-- 可以通过 `vim.g.go_gd_lsp_timeout_ms` 自定义超时时间（毫秒）。
+	local timeout_ms = tonumber(vim.g.go_gd_lsp_timeout_ms) or 4000
+	local resp = vim.lsp.buf_request_sync(bufnr, "textDocument/definition", params, timeout_ms)
+	if resp == nil then
+		-- 认为是“超时/未返回”，此时交给标准 LSP 异步处理，不走兜底。
+		vim.lsp.buf.definition()
+		return
+	end
 	local function has_locations(r)
 		if type(r) ~= "table" then
 			return false
@@ -166,7 +174,11 @@ _G._go_goto_definition_fallback = function()
 				return
 			end
 		end
-		vim.notify("LSP definition 为空，且未在当前包找到 type " .. ident, vim.log.levels.WARN, { title = "gopls" })
+		vim.notify(
+			"LSP definition 为空，且未在当前包找到 type " .. ident,
+			vim.log.levels.WARN,
+			{ title = "gopls" }
+		)
 		return
 	end
 
