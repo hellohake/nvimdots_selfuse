@@ -81,7 +81,8 @@ local function load_options()
 		tabstop = 4,
 		termguicolors = true,
 		timeout = true,
-		timeoutlen = 500,
+		-- 影响 <leader> 等多键映射等待时间；值越小响应越快
+		timeoutlen = 250,
 		ttimeout = true,
 		ttimeoutlen = 0,
 		undodir = global.cache_dir .. "/undo/",
