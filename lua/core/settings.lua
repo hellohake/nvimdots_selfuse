@@ -14,7 +14,8 @@ settings["format_on_save"] = true
 
 -- Set format timeout here (in ms).
 ---@type number
-settings["format_timeout"] = 2000
+-- gopls/formatter 在大仓库里可能超过 2s；适当放宽避免频繁 timeout
+settings["format_timeout"] = 6000
 
 -- Set it to false if the notification after formatting is annoying.
 ---@type boolean
@@ -50,6 +51,8 @@ settings["server_formatting_block_list"] = {
 	clangd = true,
 	lua_ls = true,
 	ts_ls = true,
+	-- Go 格式化优先交给 null-ls(goimports)，避免 gopls format timeout/重复格式化
+	gopls = true,
 }
 
 -- Set it to false if you want to turn off LSP Inlay Hints

@@ -166,18 +166,29 @@ function M.format(opts)
 			return
 		end
 
-		if
-			format_modifications_only
-			and require("lsp-format-modifications").format_modifications(client, bufnr).success
-		then
-			if format_notify then
-				vim.notify(
-					string.format("[LSP] Format changed lines successfully with %s!", client.name),
-					vim.log.levels.INFO,
-					{ title = "LSP Range Format Success" }
-				)
+		if format_modifications_only then
+			-- 仅格式化改动行需要 `textDocument/rangeFormatting` 支持。
+			-- 有些语言服务（例如你当前的 gopls）不提供 range formatting，
+			-- lsp-format-modifications.nvim 会报错提示 failed checks。
+			-- 这里在不支持时静默跳过，回退到整文件格式化。
+			local ok_lspfm, lspfm = pcall(require, "lsp-format-modifications")
+			local supports_range = false
+			pcall(function()
+				supports_range = client.supports_method("textDocument/rangeFormatting")
+			end)
+			if ok_lspfm and supports_range then
+				local ok_fmt, res = pcall(lspfm.format_modifications, client, bufnr)
+				if ok_fmt and res and res.success then
+					if format_notify then
+						vim.notify(
+							string.format("[LSP] Format changed lines successfully with %s!", client.name),
+							vim.log.levels.INFO,
+							{ title = "LSP Range Format Success" }
+						)
+					end
+					return
+				end
 			end
-			return
 		end
 
 		-- Fall back to format the whole buffer (even if partial formatting failed)

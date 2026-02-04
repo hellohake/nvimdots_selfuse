@@ -20,6 +20,10 @@ return function()
 			filetypes = { "c", "cpp", "objc", "objcpp", "cs", "cuda", "proto" },
 			extra_args = formatter_args("clang_format"),
 		}),
+		-- Go: 使用 goimports（自带 gofmt）作为主要 formatter，避免 gopls format timeout
+		btns.formatting.goimports.with({
+			filetypes = { "go" },
+		}),
 		btns.formatting.prettier.with({
 			filetypes = {
 				"vue",
