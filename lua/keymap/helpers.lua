@@ -61,9 +61,31 @@ end
 _G._go_goto_definition_fallback = function()
 	local bufnr = vim.api.nvim_get_current_buf()
 	local ft = vim.bo[bufnr].filetype
-	if ft ~= "go" then
-		vim.lsp.buf.definition()
-		return
+	local name = vim.api.nvim_buf_get_name(bufnr)
+	local is_go = (ft == "go") or name:match("%.go$")
+
+	-- 先做一次“同包 type 定义”的本地快速跳转：
+	-- 在 kitex_gen/thrift_gen 这类超大生成文件中，gopls 经常返回 `No locations found` 或者响应很慢。
+	-- 但很多类型（例如 BaseInfo）就在同一个文件里，直接搜 `type <Ident>` 更稳定。
+	local function local_goto_type_def(ident)
+		if not ident or ident == "" then
+			return false
+		end
+		local pat = "^\\s*type\\s\\+" .. ident .. "\\>"
+		local cur = vim.api.nvim_win_get_cursor(0)
+		vim.cmd("normal! m'")
+		vim.api.nvim_win_set_cursor(0, { 1, 0 })
+		local lnum = vim.fn.search(pat, "W")
+		if lnum == 0 then
+			lnum = vim.fn.search("type " .. ident, "W")
+		end
+		if lnum ~= 0 then
+			vim.api.nvim_win_set_cursor(0, { lnum, 0 })
+			vim.cmd("normal! zz")
+			return true
+		end
+		vim.api.nvim_win_set_cursor(0, cur)
+		return false
 	end
 
 	local function get_qualified_ident_at_cursor()
@@ -116,13 +138,61 @@ _G._go_goto_definition_fallback = function()
 		return a2, b2
 	end
 
+	local pre_alias, pre_ident = get_qualified_ident_at_cursor()
+	-- 优先做一次“本地 type 定义”跳转：在生成代码/大文件里比 LSP 稳定很多。
+	if is_go and pre_ident and pre_ident ~= "" then
+		if local_goto_type_def(pre_ident) then
+			return
+		end
+	end
+
+	-- 非 Go 文件或本地没命中：走正常 LSP
+	if not is_go then
+		vim.lsp.buf.definition()
+		return
+	end
+
 	local params = vim.lsp.util.make_position_params(0, "utf-16")
 	-- gopls 在大仓库/依赖跳转时可能会比较慢；不要因为超时就误触发兜底搜索。
 	-- 可以通过 `vim.g.go_gd_lsp_timeout_ms` 自定义超时时间（毫秒）。
 	local timeout_ms = tonumber(vim.g.go_gd_lsp_timeout_ms) or 4000
 	local resp = vim.lsp.buf_request_sync(bufnr, "textDocument/definition", params, timeout_ms)
 	if resp == nil then
-		-- 认为是“超时/未返回”，此时交给标准 LSP 异步处理，不走兜底。
+		-- 认为是“超时/未返回”。对于超大的生成文件（kitex_gen/thrift_gen 等），
+		-- gopls 很可能在超时窗口内还没算完，但实际上目标类型就在当前文件/当前目录。
+		-- 这里先做一次“本地快速查找 type <Ident>”，命中则直接跳转；否则再走标准 LSP 异步。
+		local _alias, _ident = get_qualified_ident_at_cursor()
+		if _ident and _ident ~= "" then
+			local pat_local = "^\\s*type\\s\\+" .. _ident .. "\\>"
+			vim.cmd("normal! m'")
+			vim.api.nvim_win_set_cursor(0, { 1, 0 })
+			local lnum = vim.fn.search(pat_local, "W")
+			if lnum == 0 then
+				-- 兜底：有些环境下带 \s\+ / \> 的模式可能匹配异常，用纯文本再试一次
+				lnum = vim.fn.search("type " .. _ident, "W")
+			end
+			if lnum ~= 0 then
+				vim.api.nvim_win_set_cursor(0, { lnum, 0 })
+				vim.cmd("normal! zz")
+				return
+			end
+			-- 同包类型：再在当前包目录内兜底查找
+			if not _alias then
+				local dir = vim.fn.expand("%:p:h")
+				local files = vim.fn.globpath(dir, "*.go", false, true)
+				for _, f in ipairs(files) do
+					vim.cmd("normal! m'")
+					vim.cmd("edit " .. vim.fn.fnameescape(f))
+					vim.api.nvim_win_set_cursor(0, { 1, 0 })
+					local ln = vim.fn.search(pat_local, "W")
+					if ln ~= 0 then
+						vim.api.nvim_win_set_cursor(0, { ln, 0 })
+						vim.cmd("normal! zz")
+						return
+					end
+				end
+			end
+		end
 		vim.lsp.buf.definition()
 		return
 	end
@@ -151,10 +221,13 @@ _G._go_goto_definition_fallback = function()
 	end
 	-- 如果是当前包内的类型（没有 pkg. 前缀），直接在当前 buffer 搜 `type <Ident>`
 	if not alias then
-		local pat_local = "^type\\s\\+" .. ident .. "\\>"
+		local pat_local = "^\\s*type\\s\\+" .. ident .. "\\>"
 		vim.cmd("normal! m'")
 		vim.api.nvim_win_set_cursor(0, { 1, 0 })
 		local lnum = vim.fn.search(pat_local, "W")
+		if lnum == 0 then
+			lnum = vim.fn.search("type " .. ident, "W")
+		end
 		if lnum ~= 0 then
 			vim.api.nvim_win_set_cursor(0, { lnum, 0 })
 			vim.cmd("normal! zz")
@@ -168,6 +241,9 @@ _G._go_goto_definition_fallback = function()
 			vim.cmd("edit " .. vim.fn.fnameescape(f))
 			vim.api.nvim_win_set_cursor(0, { 1, 0 })
 			local ln = vim.fn.search(pat_local, "W")
+			if ln == 0 then
+				ln = vim.fn.search("type " .. ident, "W")
+			end
 			if ln ~= 0 then
 				vim.api.nvim_win_set_cursor(0, { ln, 0 })
 				vim.cmd("normal! zz")
@@ -228,7 +304,7 @@ _G._go_goto_definition_fallback = function()
 	local dir = out[1]
 
 	-- Vim 正则里不要用 \b（是退格），用 \> 做单词边界
-	local pat = "^type\\s\\+" .. ident .. "\\>"
+	local pat = "^\\s*type\\s\\+" .. ident .. "\\>"
 
 	-- 优先尝试 thrift 常见的 ttypes.go（但必须从文件开头搜索，避免落到旧光标位置导致找不到/定位偏移）
 	-- 把这次“跳定义”也写入 tagstack，这样默认的 <C-t>（tag pop）能回跳

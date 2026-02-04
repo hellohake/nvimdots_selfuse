@@ -79,6 +79,23 @@ vim.api.nvim_create_autocmd("FileType", {
 	end,
 })
 
+-- Go: 强制使用自定义的 gd（带本地兜底跳转），避免在大型生成文件里 gopls 返回空导致 `No locations found`
+vim.api.nvim_create_autocmd("FileType", {
+	pattern = { "go" },
+	callback = function(event)
+		vim.keymap.set("n", "gd", function()
+			if type(_G._go_goto_definition_fallback) ~= "function" then
+				pcall(require, "keymap.helpers")
+			end
+			if type(_G._go_goto_definition_fallback) == "function" then
+				_G._go_goto_definition_fallback()
+			else
+				vim.lsp.buf.definition()
+			end
+		end, { buffer = event.buf, silent = true, desc = "lsp: Goto definition (Go fallback)" })
+	end,
+})
+
 function autocmd.load_autocmds()
 	local definitions = {
 		lazy = {},
