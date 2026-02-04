@@ -26,7 +26,8 @@ settings["format_notify"] = false
 --  > Any of the server attached to that buffer supports |DocumentRangeFormattingProvider| server capability.
 -- Otherwise Neovim would fall back to format the whole buffer, and a warning will be issued.
 ---@type boolean
-settings["format_modifications_only"] = false
+-- Go 等大仓库建议只格式化改动行，避免保存时改到无关区域
+settings["format_modifications_only"] = true
 
 -- Set the format disabled directories here, files under these dirs won't be formatted on save.
 --- NOTE: Directories may contain regular expressions (grammar: vim). |regexp|

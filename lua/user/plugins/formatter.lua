@@ -57,13 +57,9 @@ custom["mhartington/formatter.nvim"] = {
 				},
 			},
 		})
-		local augroup = vim.api.nvim_create_augroup
-		local autocmd = vim.api.nvim_create_autocmd
-		augroup("__formatter__", { clear = true })
-		autocmd("BufWritePost", {
-			group = "__formatter__",
-			command = ":FormatWrite",
-		})
+		-- 不要再对所有文件强制 BufWritePost 自动格式化：
+		-- 这个会与内置的 LSP format-on-save（BufWritePre）叠加，导致“改到无关区域”。
+		-- 需要时手动执行 :Format 或 :FormatWrite。
 	end,
 }
 
