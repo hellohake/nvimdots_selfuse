@@ -122,6 +122,7 @@ export HOME="/home/lihao.hellohake"    # Fix prompt abbreviation
 
 alias vim='nvim'
 alias gai='~/gai.sh'
+alias gith='git --git-dir=.git_local_history --work-tree=.'
 
 # Tmux: Reload config in all panes (Parallel, skip current)
 alias sourceall='tmux list-panes -a -F "#{pane_id} #{pane_current_command}" | \

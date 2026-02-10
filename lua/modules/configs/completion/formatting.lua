@@ -171,6 +171,18 @@ function M.format(opts)
 			-- 有些语言服务（例如你当前的 gopls）不提供 range formatting，
 			-- lsp-format-modifications.nvim 会报错提示 failed checks。
 			-- 这里在不支持时静默跳过，回退到整文件格式化。
+			-- 另外：在 bare+worktree 的“容器根目录”（.git 是文件且不是 worktree）下，
+			-- 插件可能认为不在 git repo 并发出 warn。这里先判断是否在 worktree 内。
+			local filedir = vim.fn.expand("%:p:h")
+			local inside_worktree = false
+			pcall(function()
+				local out = vim.fn.systemlist({ "git", "-C", filedir, "rev-parse", "--is-inside-work-tree" })
+				inside_worktree = (vim.v.shell_error == 0) and out and out[1] == "true"
+			end)
+			if not inside_worktree then
+				goto continue_whole_format
+			end
+
 			local ok_lspfm, lspfm = pcall(require, "lsp-format-modifications")
 			local supports_range = false
 			pcall(function()
@@ -190,6 +202,7 @@ function M.format(opts)
 				end
 			end
 		end
+		::continue_whole_format::
 
 		-- Fall back to format the whole buffer (even if partial formatting failed)
 		local params = vim.lsp.util.make_formatting_params(opts.formatting_options)

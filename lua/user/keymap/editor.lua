@@ -63,6 +63,37 @@ _G.toggle_diffview = function(args)
 	end
 end
 
+-- 直接打开指定 diff（若已打开则先关闭再打开），用于在不同 commit 之间快速切换
+_G.open_diffview = function(args)
+	local lib = require("diffview.lib")
+	local view = lib.get_current_view()
+	if view then
+		vim.cmd("DiffviewClose")
+	end
+	args = args or ""
+	vim.cmd("DiffviewOpen " .. args)
+end
+
+-- 查看第 N 个“最近提交”的 diff（1=HEAD，2=HEAD~1，...）
+-- 使用 `commit^!` 语法展示“该提交相对于其父提交”的变更。
+_G.open_diffview_nth_commit = function(n)
+	n = tonumber(n)
+	if not n or n < 1 then
+		vim.notify("请输入有效的提交序号：1=HEAD, 2=HEAD~1, ...", vim.log.levels.WARN, { title = "diffview" })
+		return
+	end
+	local ref = (n == 1) and "HEAD" or ("HEAD~" .. (n - 1))
+	_G.open_diffview(ref .. "^!")
+end
+
+_G.open_diffview_prompt_commit = function()
+	local input = vim.fn.input("查看第 N 个最近提交 diff（1=HEAD, 2=HEAD~1...）：", "1")
+	if input == nil or input == "" then
+		return
+	end
+	_G.open_diffview_nth_commit(input)
+end
+
 _G.toggle_file_history = function()
 	local lib = require("diffview.lib")
 	local view = lib.get_current_view()
@@ -202,6 +233,22 @@ return {
 		:with_noremap()
 		:with_silent()
 		:with_desc("git: Toggle diff against master"),
+	["n|<leader>g0"] = map_cr("lua _G.open_diffview()")
+		:with_noremap()
+		:with_silent()
+		:with_desc("git: Diff (working tree)"),
+	["n|<leader>g1"] = map_cr("lua _G.open_diffview_nth_commit(1)")
+		:with_noremap()
+		:with_silent()
+		:with_desc("git: Diff (HEAD)"),
+	["n|<leader>g2"] = map_cr("lua _G.open_diffview_nth_commit(2)")
+		:with_noremap()
+		:with_silent()
+		:with_desc("git: Diff (HEAD~1)"),
+	["n|<leader>gn"] = map_cr("lua _G.open_diffview_prompt_commit()")
+		:with_noremap()
+		:with_silent()
+		:with_desc("git: Diff (prompt Nth commit)"),
 	["n|<leader>gd"] = map_cr("lua _G.toggle_diffview()")
 		:with_noremap()
 		:with_silent()
@@ -231,7 +278,7 @@ return {
 		:with_noremap()
 		:with_silent()
 		:with_desc("Git: Worktrees"),
-	["n|<leader>gn"] = map_cr("Telescope git_worktree create_git_worktree")
+	["n|<leader>gN"] = map_cr("Telescope git_worktree create_git_worktree")
 		:with_noremap()
 		:with_silent()
 		:with_desc("Git: Create worktree"),

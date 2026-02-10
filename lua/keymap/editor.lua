@@ -99,7 +99,8 @@ local mappings = {
 		["nv|<leader>w"] = map_cmd("<Cmd>HopWordMW<CR>"):with_noremap():with_desc("jump: Goto word"),
 		["nv|<leader>j"] = map_cmd("<Cmd>HopLineMW<CR>"):with_noremap():with_desc("jump: Goto line"),
 		["nv|<leader>k"] = map_cmd("<Cmd>HopLineMW<CR>"):with_noremap():with_desc("jump: Goto line"),
-		["nv|<leader>c"] = map_cmd("<Cmd>HopChar1MW<CR>"):with_noremap():with_desc("jump: Goto one char"),
+		-- NOTE: 取消 <leader>c（会与 <leader>cp 等前缀冲突，导致复制路径被误触发为跳转）
+		-- 如需跳转可用 <leader>w (HopWordMW) / <leader>j,k (HopLineMW) / <leader>C (HopChar2MW)
 		["nv|<leader>C"] = map_cmd("<Cmd>HopChar2MW<CR>"):with_noremap():with_desc("jump: Goto two chars"),
 
 		-- Plugin: grug-far

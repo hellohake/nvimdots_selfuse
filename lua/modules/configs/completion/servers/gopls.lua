@@ -1,5 +1,6 @@
 local socket_path = "/dev/shm/gopls-daemon-lihao.sock"
-local gopls_bin = "/data00/home/lihao.hellohake/.local/bin/trae-gopls"
+--local gopls_bin = "/data00/home/lihao.hellohake/.local/bin/trae-gopls"
+local gopls_bin = "/data00/home/lihao.hellohake/.trae-cn-server/tools/trae-gopls/current/trae-gopls"
 -- gopls针对大项目专门优化配置
 -- 使用mason gopls v0.20.0
 return {
