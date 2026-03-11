@@ -1,3 +1,10 @@
+# OPENSPEC:START
+# OpenSpec shell completions configuration
+fpath=("/home/lihao.hellohake/.oh-my-zsh/custom/completions" $fpath)
+autoload -Uz compinit
+compinit
+# OPENSPEC:END
+
 # --- 1. CORE & PERFORMANCE ---
 
 # zmodload zsh/zprof                   # Startup profiling (commented out)

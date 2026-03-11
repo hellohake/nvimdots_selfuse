@@ -56,7 +56,19 @@ _G.toggle_diffview = function(args)
 	local lib = require("diffview.lib")
 	local view = lib.get_current_view()
 	if view then
-		vim.cmd("DiffviewClose")
+		local ok, err = pcall(vim.cmd, "DiffviewClose")
+		if not ok then
+			local msg = tostring(err)
+			if msg:match("E445") and view.tabpage and vim.api.nvim_tabpage_is_valid(view.tabpage) then
+				-- Diffview 关闭时内部会 `tabclose` 该 tab。
+				-- 当 tab 内有其他 window 的 buffer 被修改但未保存，会触发 E445。
+				-- 这里用 `confirm tabclose` 让 Vim 弹出保存/放弃/取消的交互，而不是直接抛栈。
+				local pagenr = vim.api.nvim_tabpage_get_number(view.tabpage)
+				pcall(vim.cmd, "confirm tabclose " .. pagenr)
+			else
+				vim.notify(msg, vim.log.levels.ERROR, { title = "diffview" })
+			end
+		end
 	else
 		args = args or ""
 		vim.cmd("DiffviewOpen " .. args)
@@ -68,7 +80,16 @@ _G.open_diffview = function(args)
 	local lib = require("diffview.lib")
 	local view = lib.get_current_view()
 	if view then
-		vim.cmd("DiffviewClose")
+		local ok, err = pcall(vim.cmd, "DiffviewClose")
+		if not ok then
+			local msg = tostring(err)
+			if msg:match("E445") and view.tabpage and vim.api.nvim_tabpage_is_valid(view.tabpage) then
+				local pagenr = vim.api.nvim_tabpage_get_number(view.tabpage)
+				pcall(vim.cmd, "confirm tabclose " .. pagenr)
+			else
+				vim.notify(msg, vim.log.levels.ERROR, { title = "diffview" })
+			end
+		end
 	end
 	args = args or ""
 	vim.cmd("DiffviewOpen " .. args)
@@ -98,7 +119,16 @@ _G.toggle_file_history = function()
 	local lib = require("diffview.lib")
 	local view = lib.get_current_view()
 	if view then
-		vim.cmd("DiffviewClose")
+		local ok, err = pcall(vim.cmd, "DiffviewClose")
+		if not ok then
+			local msg = tostring(err)
+			if msg:match("E445") and view.tabpage and vim.api.nvim_tabpage_is_valid(view.tabpage) then
+				local pagenr = vim.api.nvim_tabpage_get_number(view.tabpage)
+				pcall(vim.cmd, "confirm tabclose " .. pagenr)
+			else
+				vim.notify(msg, vim.log.levels.ERROR, { title = "diffview" })
+			end
+		end
 	else
 		vim.cmd("DiffviewFileHistory %")
 	end
@@ -187,6 +217,10 @@ return {
 		:with_desc("BufDelHidden (keep visible)"),
 	-- noice
 	["n|<leader>nh"] = map_cr("Noice history"):with_noremap():with_silent():with_desc("Noice history"),
+	["n|<leader>nm"] = map_cr("Noice redirect messages")
+		:with_noremap()
+		:with_silent()
+		:with_desc("Noice: Show :messages"),
 	["n|<leader>e"] = map_cr("Noice dismiss"):with_noremap():with_silent():with_desc("Noice dismiss"),
 
 	["n|<leader>m"] = map_callback(function()

@@ -10,7 +10,7 @@ settings["use_copilot"] = false
 
 -- Set it to false if there is no need to format on save.
 ---@type boolean
-settings["format_on_save"] = true
+settings["format_on_save"] = false
 
 -- Set format timeout here (in ms).
 ---@type number
@@ -43,6 +43,7 @@ settings["format_disabled_dirs"] = {
 ---@type table<string, boolean>
 settings["formatter_block_list"] = {
 	lua = false, -- example
+	go = true,
 }
 
 -- Servers in this list will skip setting formatting capabilities if rhs is true.

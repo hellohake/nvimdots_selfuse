@@ -17,6 +17,17 @@ custom["noice.nvim"] = {
 	},
 	config = function()
 		require("noice").setup({
+			-- 说明：`:messages` 是 Vim 自己的 message-history；Noice 的 `:Noice history`
+			-- 只展示它“接管/路由”的 message/notify。
+			-- 开启 notify/messages 接管后，大多数 `vim.notify()` / 普通 msg 也会进入 Noice history。
+			messages = {
+				enabled = true,
+				view = "notify",
+			},
+			notify = {
+				enabled = true,
+				view = "notify",
+			},
 			lsp = {
 				-- 这里的“3 个补全提示”截图实际是 `textDocument/signatureHelp` 的浮窗被重复渲染。
 				-- Noice 默认会接管/展示 LSP 的 signature help；如果同时还有其他 UI（如 lspsaga / 内置 handler / 其他签名插件），

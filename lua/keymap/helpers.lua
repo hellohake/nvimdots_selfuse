@@ -158,40 +158,11 @@ _G._go_goto_definition_fallback = function()
 	local timeout_ms = tonumber(vim.g.go_gd_lsp_timeout_ms) or 4000
 	local resp = vim.lsp.buf_request_sync(bufnr, "textDocument/definition", params, timeout_ms)
 	if resp == nil then
-		-- 认为是“超时/未返回”。对于超大的生成文件（kitex_gen/thrift_gen 等），
-		-- gopls 很可能在超时窗口内还没算完，但实际上目标类型就在当前文件/当前目录。
-		-- 这里先做一次“本地快速查找 type <Ident>”，命中则直接跳转；否则再走标准 LSP 异步。
-		local _alias, _ident = get_qualified_ident_at_cursor()
-		if _ident and _ident ~= "" then
-			local pat_local = "^\\s*type\\s\\+" .. _ident .. "\\>"
-			vim.cmd("normal! m'")
-			vim.api.nvim_win_set_cursor(0, { 1, 0 })
-			local lnum = vim.fn.search(pat_local, "W")
-			if lnum == 0 then
-				-- 兜底：有些环境下带 \s\+ / \> 的模式可能匹配异常，用纯文本再试一次
-				lnum = vim.fn.search("type " .. _ident, "W")
-			end
-			if lnum ~= 0 then
-				vim.api.nvim_win_set_cursor(0, { lnum, 0 })
-				vim.cmd("normal! zz")
-				return
-			end
-			-- 同包类型：再在当前包目录内兜底查找
-			if not _alias then
-				local dir = vim.fn.expand("%:p:h")
-				local files = vim.fn.globpath(dir, "*.go", false, true)
-				for _, f in ipairs(files) do
-					vim.cmd("normal! m'")
-					vim.cmd("edit " .. vim.fn.fnameescape(f))
-					vim.api.nvim_win_set_cursor(0, { 1, 0 })
-					local ln = vim.fn.search(pat_local, "W")
-					if ln ~= 0 then
-						vim.api.nvim_win_set_cursor(0, { ln, 0 })
-						vim.cmd("normal! zz")
-						return
-					end
-				end
-			end
+		-- 认为是“超时/未返回”。此时不要挪动光标到文件开头，否则后续 LSP 返回空时会让人感觉“跳到顶了”。
+		-- 超时场景只做一次同文件本地跳转（不命中则直接交给异步 LSP）。
+		local _, _ident = get_qualified_ident_at_cursor()
+		if _ident and _ident ~= "" and local_goto_type_def(_ident) then
+			return
 		end
 		vim.lsp.buf.definition()
 		return
@@ -221,6 +192,10 @@ _G._go_goto_definition_fallback = function()
 	end
 	-- 如果是当前包内的类型（没有 pkg. 前缀），直接在当前 buffer 搜 `type <Ident>`
 	if not alias then
+		local origin_buf = vim.api.nvim_get_current_buf()
+		local origin_pos = vim.api.nvim_win_get_cursor(0)
+		local origin_name = vim.api.nvim_buf_get_name(origin_buf)
+
 		local pat_local = "^\\s*type\\s\\+" .. ident .. "\\>"
 		vim.cmd("normal! m'")
 		vim.api.nvim_win_set_cursor(0, { 1, 0 })
@@ -250,6 +225,17 @@ _G._go_goto_definition_fallback = function()
 				return
 			end
 		end
+		-- 没找到：恢复到触发 gd 的原始位置，避免“跳到文件开头/跳到别的文件”
+		pcall(function()
+			vim.api.nvim_set_current_buf(origin_buf)
+			vim.api.nvim_win_set_cursor(0, origin_pos)
+		end)
+		pcall(function()
+			if vim.api.nvim_buf_get_name(0) ~= origin_name then
+				vim.cmd("edit " .. vim.fn.fnameescape(origin_name))
+				vim.api.nvim_win_set_cursor(0, origin_pos)
+			end
+		end)
 		vim.notify(
 			"LSP definition 为空，且未在当前包找到 type " .. ident,
 			vim.log.levels.WARN,
