@@ -172,7 +172,14 @@ copygit() {
 # 6.2 Worktree Management (gw-add)
 gw-init-links() {
     echo "🔗 Linking shared configs..."
-    for f in .coco .ai_doc AGENTS.md openspec; do
+    # 使用AGENTS_meta.md 避免重复加载
+    if [ -e "../AGENTS_meta.md" ]; then
+        ln -sfn "../AGENTS_meta.md" "./AGENTS.md" && echo "  ✅ AGENTS.md -> ../AGENTS_meta.md" || echo "  ⚠️  link AGENTS.md failed"
+    else
+        echo "  ⚠️  ../AGENTS_meta.md and ../AGENTS.md missing"
+    fi
+
+    for f in .coco .ai_doc .trae .specify .specify openspec spec; do
         [ -e "../$f" ] && ln -sfn "../$f" "./$f" && echo "  ✅ $f" || echo "  ⚠️  ../$f missing"
     done
 }
