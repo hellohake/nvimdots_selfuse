@@ -169,6 +169,25 @@ copygit() {
     echo "Branch '$branch' copied."
 }
 
+osc52() {
+  local data
+  if [ -t 0 ]; then
+    data=$(printf "%s" "$*" | base64 | tr -d '\r\n')
+  else
+    data=$(cat | base64 | tr -d '\r\n')
+  fi
+  printf "\033]52;c;%s\a" "$data"
+}
+
+copypathN() {
+  local n=${1:-1}
+  pwd | awk -F/ -v n=$n '{
+    for(i=NF-n+1;i<=NF;i++){
+      printf "%s%s", $i,(i==NF?"":"/")
+    }
+  }' | osc52
+}
+
 # 6.2 Worktree Management (gw-add)
 gw-init-links() {
     echo "🔗 Linking shared configs..."
