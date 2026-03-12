@@ -3,7 +3,8 @@ local custom = {}
 custom["noice.nvim"] = {
 	-- lazy.nvim
 	"folke/noice.nvim",
-	event = "VeryLazy",
+	-- 直接常驻加载，避免错过早期 message/notify，且 `:Noice history` 始终可用
+	lazy = false,
 	opts = {
 		-- add any options here
 	},
@@ -27,6 +28,21 @@ custom["noice.nvim"] = {
 			notify = {
 				enabled = true,
 				view = "notify",
+			},
+			commands = {
+				history = {
+					-- 扩大 history 覆盖范围：默认只收 kind=="" 的 msg_show，
+					-- 像 csv.vim 这种 `echomsg` 往往会被过滤掉，导致你看到“history 为空”。
+					filter = {
+						any = {
+							{ event = "notify" },
+							{ error = true },
+							{ warning = true },
+							{ event = "msg_show" },
+							{ event = "lsp", kind = "message" },
+						},
+					},
+				},
 			},
 			lsp = {
 				-- 这里的“3 个补全提示”截图实际是 `textDocument/signatureHelp` 的浮窗被重复渲染。

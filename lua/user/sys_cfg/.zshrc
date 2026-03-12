@@ -77,7 +77,8 @@ export PATH="$HOME/.local/bin:$PATH"
 # Golang
 export PATH="$PATH:/usr/local/go/bin:$HOME/go/bin"
 export GOPATH=$HOME/go
-export PATH="$HOME/github_repo/go1.25.5/bin:$PATH"
+#export PATH="$HOME/github_repo/go1.25.5/bin:$PATH"
+export PATH="$HOME/github_repo/go1.22.7/bin:$PATH"
 export GOPLS_SCRIPT="$HOME/start_gopls.sh"
 
 # Neovim & Coco

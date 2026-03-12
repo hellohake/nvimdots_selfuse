@@ -10,6 +10,9 @@ M.setup = function()
 
 	require("modules.utils").load_plugin("mason-lspconfig", {
 		ensure_installed = require("core.settings").lsp_deps,
+		-- mason-lspconfig.nvim v2 默认会自动 enable server，但无法套用我们下面的自定义 handler。
+		-- 这里关闭自动 enable，统一走本文件的 handler（兼容 v1/v2）。
+		automatic_enable = false,
 	})
 
 	vim.diagnostic.config({
@@ -124,7 +127,21 @@ please REMOVE your LSP configuration (rust_analyzer.lua) from the `servers` dire
 		end
 	end
 
-	mason_lspconfig.setup_handlers({ mason_lsp_handler })
+	-- mason-lspconfig.nvim v1: 提供 setup_handlers API
+	if type(mason_lspconfig.setup_handlers) == "function" then
+		mason_lspconfig.setup_handlers({ mason_lsp_handler })
+		return
+	end
+
+	-- mason-lspconfig.nvim v2+: 移除了 setup_handlers。
+	-- 按照配置列表手动 setup，确保 opts/on_attach/capabilities 仍然生效。
+	local servers = require("core.settings").lsp_deps or {}
+	if #servers == 0 and type(mason_lspconfig.get_installed_servers) == "function" then
+		servers = mason_lspconfig.get_installed_servers()
+	end
+	for _, lsp_name in ipairs(servers) do
+		pcall(mason_lsp_handler, lsp_name)
+	end
 end
 
 return M
