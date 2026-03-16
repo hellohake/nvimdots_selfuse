@@ -37,24 +37,11 @@ return function()
 		},
 	})
 
-	-- 关键：不要把 `vim.notify` 永久绑定到 nvim-notify。
-	-- 否则 Noice 即使启用了 `notify/messages`，也接管不到通知，`:Noice history` 自然是空的。
-	-- 这里做一层路由：Noice 已加载就走 Noice（会记录 history），否则回退到 nvim-notify。
-	vim.notify = function(msg, level, opts)
-		local ok, noice = pcall(require, "noice")
-		if ok and type(noice.notify) == "function" then
-			return noice.notify(msg, level, opts)
-		end
-		return notify(msg, level, opts)
+	-- 说明：Noice 自己会在 `notify.enabled=true` 时接管 `vim.notify`。
+	-- 这里仅提供“无 Noice 时”的回退，避免：
+	-- 1) 在 `vim.notify` 中 `require("noice")` 触发加载/递归
+	-- 2) 把 `package.loaded["notify"]` 代理到 `vim.notify` 导致 Noice 的 notify 后端递归调用
+	if package.loaded["noice"] == nil then
+		vim.notify = notify
 	end
-
-	-- 兼容：有些插件会直接 `require("notify")(... )` 绕过 `vim.notify`。
-	-- 这里把 `notify` 模块也代理到 `vim.notify`，保证同样能进入 Noice。
-	local notify_proxy = setmetatable({}, {
-		__call = function(_, msg, level, opts)
-			return vim.notify(msg, level, opts)
-		end,
-		__index = notify,
-	})
-	package.loaded["notify"] = notify_proxy
 end
