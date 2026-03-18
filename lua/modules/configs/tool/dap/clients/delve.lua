@@ -4,7 +4,21 @@ return function()
 	local dap = require("dap")
 	local utils = require("modules.utils.dap")
 
-	if not require("mason-registry").is_installed("go-debug-adapter") then
+	local function mason_install_path(pkg_name)
+		local ok_loc, InstallLocation = pcall(require, "mason-core.installer.InstallLocation")
+		if ok_loc and InstallLocation and type(InstallLocation.global) == "function" then
+			local ok_path, path = pcall(function()
+				return InstallLocation.global():package(pkg_name)
+			end)
+			if ok_path and type(path) == "string" and path ~= "" then
+				return path
+			end
+		end
+		-- Fallback: default Mason layout
+		return vim.fn.stdpath("data") .. "/mason/packages/" .. pkg_name
+	end
+
+	if require("mason-registry").is_installed and (not require("mason-registry").is_installed("go-debug-adapter")) then
 		vim.notify(
 			"Automatically installing `go-debug-adapter` for go debugging",
 			vim.log.levels.INFO,
@@ -26,8 +40,7 @@ return function()
 		type = "executable",
 		command = "node",
 		args = {
-			require("mason-registry").get_package("go-debug-adapter"):get_install_path()
-				.. "/extension/dist/debugAdapter.js",
+			mason_install_path("go-debug-adapter") .. "/extension/dist/debugAdapter.js",
 		},
 	}
 	dap.configurations.go = {

@@ -4,7 +4,22 @@ return function()
 	local dap = require("dap")
 	local utils = require("modules.utils.dap")
 	local is_windows = require("core.global").is_windows
-	local debugpy_root = require("mason-registry").get_package("debugpy"):get_install_path()
+
+	local function mason_install_path(pkg_name)
+		local ok_loc, InstallLocation = pcall(require, "mason-core.installer.InstallLocation")
+		if ok_loc and InstallLocation and type(InstallLocation.global) == "function" then
+			local ok_path, path = pcall(function()
+				return InstallLocation.global():package(pkg_name)
+			end)
+			if ok_path and type(path) == "string" and path ~= "" then
+				return path
+			end
+		end
+		-- Fallback: default Mason layout
+		return vim.fn.stdpath("data") .. "/mason/packages/" .. pkg_name
+	end
+
+	local debugpy_root = mason_install_path("debugpy")
 
 	dap.adapters.python = function(callback, config)
 		if config.request == "attach" then
