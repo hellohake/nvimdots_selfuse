@@ -87,6 +87,11 @@ export PATH="/data00/home/lihao.hellohake/.local/bin:$PATH"
 
 # Node/NVM
 export NVM_DIR="$HOME/.nvm"
+if [[ -z "${_NVM_SOURCED_IN_SHELL:-}" ]]; then
+    [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+    [ -s "$NVM_DIR/bash_completion" ] && . "$NVM_DIR/bash_completion"
+    typeset -g _NVM_SOURCED_IN_SHELL=1
+fi
 
 # Rust
 [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
@@ -278,16 +283,7 @@ sync_cfg() {
 sync_cfg # Run on startup
 
 
-# --- 7. LAZY LOADING ---
-
-# NVM Lazy
-NVM_LAZY_CMDS=(nvm node npm npx openspec openskills)
-_load_nvm() {
-    for cmd in "${NVM_LAZY_CMDS[@]}"; do unset -f "$cmd"; done
-    [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-    [ -s "$NVM_DIR/bash_completion" ] && . "$NVM_DIR/bash_completion"
-}
-for cmd in "${NVM_LAZY_CMDS[@]}"; do eval "$cmd() { _load_nvm; $cmd \"\$@\"; }"; done
+# --- 7. STARTUP CACHE ---
 
 # Eval Cache (Brew/TheFuck)
 if [[ -z "$_CFG_SYNCED" ]]; then
@@ -321,3 +317,7 @@ if [[ -z "$SKIP_SYNC" && -x "/home/lihao.hellohake/go/src/hello/hello_learn/scri
     # Use &! to detach the process immediately so it doesn't block shell startup or show job notifications
     /home/lihao.hellohake/go/src/hello/hello_learn/script/sync_ai_pmt.sh >/dev/null 2>&1 &!
 fi
+
+export PATH="/home/lihao.hellohake/.local/bin/node/bin:$PATH"
+
+export PATH="/home/lihao.hellohake/.local/bin:$PATH"

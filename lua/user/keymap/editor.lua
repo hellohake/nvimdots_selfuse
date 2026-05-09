@@ -41,6 +41,33 @@ _G.copy_git_relative_path_with_line = function()
 	vim.notify("Copied: " .. text)
 end
 
+_G.copy_filename_under_cursor = function()
+	local bufname = vim.api.nvim_buf_get_name(0)
+	if not bufname or bufname == "" then
+		vim.notify("Current buffer has no file name", vim.log.levels.WARN)
+		return
+	end
+
+	local filename = vim.fn.fnamemodify(bufname, ":t")
+	if not filename or filename == "" then
+		vim.notify("Failed to get file name", vim.log.levels.WARN)
+		return
+	end
+
+	-- 写入 unnamed / clipboard，并在 tmux/ssh 场景下同步（对齐 smartyank 的行为）
+	pcall(vim.fn.setreg, "\"", filename)
+	pcall(vim.fn.setreg, "+", filename)
+	if vim.env.TMUX then
+		pcall(vim.fn.system, { "tmux", "set-buffer", "-w", filename })
+	end
+	if vim.env.SSH_CONNECTION then
+		pcall(require("smartyank").osc52printf, filename, "tmux")
+	end
+
+	vim.notify("Copied: " .. filename)
+	return filename
+end
+
 _G.search_visual_selection = function()
 	vim.cmd('noau normal! gv"vy')
 	local text = vim.fn.getreg("v")
@@ -255,6 +282,10 @@ return {
 		:with_desc("Bookmarks: Prev mark"),
 	["n|<leader>sw"] = map_cr("Telescope grep_string"):with_desc("Search word under cursor"),
 	["v|<leader>sw"] = map_cr("lua _G.search_visual_selection()"):with_desc("Search selection"),
+	["n|<leader>cf"] = map_cr("lua _G.copy_filename_under_cursor()")
+		:with_noremap()
+		:with_silent()
+		:with_desc("Copy filename under cursor"),
 	["n|<leader>cg"] = map_cr("lua _G.copy_global_path_with_line()")
 		:with_noremap()
 		:with_silent()

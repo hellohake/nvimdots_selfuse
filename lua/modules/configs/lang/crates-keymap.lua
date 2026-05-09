@@ -33,7 +33,7 @@ local crates_keymap = {
 		:with_silent()
 		:with_buffer(0)
 		:with_desc("crates: Select spec versions"),
-	["n|<leader>cf"] = map_callback(function()
+	["n|<leader>cF"] = map_callback(function()
 			crates.show_features_popup()
 			crates.show_popup()
 		end)

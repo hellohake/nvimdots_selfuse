@@ -4,6 +4,12 @@ return {
 		event = "VeryLazy",
 		opts = {
 			cli = {
+				win = {
+					keys = {
+						hide_ctrl_q = false,
+						stopinsert = { "<c-[>", "stopinsert", mode = "t", desc = "enter normal mode" },
+					},
+				},
 				tools = {
 					coco = {
 						cmd = { "coco" },
