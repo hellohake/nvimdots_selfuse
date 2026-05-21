@@ -2,7 +2,8 @@
 # ./start_gopls.sh 启动gopls守护进程，nvim和gopls守护进程通信
 # GOPLS_BIN="/data00/home/lihao.hellohake/.local/share/nvim/mason/packages/gopls/gopls"
 # GOPLS_BIN="/data00/home/lihao.hellohake/.local/bin/trae-gopls"
-GOPLS_BIN="/data00/home/lihao.hellohake/.trae-cn-server/tools/trae-gopls/current/trae-gopls"
+# GOPLS_BIN="/data00/home/lihao.hellohake/.trae-cn-server/tools/trae-gopls/current/trae-gopls"
+GOPLS_BIN="/data00/home/lihao.hellohake/.local/bin/trae-gopls"
 
 SOCKET_FILE="/dev/shm/gopls-daemon-lihao.sock"
 LOG_FILE="/tmp/gopls-daemon.log"
@@ -30,4 +31,5 @@ rm -f "$SOCKET_FILE"
 
 "$GOPLS_BIN" serve \
 	-listen="unix;$SOCKET_FILE" \
-	-listen.timeout=0
+	-listen.timeout=0 \
+	-mcp.listen=localhost:18092

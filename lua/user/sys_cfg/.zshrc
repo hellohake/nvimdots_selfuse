@@ -77,8 +77,8 @@ export PATH="$HOME/.local/bin:$PATH"
 # Golang
 export PATH="$PATH:/usr/local/go/bin:$HOME/go/bin"
 export GOPATH=$HOME/go
-#export PATH="$HOME/github_repo/go1.25.5/bin:$PATH"
-export PATH="$HOME/github_repo/go1.22.7/bin:$PATH"
+export PATH="$HOME/github_repo/go1.25.5/bin:$PATH"
+#export PATH="$HOME/github_repo/go1.22.7/bin:$PATH"
 export GOPLS_SCRIPT="$HOME/start_gopls.sh"
 
 # Neovim & Coco
@@ -121,7 +121,7 @@ export TLDR_LANG=zh_CN
 # 4.5 Network & Proxy
 export http_proxy=http://sys-proxy-rd-relay.byted.org:8118
 export https_proxy=http://sys-proxy-rd-relay.byted.org:8118
-export no_proxy=*.byted.org,.byteintl.net,.bytedance.net
+export no_proxy=*.byted.org,.byteintl.net,.bytedance.net,localhost,127.0.0.1
 export TLDR_LANGUAGE=zh
 
 # 4.6 Misc
@@ -129,6 +129,11 @@ export TMUX_TMPDIR=~/.tmux/tmp
 export FZF_CTRL_T_COMMAND='fd --type f --hidden --follow --exclude .git'
 export HOME="/home/lihao.hellohake"    # Fix prompt abbreviation
 [ -f /usr/share/autojump/autojump.sh ] && . /usr/share/autojump/autojump.sh
+
+# Coco Ctrl+G external editor: opens nvim, then OSC52-copies the buffer
+# back to the local clipboard so you can paste anywhere.
+export EDITOR="$HOME/.local/bin/coco-edit"
+export VISUAL="$EDITOR"
 
 
 # --- 5. ALIASES ---
