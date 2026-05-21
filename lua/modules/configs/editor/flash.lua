@@ -2,8 +2,9 @@ return function()
 	vim.api.nvim_set_hl(
 		0,
 		"FlashLabel",
-		{ underline = true, bold = true, fg = "Orange", bg = "NONE", ctermfg = "Red", ctermbg = "NONE" }
+		{ bold = true, fg = "#1e1e2e", bg = "#f9e2af", ctermfg = "Black", ctermbg = "Yellow" }
 	)
+	vim.api.nvim_set_hl(0, "FlashCurrent", { bold = true, fg = "#1e1e2e", bg = "#fab387" })
 
 	require("modules.utils").load_plugin("flash", {
 		labels = "asdfghjklqwertyuiopzxcvbnm",
@@ -22,15 +23,15 @@ return function()
 			-- `f`, `F`, `t`, `T`, `;` and `,` motions
 			char = {
 				enabled = true,
-				-- hide after jump when not using jump labels
+				-- keep labels visible so repeated chars are easier to distinguish
 				autohide = false,
-				-- show jump labels
-				jump_labels = false,
-				-- set to `false` to use the current line only
-				multi_line = true,
+				-- label every target so `f/F/t/T` can disambiguate repeated chars fast
+				jump_labels = true,
+				-- keep the candidate set focused like native `f` to reduce visual noise
+				multi_line = false,
 				-- When using jump labels, don't use these keys
 				-- This allows using those keys directly after the motion
-				label = { exclude = "hjkliardc" },
+				label = { exclude = "hjkli" },
 			},
 		},
 	})
