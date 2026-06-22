@@ -301,7 +301,7 @@ sync_cfg() {
         mkdir -p "$st_dir/schemas" "$st_dir/skills"
         rsync -a "$HOME/.agents/template/schemas/" "$st_dir/schemas/" 2>/dev/null
         local _sk
-        for _sk in gotchas spec-opti-workflow spec-opti-workflow-v2 spec-plan-revise spec-trouble-resolve; do
+        for _sk in gotchas spec-opti-workflow spec-opti-workflow-v2 spec-plan-revise spec-trouble-resolve spec-e2e-debug; do
             [ -d "$HOME/.agents/skills/$_sk" ] && rsync -a "$HOME/.agents/skills/$_sk" "$st_dir/skills/" 2>/dev/null
         done
     fi

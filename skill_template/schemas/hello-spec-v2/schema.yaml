@@ -449,3 +449,36 @@ revision:
     Boundary recap:
     - Planning-stage (docs) deviation -> revise.md + spec-plan-revise -> backup.md[规划偏差]
     - Code-stage (post-apply) issue   -> troubleshoot.md + /spec-trouble-resolve -> backup.md[代码偏差]
+
+# ─────────────────────────────────────────────────────────────
+# Debug — end-to-end test root-cause location (NOT an artifact)
+# ─────────────────────────────────────────────────────────────
+debug:
+  trigger: Manual (after apply, during end-to-end testing, when symptom is unclear and root cause unknown)
+  instruction: |
+    When end-to-end testing surfaces a problem but you don't know where it is,
+    run **spec-e2e-debug** — an internal-network-augmented root-cause locator.
+
+    - Input: PRIMARY = `debug.md` in the change dir (symptom / logid / psm / lane /
+      tcc / libra / repro). Lazily created — write it when testing fails, or dictate
+      and let the skill draft it. At least a logid OR (service name + time) is needed.
+    - It runs a HYPOTHESIS→VERIFY loop using bytedcli internal platforms (logs /
+      service tree / tcc / libra / metrics / instances / DB / RPC-repro) to locate
+      the root cause, then classifies it into one of four: code bug / business-logic
+      issue / normal behavior / edge case — each with an evidence chain.
+    - Output: `debug-report.md` in the change dir (NOT backup.md — it's a diagnosis,
+      not a fix archive).
+    - 🔴 READ-ONLY HARD LINE: the skill executes ONLY read/query bytedcli & RPC calls.
+      ANY write op (tcc/libra/instance/DB/deploy/RPC-that-writes) is FORBIDDEN to
+      execute — it only lists the command + risk for the user to run manually. A
+      mis-write here can cause a production incident.
+    - Log handling: dumps key-psm logs to a temp file and greps for hits — never
+      inlines whole logs (context safety).
+
+    Exit pointers (diagnosis only, no auto-handoff):
+    - code bug -> run `/spec-trouble-resolve` to fix
+    - business-logic issue -> clarify via design / spec-plan-revise
+    - normal behavior / edge case -> explained in report, no code change
+
+    Boundary: spec-e2e-debug = locate root cause (read-only, internal-net);
+    spec-trouble-resolve = fix the code once you know it's a code bug.
