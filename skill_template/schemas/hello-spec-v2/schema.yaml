@@ -1,0 +1,451 @@
+name: hello-spec-v2
+version: 2
+language_policy:
+  output_language: zh-CN
+  rules:
+    - All generated human-facing artifacts MUST be written in Simplified Chinese.
+    - Keep code identifiers, file paths, CLI commands, API names, package names, branch names, error messages, and config keys in their original language.
+    - Normative keywords such as MUST, SHALL, SHOULD, MAY can remain in English when required by spec format, but the surrounding explanation MUST be Chinese.
+    - If an invoked Skill returns English content, translate and adapt it into Simplified Chinese before writing final artifacts.
+    - Do not produce an all-English proposal, design, task list, or plan unless the user explicitly requests English.
+description: >
+  Spec-driven Development workflow (Chinese artifacts) fusing four sources:
+  openspec (staged docs on disk) + superpowers (strong constraints / SOP) +
+  get-shit-done (context budget & write-to-disk-not-return) +
+  grill-with-docs (DDD ubiquitous-language grilling gate).
+  Flow: brainstorm -> proposal -> specs -> design -> [GATE-1 clarify gate]
+  -> tasks -> plan -> apply -> [GATE-2 retrospective + gotchas flywheel].
+  The apply phase uses git worktrees and subagent-driven development.
+  All human-facing artifacts default to Simplified Chinese (see language_policy).
+
+# ─────────────────────────────────────────────────────────────
+# Knowledge Flywheel — global convention, observed by all phases
+# ─────────────────────────────────────────────────────────────
+knowledge_flywheel:
+  # Project-level long-lived assets dir (cross-change, travels with the project)
+  project_assets_dir: ".ai_doc/spec-workflow/"
+  files:
+    context: ".ai_doc/spec-workflow/CONTEXT.md"   # DDD ubiquitous-language glossary (maintained inline by the GATE-1 clarify gate)
+    adr_dir: ".ai_doc/spec-workflow/adr/"         # Architecture Decision Records (lazily created only when 3 criteria hold)
+    gotchas: ".ai_doc/spec-workflow/gotchas.md"   # Project-level gotchas (distilled by the gotchas governance skill)
+  global_gotchas: "~/.agents/gotchas/general.md"  # General gotchas (promoted after recurring in >=2 projects)
+  global_prompting: "~/.agents/gotchas/prompting.md"  # Personal prompting-quality self-check list (NOT auto-injected; for the user only)
+  memory_boundary: |
+    Memory types are physically isolated. Classify before writing; reject if mis-typed:
+    - Terminology         -> CONTEXT.md
+    - Arch decisions      -> adr/
+    - Recurring gotchas   -> gotchas.md / general.md (written ONLY by the governance skill)
+    - Code-stage issues   -> troubleshoot.md -> backup.md [代码偏差]
+    - Planning deviations -> revise.md -> backup.md [规划偏差]
+    - Original input      -> intake.md (verbatim snapshot of the user's prompt doc)
+    - Prompting habits    -> prompting.md (the user's own prompt self-check; NOT auto-injected)
+    (backup.md is the SHARED archive for both code & planning fixes, distinguished by scene marker.)
+  consume: |
+    [Consumer] Before diverging, the brainstorm phase MUST load and inject:
+      1. .ai_doc/spec-workflow/gotchas.md (project gotchas)
+      2. ~/.agents/gotchas/general.md (general gotchas, read if present)
+      3. .ai_doc/spec-workflow/CONTEXT.md (terminology, read if present)
+    Tag-matching (make it explicit, do not guess silently):
+      a. First WRITE OUT the domain tags this change touches (e.g. lang-go,
+         infra-api-contract, flow-openspec) — reason from the change's scope.
+      b. Then filter library entries by those tags; per bucket take Top-5 by hits.
+    Inject the matches as a "known-gotchas checklist + terminology constraints",
+    referencing entry IDs / term names only — never paste the body.
+    Audit trail (mandatory, makes the step verifiable): the produced artifact
+    MUST contain one line — `已查 gotchas：标签[<tags>] 命中[G-012,GG-003] / 无匹配`
+    — so a reviewer can see the step was actually performed.
+  produce: |
+    [Producer] After GATE-2, MANUALLY run the `gotchas` governance skill on
+    backup.md + reflect_spec_workflow.md to distill gotchas through the three
+    gates (admission / layering / eviction) into the gotchas libraries.
+
+# ─────────────────────────────────────────────────────────────
+# Context Discipline — ported from get-shit-done, observed by all phases
+# ─────────────────────────────────────────────────────────────
+context_discipline:
+  - Read-depth tiering: the main thread reads only titles/frontmatter/summaries of each artifact; subagents read full bodies from disk on demand. Never inline large files into the main context.
+  - Write-to-disk, not return: subagents write outputs directly to openspec/changes/<name>/ or .ai_doc/spec-workflow/; the orchestrator receives only "file path + 1-3 line summary".
+  - Evidence summary: after reading each key file, emit a 1-3 line "key-facts summary (with path + line numbers)"; reason from summaries to avoid re-reads.
+  - Checkpoint to disk: at the end of each gate/phase, output "next command + suggested /clear" to enable lossless cross-session handoff.
+  - Predicate memory: gotchas/CONTEXT use single-line grep-able entries, not prose; inject by ID, never paste the body.
+
+artifacts:
+  - id: brainstorm
+    generates: brainstorm.md
+    description: Collaborative design exploration using Superpowers brainstorming
+    template: brainstorm.md
+    instruction: |
+      Use the Skill tool to invoke **superpowers:brainstorming**.
+
+      FIRST (Flywheel consumer · inject before diverging): load the knowledge
+      libraries and inject context before brainstorming:
+      - Read `.ai_doc/spec-workflow/gotchas.md` (project gotchas; skip if absent)
+      - Read `~/.agents/gotchas/general.md` (general gotchas; skip if absent)
+      - Read `.ai_doc/spec-workflow/CONTEXT.md` (glossary; skip if absent)
+      Tag-matching (explicit, no silent guessing):
+      a. WRITE OUT the domain tags this change touches (e.g. lang-go,
+         infra-api-contract, flow-openspec) before filtering.
+      b. Filter library entries by those tags; per bucket take Top-5 by hits.
+      Bring matches in as a "known-gotchas checklist + terminology constraints",
+      referencing entry IDs / term names only — never paste the body.
+      Audit trail (mandatory): write one line at the END of brainstorm.md —
+      `已查 gotchas：标签[<tags>] 命中[<ids>] / 无匹配` — so the step is verifiable.
+
+      IMPORTANT output redirection:
+      - Do NOT write to `docs/superpowers/specs/`. Instead, write the
+        brainstorming design output directly to this change's `brainstorm.md`.
+      - If brainstorming produces a design document, also write it to
+        this change's `design.md` (this will pre-fill the design artifact).
+
+      After brainstorming completes, summarize the agreed design in
+      brainstorm.md using the template structure (the gotchas audit line above
+      already covers traceability of referenced entries). Do NOT add an
+      "Open Questions" section to brainstorm.md — unresolved items belong ONLY
+      in design.md's Open Questions (single source), to avoid dual-source drift.
+
+      The brainstorming skill will:
+      1. Explore project context
+      2. Ask clarifying questions (one at a time)
+      3. Propose 2-3 approaches with trade-offs
+      4. Present design sections for approval
+      5. Output the validated design
+    requires: []
+
+  - id: troubleshoot
+    generates: troubleshoot.md
+    description: Placeholder for post-implementation issue records, consumed by the /spec-trouble-resolve workflow.
+    template: troubleshoot.md
+    instruction: |
+      Create troubleshoot.md as an empty placeholder using the template verbatim.
+      DO NOT generate any issue content. This file is intentionally empty at
+      proposal-creation time. Its purpose is to provide a known location for
+      the user to append problem reports after implementation, which will then
+      be consumed by the `/spec-trouble-resolve` command.
+
+      Rules:
+      - Copy the template content as-is. No edits, no inferred entries.
+      - Do not summarize design/plan into this file.
+      - Companion file `backup.md` will be created lazily by the resolve
+        workflow on first archival; do NOT pre-create it here.
+    requires: []
+
+  - id: revise
+    generates: revise.md
+    description: Placeholder for planning-stage (doc) deviation records, consumed by the spec-plan-revise skill.
+    template: revise.md
+    instruction: |
+      Create revise.md as an empty placeholder using the template verbatim.
+      DO NOT generate any deviation content. This file is intentionally empty at
+      proposal-creation time. Its purpose is to provide a known location for the
+      user to record planning-stage deviations (proposal/specs/design/tasks/plan
+      not matching intent), later consumed by the `spec-plan-revise` skill.
+
+      Rules:
+      - Copy the template content as-is. No edits, no inferred entries.
+      - Archival goes to the shared `backup.md` (scene marker [规划偏差]); do NOT
+        pre-create backup.md here.
+    requires: []
+
+  - id: proposal
+    generates: proposal.md
+    description: Initial proposal document outlining the change
+    template: proposal.md
+    instruction: |
+      Create the proposal document based on the brainstorming output.
+
+      Read brainstorm.md for the validated design. Extract:
+      - **Why**: The motivation (from brainstorming discussion)
+      - **What Changes**: Specific changes agreed upon
+      - **Capabilities**: Identify which specs will be created or modified:
+        - **New Capabilities**: List capabilities being introduced. Each becomes a new `specs/<name>/spec.md`. Use kebab-case names.
+        - **Modified Capabilities**: List existing capabilities whose REQUIREMENTS are changing. Check `openspec/specs/` for existing spec names.
+      - **Impact**: Affected code, APIs, dependencies, or systems.
+
+      Since brainstorming already explored the problem space,
+      this should be a concise extraction, not a new exploration.
+
+      IMPORTANT: The Capabilities section is critical. It creates the contract between
+      proposal and specs phases. Each capability listed here will need a spec file.
+
+      Keep it concise (1-2 pages). Focus on the "why" not the "how".
+    requires:
+      - brainstorm
+      - troubleshoot
+      - revise
+
+  - id: specs
+    generates: "specs/**/*.md"
+    description: Detailed specifications for the change
+    template: spec.md
+    instruction: |
+      Create specification files that define WHAT the system should do.
+
+      Create one spec file per capability listed in the proposal's Capabilities section.
+      - New capabilities: use the exact kebab-case name from the proposal (specs/<capability>/spec.md).
+      - Modified capabilities: use the existing spec folder name from openspec/specs/<capability>/ when creating the delta spec at specs/<capability>/spec.md.
+
+      Delta operations (use ## headers):
+      - **ADDED Requirements**: New capabilities
+      - **MODIFIED Requirements**: Changed behavior - MUST include full updated content
+      - **REMOVED Requirements**: Deprecated features - MUST include **Reason** and **Migration**
+      - **RENAMED Requirements**: Name changes only - use FROM:/TO: format
+
+      Format requirements:
+      - Each requirement: `### Requirement: <name>` followed by description
+      - Use SHALL/MUST for normative requirements (avoid should/may)
+      - Each scenario: `#### Scenario: <name>` with WHEN/THEN format
+      - **CRITICAL**: Scenarios MUST use exactly 4 hashtags (`####`). Using 3 hashtags or bullets will fail silently.
+      - Every requirement MUST have at least one scenario.
+
+      Specs should be testable - each scenario is a potential test case.
+    requires:
+      - proposal
+
+  - id: design
+    generates: design.md
+    description: Technical design document with implementation details
+    template: design.md
+    instruction: |
+      Create the design document explaining HOW to implement the change.
+
+      Check if brainstorming already produced a design.md file.
+      If design.md already exists with content from brainstorming,
+      review and refine it rather than starting from scratch.
+
+      If design.md is empty or doesn't exist, create it from
+      the brainstorm.md output.
+
+      Sections:
+      - **Context**: Background, current state, constraints, stakeholders
+      - **Goals / Non-Goals**: What this design achieves and explicitly excludes
+      - **Decisions**: Key technical choices with rationale (why X over Y?). Include alternatives considered.
+      - **Risks / Trade-offs**: Known limitations, things that could go wrong. Format: [Risk] → Mitigation
+      - **Migration Plan**: Steps to deploy, rollback strategy (if applicable)
+      - **Open Questions**: Outstanding decisions or unknowns to resolve
+
+      Focus on architecture and approach, not line-by-line implementation.
+      Good design docs explain the "why" behind technical decisions.
+    requires:
+      - brainstorm
+      - specs
+
+  - id: grill-spec
+    generates: design.md
+    template: design.md
+    description: DDD-aware grilling gate (powered by grill-with-docs) that resolves open questions, sharpens terminology into CONTEXT.md, and records hard decisions as ADRs.
+    instruction: |
+      Use the Skill tool to invoke **grill-with-docs**.
+
+      Purpose: before moving to implementation planning, clarify and nail down
+      every open question, sharpen fuzzy terms into ubiquitous language, and
+      record hard-to-reverse decisions as ADRs. This gate keeps later context
+      clean and prevents rework.
+
+      IMPORTANT path override (grill-with-docs defaults to repo root; redirect it):
+      - Do NOT write CONTEXT.md to repo root. Write to `.ai_doc/spec-workflow/CONTEXT.md`.
+      - Do NOT write ADRs to `docs/adr/`. Write to `.ai_doc/spec-workflow/adr/NNNN-<slug>.md`.
+      - If a `CONTEXT-MAP.md` is needed, it also lives under `.ai_doc/spec-workflow/`.
+
+      Inputs (read-only, on demand, obey context_discipline):
+      - This change's `design.md` (focus: Open Questions section)
+      - This change's `specs/**/*.md` (focus: ambiguous / unclear-boundary scenarios)
+      - `.ai_doc/spec-workflow/CONTEXT.md` (existing terms, read if present)
+      - `.ai_doc/spec-workflow/adr/` (existing decisions, read if present)
+
+      grill-with-docs will: ask ONE question at a time with a recommended answer
+      (explore code/docs instead of asking when answerable); stress-test domain
+      boundaries with concrete scenarios; write resolved terms INLINE to CONTEXT.md;
+      and offer an ADR only when all three hold (hard to reverse + surprising
+      without context + a real trade-off). New ADRs MUST carry `日期` + `来源提案`.
+
+      ADR invalidation (when a new decision overturns an existing ADR): do NOT
+      delete or move it — keep it in place, set its Status to
+      `superseded by ADR-NNNN` (or `deprecated`) with a dated reason; the new ADR
+      notes `取代：ADR-NNNN`. (gotchas archive away; ADRs stay for a continuous
+      decision history.)
+
+      Persistence requirements (core of keeping context clean):
+      - Write resolutions BACK into this change's `design.md` Decisions section,
+        and CLEAR the Open Questions section. design.md is the SINGLE source of
+        truth for Open Questions — brainstorm.md has no such section.
+      - If a legacy brainstorm.md still carries an "Open Questions" section,
+        reconcile it: move unresolved items into design.md's Open Questions and
+        remove the section from brainstorm (avoid dual-source drift).
+      - End the phase with an "open-items list": either all resolved, or
+        explicitly marked "pending user confirmation + reason".
+      - Do not keep the clarification in conversation memory — persist everything.
+      - List the touched CONTEXT terms / ADR numbers (incl. superseded ones) for traceability.
+
+      If a later偏差 surfaces AFTER tasks/plan are already generated, do NOT just
+      re-run this gate (it only rewrites design.md, leaving tasks/plan adrift) —
+      use **spec-plan-revise** to clarify and sync the whole downstream chain.
+
+      If grill-with-docs is unavailable, fall back to manually clarifying each
+      Open Question and writing the result back into design.md.
+    requires:
+      - design
+
+  - id: tasks
+    generates: tasks.md
+    description: Implementation checklist with trackable tasks
+    template: tasks.md
+    instruction: |
+      Create the task list that breaks down the implementation work.
+
+      **IMPORTANT: Follow the template below exactly.** The apply phase parses
+      checkbox format to track progress. Tasks not using `- [ ]` won't be tracked.
+
+      Guidelines:
+      - Group related tasks under ## numbered headings
+      - Each task MUST be a checkbox: `- [ ] X.Y Task description`
+      - Tasks should be small enough to complete in one session
+      - Order tasks by dependency (what must be done first?)
+      - Do not include unit tests. The project is too large to successfully run unit tests and the go build process.
+
+      Reference specs for what needs to be built, design for how to build it.
+      Each task should be verifiable - you know when it's done.
+    requires:
+      - specs
+      - design
+      - grill-spec
+
+  - id: plan
+    generates: plan.md
+    description: Micro-task implementation plan using Superpowers writing-plans
+    template: plan.md
+    instruction: |
+      Use the Skill tool to invoke **superpowers:writing-plans**.
+
+      IMPORTANT output redirection:
+      - Do NOT write to `docs/superpowers/plans/`. Instead, write
+        the plan directly to this change's `plan.md`.
+      - Do not include unit tests, not allow go build execute. The project is too large to successfully run unit tests and the go build process.
+      - **NO auto-commit steps**: do NOT generate any `git add` / `git commit`
+        tasks. Code changes must be reviewed by the human FIRST; committing is a
+        manual action the user performs after review. The plan ends at "code
+        written + diagnostics pass", never at "committed".
+
+      The writing-plans skill will:
+      1. Read the tasks.md and design.md for context
+      2. Break each task into 2-5 minute micro-steps (TDD style)
+      3. Include exact file paths, code snippets, test commands
+      4. Mark a logical "review point" after each task (a place where the human
+         reviews the diff) — NOT an auto git commit.
+
+      Pass the tasks.md content to the skill as the input for
+      decomposition. The plan should reference the specs and
+      design artifacts in this change directory.
+    requires:
+      - tasks
+
+apply:
+  requires: [plan]
+  tracks: tasks.md
+  instruction: |
+    Note when implementing, it is forbidden to execute go build and go test. The project is too large. These operations will cause lag and memory exhaustion.
+
+    0. **Context Discipline**: obey the top-level `context_discipline` throughout:
+       - the main thread reads only summaries/frontmatter; subagents read full
+         bodies from disk; never inline large files;
+       - subagents return only "path + 1-3 line summary" after writing to disk;
+       - checkpoint plan.md/tasks.md to disk after each task for resumability.
+
+    0.1 **Gotchas red-line injection**: before starting:
+       a. WRITE OUT the domain tags this change touches (explicit, no silent guess);
+       b. load `.ai_doc/spec-workflow/gotchas.md` and `~/.agents/gotchas/general.md`,
+          filter by those tags (per bucket Top-5 by hits), and pass them to the
+          executor as a [red-line checklist] for subagents (IDs + do/don't only);
+       c. Audit trail (mandatory): record one line in the apply log / first task —
+          `已查 gotchas：标签[<tags>] 命中[<ids>] / 无匹配` — so the step is verifiable.
+
+    1. **Executor**: Use the Skill tool to invoke **superpowers:subagent-driven-development** to execute the plan.md micro-tasks with fresh subagents per task.
+
+       Tell the executor:
+       - Read plan.md in this change directory for micro-tasks
+       - Update plan.md checkboxes status for finished tasks
+       - Update tasks.md checkboxes as coarse tasks complete
+       - Work within the created worktree
+       - Obey the gotchas red-lines injected in step 0.1
+       - **NO auto-commit**: write code and update checkboxes only; do NOT run
+         `git add` / `git commit`. Code must wait for the human's review before
+         any commit. Stop at "code written + diagnostics pass".
+
+    2. **Completion**: When all tasks are done, present the diff for the user's
+       REVIEW first. Only AFTER the user approves should commit/PR happen — and
+       the commit is the user's call. If the user explicitly asks to wrap up,
+       you may invoke **superpowers:finishing-a-development-branch**; otherwise do
+       NOT auto-commit or auto-create a PR.
+
+    3. **Diagnostics**: After code implementation is complete, invoke the gopls MCP tool's go_diagnostics to validate correctness. Any error-level diagnostics must be fixed and re-validated until all checks pass.
+
+    4. **Troubleshoot scope**: `troubleshoot.md` is NOT written by the apply phase or any subagent. It is a user-curated file. Issues discovered during implementation must be appended manually by the developer and are later consumed by the `/spec-trouble-resolve` command. Do not let executors auto-populate it.
+
+    If any skill is unavailable, fall back to manual implementation
+    using the standard task-by-task loop from tasks.md.
+
+retrospective:
+  trigger: Manual (run after a change is implemented and archived via /spec-trouble-resolve)
+  instruction: |
+    This is the [producer] side of the knowledge flywheel — two manual,
+    decoupled steps:
+
+    Step 1 · Produce retro material: run the **spec-opti-workflow-v2** skill to
+      produce `reflect_spec_workflow.md` for this change. Pass the ORIGINAL PROMPT
+      DOC path as $2 (expected by default, e.g. your `0_biz_impl/<date>-<name>.md`)
+      to also trigger INPUT-SIDE reflection: it copies the prompt doc verbatim to
+      `intake.md` and attributes each backup issue to ①prompt / ②tacit-knowledge /
+      ③implementation-slip with a ratio. Retro material includes: coding-style
+      preferences / AGENTS.md blind spots / architecture reflections / reusable-asset
+      CANDIDATES / prompting-habit CANDIDATES (pmt-*). It only produces material —
+      it does not write gotchas/prompting and does not drop skill files. If $2 is
+      omitted, input-side reflection is skipped (the skill will say so).
+
+    Step 2 · Distill into the library: run the **gotchas** governance skill on
+      this change's backup.md + reflect_spec_workflow.md, through three gates:
+      - Admission gate: admit only if all hold — ① recurring ② has `when`
+        ③ has `do`/`don't`; "spec was underspecified" issues do NOT belong in
+        gotchas — they feed `prompting.md` instead.
+      - Layering gate: gotchas first into `.ai_doc/spec-workflow/gotchas.md`,
+        promote to `~/.agents/gotchas/general.md` after recurring in >=2 projects;
+        prompting candidates go straight into the global `~/.agents/gotchas/prompting.md`.
+      - Eviction gate (tag-bucketed): no global hard cap. Group entries by tag;
+        on duplicates only upsert the hit count; entries fossilized by CI/lint or
+        with long-zero hits -> archived. See the gotchas skill for per-bucket soft
+        limits (30) and inject Top-N (5) rules. `prompting.md` is NEVER auto-injected.
+
+    Reusable skills/commands: spec-opti-workflow-v2 produces only "candidate
+    descriptions"; the user reviews and copies them into ~/.agents/skills
+    manually. Never pile skill files inside the change directory.
+
+    Flywheel closure: the distilled gotchas/CONTEXT are auto-consumed by the next
+    change's brainstorm phase.
+
+# ─────────────────────────────────────────────────────────────
+# Revision — handling planning-stage (doc-phase) deviations (NOT an artifact)
+# ─────────────────────────────────────────────────────────────
+revision:
+  trigger: Manual (when generated planning docs deviate from intent, AFTER they exist)
+  instruction: |
+    When a generated planning doc (proposal/specs/design/tasks/plan) deviates from
+    your intent, do NOT stuff it into troubleshoot.md (that + /spec-trouble-resolve
+    are for CODE-stage issues with a real diff). Instead run **spec-plan-revise**.
+
+    spec-plan-revise is the single entry point for planning-stage deviations:
+    - Input: PRIMARY = `revise.md` in the change dir (recorded deviations, for
+      later review); fallback = free-text `$ARGUMENTS`. Prefer revise.md.
+    - It locates the deviation's source layer and syncs the WHOLE downstream chain
+      (proposal → specs → design → tasks → plan), keeping the four doc types aligned.
+    - It has BUILT-IN clarification (grill-with-docs style, one-stop): if the
+      deviation is "requirement not thought through", it grills you in place —
+      no jumping to another skill — then fixes + syncs.
+    - plan.md is regenerated via superpowers:writing-plans; other docs follow their
+      schema instructions + templates. CONTEXT/ADR writes are redirected to
+      `.ai_doc/spec-workflow/`.
+    - Archival: appends to the SHARED `backup.md` with scene marker `[规划偏差]`
+      (spec-trouble-resolve uses `[代码偏差]`); revise.md is cleared after处理.
+    - It only edits DOCS, never code. If existing code is affected, it points you to
+      `/spec-trouble-resolve`.
+
+    Boundary recap:
+    - Planning-stage (docs) deviation -> revise.md + spec-plan-revise -> backup.md[规划偏差]
+    - Code-stage (post-apply) issue   -> troubleshoot.md + /spec-trouble-resolve -> backup.md[代码偏差]

@@ -85,6 +85,8 @@ export GOPLS_SCRIPT="$HOME/start_gopls.sh"
 export PATH="$HOME/github_repo/nvim-0.11.5/bin:$PATH"
 export PATH="/data00/home/lihao.hellohake/.local/bin:$PATH"
 
+export EDITOR=vim
+
 # Node/NVM
 export NVM_DIR="$HOME/.nvm"
 if [[ -z "${_NVM_SOURCED_IN_SHELL:-}" ]]; then
@@ -121,7 +123,7 @@ export TLDR_LANG=zh_CN
 # 4.5 Network & Proxy
 export http_proxy=http://sys-proxy-rd-relay.byted.org:8118
 export https_proxy=http://sys-proxy-rd-relay.byted.org:8118
-export no_proxy=*.byted.org,.byteintl.net,.bytedance.net,localhost,127.0.0.1
+export no_proxy=.byted.org,.byteintl.net,.bytedance.net,localhost,127.0.0.1
 export TLDR_LANGUAGE=zh
 
 # 4.6 Misc
@@ -132,7 +134,7 @@ export HOME="/home/lihao.hellohake"    # Fix prompt abbreviation
 
 # Coco Ctrl+G external editor: opens nvim, then OSC52-copies the buffer
 # back to the local clipboard so you can paste anywhere.
-export EDITOR="$HOME/.local/bin/coco-edit"
+# export EDITOR="$HOME/.local/bin/coco-edit"
 export VISUAL="$EDITOR"
 
 
@@ -159,14 +161,22 @@ alias gostatus='ps -eo pid,user,%cpu,%mem,cmd | grep "gopls serve" | grep -v gre
 
 # 6.1 Tools & Helpers
 Proxy() {
-    local ip=${SSH_CLIENT/ */}
-    if [ "$1" == "on" ]; then
-        export https_proxy=$ip:8118; export http_proxy=$ip:8118
-        echo "Proxy On ($ip:8118)"
-    else
-        unset https_proxy; unset http_proxy
-        echo "Proxy Off"
-    fi
+    local url="http://sys-proxy-rd-relay.byted.org:8118"
+    case "$1" in
+        on)
+            export http_proxy=$url; export https_proxy=$url
+            export HTTP_PROXY=$url; export HTTPS_PROXY=$url
+            echo "Proxy On  ($url)"
+            ;;
+        off)
+            unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY
+            echo "Proxy Off"
+            ;;
+        *)
+            if [ -n "$http_proxy" ]; then echo "Proxy On  ($http_proxy)"; else echo "Proxy Off"; fi
+            echo "Usage: Proxy on|off"
+            ;;
+    esac
 }
 
 coco() { python3 ~/.local/bin/coco_wrapper.py "$@"; }
@@ -284,6 +294,17 @@ sync_cfg() {
     [[ ~/.tmux.conf -nt "$t_dir/.tmux.conf" ]] && cp ~/.tmux.conf "$t_dir/.tmux.conf"
     [ -f "$HOME/start_gopls.sh" ] && [[ "$HOME/start_gopls.sh" -nt "$t_dir/start_gopls.sh" ]] && cp "$HOME/start_gopls.sh" "$t_dir/start_gopls.sh"
     [ -f "$HOME/gai.sh" ] && [ -d "$s_dir" ] && [[ "$HOME/gai.sh" -nt "$s_dir/gai.sh" ]] && cp "$HOME/gai.sh" "$s_dir/gai.sh"
+
+    # openspec 模板 + 自定义技能 同步到 skill_template（只覆盖/新增不删）
+    local st_dir="$HOME/.config/nvim/skill_template"
+    if command -v rsync >/dev/null 2>&1 && [ -d "$HOME/.agents/template/schemas" ]; then
+        mkdir -p "$st_dir/schemas" "$st_dir/skills"
+        rsync -a "$HOME/.agents/template/schemas/" "$st_dir/schemas/" 2>/dev/null
+        local _sk
+        for _sk in gotchas spec-opti-workflow spec-opti-workflow-v2 spec-plan-revise spec-trouble-resolve; do
+            [ -d "$HOME/.agents/skills/$_sk" ] && rsync -a "$HOME/.agents/skills/$_sk" "$st_dir/skills/" 2>/dev/null
+        done
+    fi
 }
 sync_cfg # Run on startup
 

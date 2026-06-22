@@ -348,7 +348,7 @@ return {
 		:with_silent()
 		:with_desc("Git: Create worktree"),
 	-- sidekick
-	["n|<leader>aa"] = map_cr("Sidekick cli toggle name='coco'"):with_noremap():with_silent():with_desc("Sidekick: Toggle Coco"),
+	["n|<leader>aa"] = map_cr("Sidekick cli toggle name='traex'"):with_noremap():with_silent():with_desc("Sidekick: Toggle Coco"),
 	["n|<leader>am"] = map_cr("Sidekick cli select"):with_noremap():with_silent():with_desc("Sidekick: Select CLI"),
 	["n|<leader>af"] = map_cr("Sidekick cli send msg='{file}'")
 		:with_noremap()

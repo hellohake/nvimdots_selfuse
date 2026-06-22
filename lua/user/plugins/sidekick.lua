@@ -11,9 +11,9 @@ return {
 					},
 				},
 				tools = {
-					coco = {
-						cmd = { "coco" },
-						title = "Coco AI",
+					traex = {
+						cmd = { "traex" },
+						title = "Traex AI",
 					},
 				},
 			},

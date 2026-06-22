@@ -49,6 +49,8 @@ return function()
 				["j"] = actions.next,
 				["<Up>"] = actions.previous,
 				["<Down>"] = actions.next,
+				["<C-p>"] = actions.previous,
+				["<C-n>"] = actions.next,
 				["<S-Tab>"] = actions.previous_location, -- Bring the cursor to the previous location skipping groups in the list
 				["<Tab>"] = actions.next_location, -- Bring the cursor to the next location skipping groups in the list
 				["<C-u>"] = actions.preview_scroll_win(8),
