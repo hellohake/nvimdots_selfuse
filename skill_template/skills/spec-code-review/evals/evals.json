@@ -1,0 +1,23 @@
+{
+  "skill_name": "spec-code-review",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "hello-spec-v2 的 apply 已经完成了，帮我对当前提案做一次 AI pre-commit review，重点看 spec 有没有漏考虑改动代码附近的上下文逻辑，输出 report，不要改代码。",
+      "expected_output": "Produces spec_code_review.md with Gate, Review Findings, Spec 反向风险, Context Audit, Fix Queue, and a Coding Agent Copy Prompt containing the absolute report path.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "这次 openspec 改动涉及两个 repo，代码写完了但还没 commit。请用不同 reviewer 视角先审一下实现，尤其看 shared struct/公共链路有没有被污染，报告里要能让我直接复制一句话给 coding agent 去修 accepted 项。",
+      "expected_output": "Discovers changed repos, reviews diff against spec and code context, does not commit or edit, and emits a coding-agent-consumable Fix Queue plus one-line copy prompt with absolute path.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "帮我 review 当前分支代码质量，但别走 MR comments，那是提交后的事。现在是在 spec-commit-push 前，想先让 AI 找 blocker/major。",
+      "expected_output": "Triggers spec-code-review rather than fix-mr-comments, keeps report-only boundary, classifies Blocker/Major/Minor/Nit, and gives next-step handoff to coding agent.",
+      "files": []
+    }
+  ]
+}

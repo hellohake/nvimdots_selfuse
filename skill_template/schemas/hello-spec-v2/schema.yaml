@@ -482,3 +482,59 @@ debug:
 
     Boundary: spec-e2e-debug = locate root cause (read-only, internal-net);
     spec-trouble-resolve = fix the code once you know it's a code bug.
+
+# ─────────────────────────────────────────────────────────────
+# Code Review — AI pre-commit review report (NOT an artifact)
+# ─────────────────────────────────────────────────────────────
+code_review:
+  trigger: Manual (after apply, before spec-commit-push)
+  instruction: |
+    After apply completes and before committing, run **spec-code-review** to
+    create an AI pre-commit review report.
+
+    - It uses an independent reviewer perspective (prefer a different model if
+      the platform supports it) to reduce confirmation bias from the coding
+      agent.
+    - It reviews BOTH directions:
+      1. implementation vs proposal/spec/design/tasks;
+      2. spec/design vs real code context, including changed-symbol references,
+         adjacent patterns, shared contracts, business boundaries, naming,
+         simplicity, and verification gaps.
+    - Output: `spec_code_review.md` in the proposal directory.
+    - The report includes a structured `Fix Queue` and a one-line
+      `Coding Agent Copy Prompt` with the report's absolute path, so you can
+      copy it directly to a coding agent for follow-up fixes.
+    - First version is report-only: it does NOT edit code, does NOT start an
+      infinite review/fix loop, and does NOT commit/push.
+
+    Suggested handoff after reading the report:
+    - "修 Fix Queue 里 Status=accepted 的项"
+    - or "只修 R001/R003，R002 先跳过"
+
+# ─────────────────────────────────────────────────────────────
+# Commit — multi-repo commit & push closure (NOT an artifact)
+# ─────────────────────────────────────────────────────────────
+commit:
+  trigger: Manual (after apply, spec-code-review/human review, when ready to commit & push)
+  instruction: |
+    After apply is done, spec-code-review/human review has passed, run **spec-commit-push**
+    to close the loop: multi-repo rebase +规范 commit + confirm-then-push.
+
+    - Locates all repos/branches changed by this sdd work (same discovery as
+      fix-mr-comments); each repo commits & pushes independently.
+    - Each call FETCHES + REBASES origin/master (master iterates fast; deferring
+      rebase only makes conflicts worse). Rebase conflict -> STOPS, gives advice,
+      the USER resolves manually (skill never auto-resolves).
+    - Generates a CONCISE Conventional-Commits message from the proposal
+      (background / what changed / blast radius), Chinese-first with English terms
+      kept. First commit = full background; later commits = incremental.
+    - CONFIRM gate: shows message + diff stat; user can tweak the message verbally
+      before anything is committed. Push only after confirmation.
+    - 🔴 Protected-branch hard line (3 checks) — never commit/push to master etc.
+    - 🔴 NEVER auto-force. Rebasing an already-pushed branch diverges -> STOPS,
+      shows local-vs-remote diff, and only on the user's explicit OK uses
+      `--force-with-lease` (never bare --force).
+    - No archival file (git history is the record).
+
+    May be called MULTIPLE times during one proposal (incremental commits).
+    Next step: after push, MR comments are handled by `fix-mr-comments`.
