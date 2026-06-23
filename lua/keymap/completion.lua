@@ -15,6 +15,30 @@ bind.nvim_load_mapping(mappings.fmt)
 
 local M = {}
 
+local function client_supports_method(client, method)
+	if type(client.supports_method) == "function" then
+		local ok, supported = pcall(client.supports_method, client, method)
+		if ok then
+			return supported
+		end
+	end
+
+	if method == "textDocument/references" then
+		return client.server_capabilities and client.server_capabilities.referencesProvider ~= nil
+	end
+
+	return false
+end
+
+local function buffer_supports_lsp_method(buf, method)
+	for _, client in ipairs(vim.lsp.get_clients({ bufnr = buf })) do
+		if client_supports_method(client, method) then
+			return true
+		end
+	end
+	return false
+end
+
 ---@param buf integer
 function M.lsp(buf)
 	local map = {
@@ -59,7 +83,20 @@ function M.lsp(buf)
 			:with_silent()
 			:with_buffer(buf)
 			:with_desc("lsp: Goto definition"),
-		["n|gh"] = map_cr("Glance references"):with_silent():with_buffer(buf):with_desc("lsp: Show reference"),
+		["n|gh"] = map_callback(function()
+				if not buffer_supports_lsp_method(buf, "textDocument/references") then
+					vim.notify(
+						"No LSP attached to current buffer supports references",
+						vim.log.levels.WARN,
+						{ title = "LSP" }
+					)
+					return
+				end
+				vim.cmd("Glance references")
+			end)
+			:with_silent()
+			:with_buffer(buf)
+			:with_desc("lsp: Show reference"),
 		["n|gm"] = map_cr("Glance implementations")
 			:with_silent()
 			:with_buffer(buf)

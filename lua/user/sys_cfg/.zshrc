@@ -81,11 +81,11 @@ export PATH="$HOME/github_repo/go1.25.5/bin:$PATH"
 #export PATH="$HOME/github_repo/go1.22.7/bin:$PATH"
 export GOPLS_SCRIPT="$HOME/start_gopls.sh"
 
-# Neovim & Coco
+# Neovim & Agent Editor
 export PATH="$HOME/github_repo/nvim-0.11.5/bin:$PATH"
 export PATH="/data00/home/lihao.hellohake/.local/bin:$PATH"
 
-export EDITOR=vim
+export EDITOR="$HOME/.local/bin/osc52-edit"
 
 # Node/NVM
 export NVM_DIR="$HOME/.nvm"
@@ -132,9 +132,8 @@ export FZF_CTRL_T_COMMAND='fd --type f --hidden --follow --exclude .git'
 export HOME="/home/lihao.hellohake"    # Fix prompt abbreviation
 [ -f /usr/share/autojump/autojump.sh ] && . /usr/share/autojump/autojump.sh
 
-# Coco Ctrl+G external editor: opens nvim, then OSC52-copies the buffer
-# back to the local clipboard so you can paste anywhere.
-# export EDITOR="$HOME/.local/bin/coco-edit"
+# Generic external editor wrapper: opens nvim, then OSC52-copies the buffer
+# back to the local clipboard for terminal coding agents.
 export VISUAL="$EDITOR"
 
 
@@ -293,7 +292,8 @@ sync_cfg() {
     [[ ~/.zshrc -nt "$t_dir/.zshrc" ]] && cp ~/.zshrc "$t_dir/.zshrc"
     [[ ~/.tmux.conf -nt "$t_dir/.tmux.conf" ]] && cp ~/.tmux.conf "$t_dir/.tmux.conf"
     [ -f "$HOME/start_gopls.sh" ] && [[ "$HOME/start_gopls.sh" -nt "$t_dir/start_gopls.sh" ]] && cp "$HOME/start_gopls.sh" "$t_dir/start_gopls.sh"
-    [ -f "$HOME/gai.sh" ] && [ -d "$s_dir" ] && [[ "$HOME/gai.sh" -nt "$s_dir/gai.sh" ]] && cp "$HOME/gai.sh" "$s_dir/gai.sh"
+    [ -f "$HOME/gai.sh" ] && [ -d "$s_dir" ] && { [ ! -e "$s_dir/gai.sh" ] || [[ "$HOME/gai.sh" -nt "$s_dir/gai.sh" ]]; } && cp "$HOME/gai.sh" "$s_dir/gai.sh"
+    [ -f "$HOME/.local/bin/osc52-edit" ] && [ -d "$s_dir" ] && { [ ! -e "$s_dir/osc52-edit" ] || [[ "$HOME/.local/bin/osc52-edit" -nt "$s_dir/osc52-edit" ]]; } && cp "$HOME/.local/bin/osc52-edit" "$s_dir/osc52-edit" && chmod +x "$s_dir/osc52-edit"
 
     # openspec 模板 + 自定义技能 同步到 skill_template（只覆盖/新增不删）
     local st_dir="$HOME/.config/nvim/skill_template"

@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+# osc52-edit: $EDITOR wrapper for terminal coding agents.
+#
+# Default behavior:
+#   1. A TUI launches this script as $EDITOR with a temporary input file.
+#   2. Edit freely in nvim.
+#   3. Press Ctrl+G inside nvim to save, quit, and copy the whole buffer to
+#      the local clipboard via OSC52.
+#
+# Modes:
+#   OSC52_EDIT_MODE=copy       copy immediately, show read-only preview
+#   OSC52_EDIT_MODE=nvim-full  use personal nvim config instead of --clean
+#   OSC52_EDIT_CMD=<editor>    override the editor command, default: nvim
+
+set -u
+
+file="${1:-}"
+[ -z "$file" ] && exit 0
+[ -f "$file" ] || : > "$file"
+
+copy_osc52() {
+    local target="$1"
+    [ -s "$target" ] || return 0
+
+    local payload
+    payload=$(base64 < "$target" | tr -d '\r\n')
+
+    if [ -n "${TMUX:-}" ]; then
+        # tmux passthrough so the host terminal receives OSC52.
+        printf '\033Ptmux;\033\033]52;c;%s\a\033\\' "$payload"
+    else
+        printf '\033]52;c;%s\a' "$payload"
+    fi
+}
+
+run_nvim_mode() {
+    local editor="${OSC52_EDIT_CMD:-nvim}"
+    local mode="${1:-full}"
+    local init
+    init=$(mktemp -t osc52-edit-nvim.XXXXXX.vim)
+
+    cat > "$init" <<'VIMRC'
+set noswapfile nobackup nowritebackup
+set shortmess+=I
+
+function! Osc52EditSaveQuit() abort
+  silent! update
+  quit
+endfunction
+
+" Same key in/out: Ctrl+G opens the editor from the TUI, Ctrl+G leaves nvim.
+nnoremap <silent> <C-g> :call Osc52EditSaveQuit()<CR>
+inoremap <silent> <C-g> <Esc>:call Osc52EditSaveQuit()<CR>
+vnoremap <silent> <C-g> <Esc>:call Osc52EditSaveQuit()<CR>
+
+" Text input feels more natural if the editor starts in insert mode.
+startinsert
+VIMRC
+
+    if [ "$mode" = "clean" ]; then
+        "$editor" --clean -S "$init" "$file"
+    else
+        "$editor" -S "$init" "$file"
+    fi
+    local status=$?
+    rm -f "$init"
+    copy_osc52 "$file"
+    return "$status"
+}
+
+run_copy_mode() {
+    copy_osc52 "$file"
+
+    # In non-interactive contexts, just copy and exit.
+    [ -t 0 ] || return 0
+
+    local old_stty=""
+    old_stty=$(stty -g 2>/dev/null || true)
+
+    cleanup() {
+        [ -n "$old_stty" ] && stty "$old_stty" 2>/dev/null || true
+        printf '\033[?1049l'
+    }
+    trap cleanup EXIT INT TERM
+
+    [ -n "$old_stty" ] && stty raw -echo 2>/dev/null || true
+
+    # Alternate screen keeps the calling TUI clean after returning.
+    printf '\033[?1049h\033[H\033[2J'
+    printf '\033[1;32m已复制编辑内容到本地剪贴板。\033[0m\r\n'
+    printf '\033[2m再按 Ctrl+G 返回调用方；也可按 Enter/q 返回。\033[0m\r\n'
+    printf '\033[2m────────────────────────────────────────\033[0m\r\n'
+    cat "$file"
+    printf '\r\n\033[2m────────────────────────────────────────\033[0m\r\n'
+
+    local key
+    while IFS= read -rsn1 key; do
+        case "$key" in
+            $'\x07'|$'\r'|$'\n'|q|Q) break ;;
+        esac
+    done
+
+    return 0
+}
+
+case "${OSC52_EDIT_MODE:-nvim-clean}" in
+    copy) run_copy_mode ;;
+    nvim-clean|clean) run_nvim_mode clean ;;
+    nvim-full|full|nvim|vim|*) run_nvim_mode full ;;
+esac
