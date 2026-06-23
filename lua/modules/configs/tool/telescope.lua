@@ -59,8 +59,8 @@ return function()
 			color_devicons = true,
 			file_ignore_patterns = {
 				"kitex_gen/",
-				".git/",
-				".cache",
+				"%.git/",
+				"%.cache",
 				"build/",
 				"%.class",
 				"%.pdf",
