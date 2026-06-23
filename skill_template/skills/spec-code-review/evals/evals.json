@@ -18,6 +18,12 @@
       "prompt": "帮我 review 当前分支代码质量，但别走 MR comments，那是提交后的事。现在是在 spec-commit-push 前，想先让 AI 找 blocker/major。",
       "expected_output": "Triggers spec-code-review rather than fix-mr-comments, keeps report-only boundary, classifies Blocker/Major/Minor/Nit, and gives next-step handoff to coding agent.",
       "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "apply 后 coding agent 新增了 Go 单测文件，例如 server_middleware/scene_inject_mw_test.go。请做 spec-code-review，报告里除了 gopls 也要给我能直接复制手动跑的 targeted go test 命令。",
+      "expected_output": "Produces spec_code_review.md with Manual Test Commands and checks the proposal-level manual_test_commands.md ledger. For changed Go *_test.go files, includes copyable commands such as cd <repo> && go test ./server_middleware -run 'TestSceneFromRequest' -count=1, marked as manual/not run by the skill when repo rules forbid automatic go test. If ledger coverage is missing, reports that as a verification gap.",
+      "files": []
     }
   ]
 }

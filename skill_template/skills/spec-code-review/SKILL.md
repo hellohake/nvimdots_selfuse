@@ -31,6 +31,14 @@ description: openspec/speckit 提案 apply 完成后、spec-commit-push 前的 A
 - 终端摘要：Gate 结论、Blocker/Major 数量、报告绝对路径、可复制给 coding agent 的一句话指令。
 - 报告模板见 [references/report_template.md](./references/report_template.md)，按需读取并严格使用其结构。
 
+## 报告语言
+
+报告是给用户和 coding agent 共同消费的，**人读部分必须使用简体中文**：
+
+- `Executive Summary`、`Human Review Focus`、`CR Readiness`、`Review Findings` 的 Finding/Evidence/Recommendation、`Spec 反向风险`、`Context Audit`、`Manual Test Commands`、`Fix Queue` 的 Instruction/Acceptance 都用中文写。
+- 代码标识符、文件路径、SQL、IDL/RPC/API、错误原文、状态枚举（如 `BLOCKED`、`accepted`、`human_decision`）保留英文原文。
+- 如果 reviewer agent 输出英文，写入 `spec_code_review.md` 前先翻译成中文；不要把英文散文直接写进最终报告。
+
 ## 严重级别与 Gate
 
 严重级别：
@@ -45,6 +53,33 @@ Gate：
 - `BLOCKED`：存在未豁免的 Blocker。
 - `PASS_WITH_WARNINGS`：无 Blocker，但有 Major/Minor 或 human_decision。
 - `PASS`：无阻塞问题，仅有可接受的低风险建议或无发现。
+
+## CR Readiness 判定
+
+报告必须单独给出 `CR Readiness`，帮助用户判断什么时候进入低成本人工 CR。它不是替用户拍板，而是把人工 review 时机显式化。
+
+`Ready for human CR = YES` 需要同时满足：
+
+1. 最新一轮 `Gate != BLOCKED`。
+2. 最新一轮 `Fix Queue` 没有 `Status=accepted` 的未修项。
+3. 最新一轮没有新的 `Blocker` 或需要 coding agent 继续修的 `Major`。
+4. 所有 `human_decision` 项都有明确处理建议：需要用户确认 / 可接受风险 / 延后到后续提案。
+5. 最近一轮 coding agent 修复范围可追踪：改动能映射到 finding ID，没有夹带重构。
+6. 轻量校验没有 changed-file 新 error；如果校验没跑，必须标 `NO` 或 `PARTIAL` 并说明原因。
+
+`Ready for human CR = NO` 的典型原因：
+
+- 仍有 Blocker。
+- 仍有 `Status=accepted` 未修项。
+- 新一轮 review 继续发现新的 Blocker/Major，说明 AI loop 尚未收敛。
+- `human_decision` 项需要用户先做设计/契约判断。
+- 修复 diff 超出 Fix Queue 范围，需要用户先看是否夹带。
+
+建议最多 3 轮：
+
+- 第 1 轮：广域 review。
+- 第 2 轮：复审修复并找二阶问题。
+- 第 3 轮：收敛确认。若仍持续出现新的 Blocker/Major，停止 AI loop，进入人工深审。
 
 ## 执行工作流
 
@@ -73,6 +108,7 @@ Gate：
    - 未 staged：`git diff --stat` + `git diff`。
    - staged：也读 `git diff --cached --stat` + `git diff --cached`。
    - diff 很大时先按文件分组，逐文件读取关键 hunk 和上下文，避免整块塞满上下文。
+4. 读取提案级 `manual_test_commands.md`（存在则读；不存在则在报告中提示 ledger 缺失）。这是所有阶段共享的手动单测命令台账。
 
 ### 阶段 2：上下文审计
 
@@ -98,7 +134,7 @@ Gate：
 3. **边界与位置**：代码是否放在正确层；是否污染 shared/中台/公共结构；是否违反 repo 架构。
 4. **业务语义**：命名是否体现业务含义；是否双重否定、概念混淆、泛化过度。
 5. **简洁性**：是否有多余抽象、重复代码、过度兼容、参数膨胀、死代码；参考 `simplify` 的 reuse/quality/efficiency 思路，但本技能只报告不修。
-6. **验证缺口**：是否缺少轻量校验；Go 大仓优先 gopls diagnostics，不要求跑重型 `go build` / `go test`。
+6. **验证缺口**：是否缺少轻量校验；Go 大仓优先 gopls diagnostics，不要求技能自动跑重型 `go build` / `go test`；如果本次 diff 新增/修改了测试文件，必须给出用户可手动复制执行的 targeted test command。
 
 ### 阶段 4：反向审查 spec
 
@@ -130,14 +166,46 @@ Fix Queue 字段必须包含：
 - `Instruction`：给 coding agent 的具体修复指令。
 - `Acceptance`：验收标准。
 
+### 阶段 5.5：生成 Manual Test Commands
+
+当 diff 中出现新增/修改的测试文件（如 Go 的 `*_test.go`、前端/脚本项目的 test/spec 文件）时，报告必须生成 `Manual Test Commands`，方便用户复制后手动运行看输出，并检查提案级 `manual_test_commands.md` 是否已有对应记录。
+
+原则：
+
+1. **技能不自动跑重型测试**：遵守仓库约束。比如 `search_card_admin` 禁止自动执行完整 `go build` / `go test ./...`，但可以给用户列出 targeted command。
+2. **命令必须可复制**：写成 fenced code block；包含 `cd <repo>`，避免用户在错目录执行。
+3. **优先最小范围**：
+   - Go：从测试文件路径推导 package 目录，从 `func TestXxx` 提取测试名，生成 `go test ./<pkg> -run 'TestA|TestB' -count=1`。
+   - 如果只知道 package 不知道测试名，生成 `go test ./<pkg> -count=1`，并说明粒度较粗。
+   - 非 Go 项目按仓库已有 package scripts 或邻近文档生成 targeted command；拿不准时写“未能可靠推导”，不要编造。
+4. **明确执行状态**：标注 `Status=not_run_by_skill`、`manual_only` 或 `skipped_by_repo_rule`，说明这是给用户手动执行的命令。
+5. **关联 finding**：每条命令标注覆盖哪些 finding/test 文件，例如 `C001 -> R001/R003`。
+6. **检查统一台账**：
+   - 如果 `manual_test_commands.md` 已有对应命令，在报告中引用其绝对路径和命令 ID。
+   - 如果测试文件有变更但台账缺失对应命令，在报告中标为验证缺口，并在本轮 `Manual Test Commands` 中补出建议命令；同时建议 coding agent 或当前阶段更新台账。
+   - 如果台账文件不存在，报告中提示提案可能来自旧模板，并给出建议创建路径。
+
+Go 示例：
+
+```bash
+cd /data00/home/lihao.hellohake/go/src/code.byted.org/ecom/search_card_admin/card_type_support
+go test ./server_middleware -run 'TestSceneFromRequest' -count=1
+```
+
 ### 阶段 6：写报告与可复制指令
 
 1. 读取 [references/report_template.md](./references/report_template.md)。
 2. 写入提案目录 `spec_code_review.md`，若文件已存在则追加一个新 review run，不覆盖历史。
 3. 报告必须包含 **Coding Agent Copy Prompt**，并且这句话里必须使用 `spec_code_review.md` 的**绝对路径**，方便用户整句复制给 coding agent。
-4. 终端输出：
+4. 多轮 review 时，Copy Prompt 必须明确“只处理最新一轮 Review Run 的 Fix Queue”，避免 coding agent 误处理历史 run。
+5. Gate 是 review 当时的判断。coding agent 修复后可以更新 Fix Queue 状态或追加修复记录，但不要把旧 Gate 当成已自动刷新；修复完成后建议再跑一轮 `spec-code-review` 复审。
+6. 报告必须包含 **Manual Test Commands**；若没有测试文件改动，也要写“本轮未发现新增/修改测试文件，未生成手动单测命令”。
+7. 报告必须包含 **CR Readiness**，明确 `Ready for human CR: YES / NO / PARTIAL`、原因、建议人工只核对的范围。
+8. 终端输出：
    - Gate 结论。
+   - CR Readiness 结论。
    - Blocker/Major/Minor/Nit 计数。
+   - 若存在手动单测命令，输出最关键的 1-3 条命令或提示去报告中复制。
    - `spec_code_review.md` 绝对路径。
    - 同一条可复制指令。
 
@@ -146,7 +214,7 @@ Fix Queue 字段必须包含：
 报告末尾必须生成类似这一句，替换为真实绝对路径：
 
 ```text
-请读取 /abs/path/to/spec_code_review.md，只修复其中 Fix Queue 里 Status=accepted 的项；不要处理 human_decision/deferred/false_positive；每个改动必须映射到 finding ID，修完后更新该报告的 Fix Queue Status 并运行报告里写明的轻量校验。
+请读取 /abs/path/to/spec_code_review.md，只修复最新一轮 Review Run 的 Fix Queue 里 Status=accepted 的项；不要处理 human_decision/deferred/false_positive；每个改动必须映射到 finding ID，修完后更新该报告的 Fix Queue Status 并运行报告里写明的轻量校验。
 ```
 
 ## 与邻居技能的边界

@@ -1,0 +1,23 @@
+{
+  "skill_name": "spec-commit-push",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "代码 review 完了，帮我提交并 push p0-card-foundation 这个 hello-spec-v2 提案。",
+      "expected_output": "Treats p0-card-foundation as proposal input, locates the proposal directory, discovers changed repos from proposal docs and git status, generates commit messages from proposal context, and uses short-code confirmation such as y/n/e rather than asking for a full sentence.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "我 /clear 后重新开了一个上下文，现在要 push 这次改动。",
+      "expected_output": "Does not guess blindly in cold context. If no proposal name/path can be uniquely inferred, stops and asks for a proposal name or absolute proposal directory before doing git write operations.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "rebase 后本地和远端分叉了，可以继续 push。",
+      "expected_output": "Shows local-vs-remote diff and requires single-character f confirmation for force-with-lease. Does not accept ordinary y/a as force confirmation.",
+      "files": []
+    }
+  ]
+}
