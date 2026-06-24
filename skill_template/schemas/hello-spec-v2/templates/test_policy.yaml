@@ -1,0 +1,26 @@
+version: 1
+
+# Project-level test capability policy.
+# Location: .ai_doc/spec-workflow/test_policy.yaml
+#
+# Default behavior:
+# - Repos not listed below are treated as unit_test_required.
+# - That means behavior changes should get targeted regression tests when feasible.
+# - Full-suite commands such as `go test ./...` and full `go build` are still forbidden unless the repo explicitly allows them.
+#
+# Matching:
+# - Match by repository identity, not local worktree path.
+# - Prefer `repo_remote` from `git remote get-url origin`.
+# - For Go repos, also match `go_module` from go.mod.
+
+default: unit_test_required
+
+unit_test_disabled: []
+
+manual_test_only: []
+
+# Example:
+# unit_test_disabled:
+#   - repo_remote: "git@code.byted.org:ecom/example.git"
+#     go_module: "code.byted.org/ecom/example"
+#     reason: "Targeted unit tests are not reliable in this repo; use gopls diagnostics and manual verification."

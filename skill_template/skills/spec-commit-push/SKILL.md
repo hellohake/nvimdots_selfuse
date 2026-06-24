@@ -1,6 +1,6 @@
 ---
 name: spec-commit-push
-description: openspec/speckit 提案 apply 完成、AI/human review 过代码后，一键完成"多仓 rebase + 规范 commit + 确认后 push"的提交闭环。推荐输入提案名或绝对提案目录（如 spec-commit-push p0-card-foundation），空上下文/多提案时无输入必须停手要求补充；只在热上下文能唯一定位提案时才自动推断。逐仓 fetch+rebase 最新 master（冲突停手交人工解），读提案背景生成精简中文 Conventional Commit message，给用户短码确认（普通 y；force-with-lease 用 f）后才 commit/push。Use when 用户说"提交代码 / push 这次改动 / 把这几个仓的代码提交了 / commit and push / 代码开发完了帮我提交"，或 hello-spec-v2 apply + review 后。
+description: OpenSpec-style SDD 提案 apply 完成、AI/human review 过代码后，一键完成"多仓 rebase + 规范 commit + 确认后 push"的提交闭环。推荐输入提案名或绝对提案目录（如 spec-commit-push p0-card-foundation），空上下文/多提案时无输入必须停手要求补充；只在热上下文能唯一定位提案时才自动推断。逐仓 fetch+rebase 最新 master（冲突停手交人工解），读提案背景生成精简中文 Conventional Commit message，给用户短码确认（普通 y；force-with-lease 用 f）后才 commit/push。Use when 用户说"提交代码 / push 这次改动 / 把这几个仓的代码提交了 / commit and push / 代码开发完了帮我提交"，或 OpenSpec-style SDD apply + review 后。
 ---
 
 # spec-commit-push
@@ -41,9 +41,7 @@ description: openspec/speckit 提案 apply 完成、AI/human review 过代码后
 1. **显式绝对路径**：`$1` 是存在的目录，且包含 `proposal.md` / `design.md` / `tasks.md` / `plan.md` 中至少一个 → 作为 `proposal_dir`。
 2. **显式提案名**：`$1` 是名称时，按当前 cwd 向上和常见布局查找：
    - `<repo>/openspec/changes/$1`
-   - `<repo>/.specify/specs/$1`
    - 当前 cwd 或其父目录下的 `openspec/changes/$1`
-   - 当前 cwd 或其父目录下的 `.specify/specs/$1`
 3. **无输入热上下文推断**：
    - 当前 cwd 已在某个 proposal 目录内；或
    - 当前 git repo 内只有一个有活跃改动且匹配当前分支/最近修改时间的 proposal。
@@ -58,10 +56,35 @@ description: openspec/speckit 提案 apply 完成、AI/human review 过代码后
 找出本次 sdd 开发**实际改动过的所有仓库**（openspec 常一次改 2~N 个仓，漏一个就漏一组提交）。依次合并去重：
 1. **会话回放**：扫本次会话所有 `Edit/Write` 文件路径，`git rev-parse --show-toplevel` 归并到仓库根。
 2. **当前 cwd**：是 git 仓库则加入候选。
-3. **提案推断**：读阶段 0 定位到的 `proposal_dir` 下 `tasks.md`/`design.md`/`plan.md`/`spec_code_review.md`/`manual_test_commands.md` 提到的绝对路径或仓库路径加入；`proposal_dir` 所在 git repo 必须加入候选。
+3. **提案推断**：读阶段 0 定位到的 `proposal_dir` 下已存在的 `tasks.md`/`design.md`/`plan.md`/`spec_code_review.md`/`manual_test_commands.md` 提到的绝对路径或仓库路径加入；缺失的可选文件直接跳过，不要求模板预置；`proposal_dir` 所在 git repo 必须加入候选。
 4. **改动确认**：逐仓 `git status --porcelain` + `git diff --name-only` + `git diff --cached --name-only` + 已提交未推送 `git log @{u}..HEAD --name-only`。全部为空（无任何待提交/待推送）的仓库剔除。
 
 把"仓库 + 分支 + 待提交/待推送概况"列表给用户确认后进入阶段 2。找不到任何改动仓库 → 询问用户，不硬猜。
+
+### 阶段 1.5 · Review Readiness 预检（若存在 spec_code_review.md）
+如果阶段 0 已定位 `proposal_dir`，检查 `<proposal_dir>/spec_code_review.md`：
+
+1. 文件不存在：
+   - 提示“未发现 spec_code_review.md，本次缺少 AI pre-commit review 记录”。
+   - 默认不硬停；但在确认闸中把它列为风险项，让用户决定是否继续。轻量模板不要求预置该文件。
+2. 文件存在：
+   - 只读取**最新一轮 `Review Run`**。
+   - 解析 `CR Readiness`：
+     - `Ready for human CR: NO` → **硬停**，除非用户明确要求“跳过 review readiness 继续”。若继续，必须在阶段 4 用短码 `r` 单独确认，不允许用普通 `y/a` 代替。
+     - `PARTIAL` → 列出 remaining blockers / human_decision / recommended human review scope，进入阶段 4 前要求用户确认风险已接受。
+     - `YES` → 记录通过。
+   - 检查最新一轮 `Fix Queue` 是否仍有 `Status=accepted` 且未变成 `fixed/blocked/deferred/false_positive` 的项。若有 → **硬停**，要求先修复或明确跳过。
+3. 注意：`Gate=PASS` 不是自动提交许可；以 `CR Readiness` 和 Fix Queue 状态为准。
+
+### 阶段 1.6 · Human Decisions 预检（若存在 human-decisions.md）
+如果阶段 0 已定位 `proposal_dir`，检查 `<proposal_dir>/human-decisions.md`：
+
+1. 文件不存在：
+   - 视为“尚无执行期/审查期人工决策队列”；若 review/report 中没有 human_decision 风险，可继续。不要为轻量模板强制创建。
+2. 文件存在：
+   - 读取 `Status=pending_human` 且 `Blocking=yes` 的条目。
+   - 任一 blocking pending 决策存在 → **硬停**，要求用户先批准、拒绝或明确 defer。
+   - 非 blocking pending 决策存在 → 在确认闸中列为风险项；用户可用短码 `r` 接受风险后继续。
 
 ### 阶段 2 · 逐仓预检 + rebase（每仓独立）
 对每个仓库：
@@ -104,6 +127,7 @@ description: openspec/speckit 提案 apply 完成、AI/human review 过代码后
 
 - 普通 commit + push：展示 `输入 y 确认提交并 push；输入 n 取消；输入 e 修改 message`。用户只需回复单字符 `y`。
 - 多仓时可批量确认：展示 `输入 a 确认全部普通 push；输入编号确认单仓；输入 n 取消`。
+- 若阶段 1.5 存在 review readiness 风险（缺失 report、`PARTIAL`、用户要求跳过 `NO`），必须展示风险摘要，并要求额外短码 `r` 表示“已知 review readiness 风险，仍继续”。`r` 只确认 review 风险，不替代后续 `y/a/f`。
 - 需要 force-with-lease 的仓库不能用 `y/a` 确认，必须单独走 `f`（见阶段 5）。
 - 不再要求用户输入"确认提交并 push"整句。
 

@@ -4,6 +4,27 @@
 > **🔴 铁律**：本表只列**只读/查询**命令。任何 create/update/delete/deploy/scale/cancel/exec-写 等改状态命令**禁止执行**，需要时只列给用户人工跑。
 > 用 `mcp__bytedcli__list_commands(domain=...)` 可查某域全部命令及参数。
 
+## Provider metadata
+
+- `provider_name`: `bytedcli`
+- `environment`: ByteDance internal
+- `auth_check`: `auth status`
+- `read_only_rule`: only run commands that are clearly read-only (`get`, `list`, `query`, `search`, `describe`, `show`, `read`, `diagnose`). If a command's side effect is unclear, do not run it.
+
+## Capability discovery
+
+The sections below are common diagnostic paths, not a closed whitelist. bytedcli has many domains and evolves over time. When debug.md mentions a platform not listed here, discover commands before deciding it is unsupported.
+
+Discovery workflow:
+
+1. Use `mcp__bytedcli__list_commands(filter="<keyword>")` for user terms and likely aliases.
+2. If a domain is found, use `mcp__bytedcli__list_commands(domain="<domain>", verbose=true)` to inspect commands and options.
+3. Classify each candidate command as read-only or write-capable from its verb and description.
+4. Only run read-only commands. Write-capable or unclear commands go into `debug-report.md` as "需人工执行/确认" with risk notes.
+5. Record discovery terms, command chosen, and read-only justification in `debug-report.md`.
+
+Example: if the user asks to inspect "byteset" config and it is not in this file, search by `byteset`, `byte set`, and known aliases. If no command is found, report the evidence gap instead of claiming bytedcli cannot support it globally.
+
 ## 决策树：从已知信息出发选路径
 
 ```

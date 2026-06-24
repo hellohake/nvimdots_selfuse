@@ -302,7 +302,14 @@ sync_cfg() {
         rsync -a "$HOME/.agents/template/schemas/" "$st_dir/schemas/" 2>/dev/null
         local _sk
         for _sk in gotchas spec-opti-workflow spec-opti-workflow-v2 spec-plan-revise spec-trouble-resolve spec-e2e-debug spec-code-review spec-commit-push; do
-            [ -d "$HOME/.agents/skills/$_sk" ] && rsync -a "$HOME/.agents/skills/$_sk" "$st_dir/skills/" 2>/dev/null
+            if [ "$_sk" = "spec-e2e-debug" ] && [ -d "$HOME/.agents/skills/$_sk" ]; then
+                rsync -a \
+                    --exclude 'references/bytedcli-debug-map.md' \
+                    --exclude 'references/providers/bytedcli.md' \
+                    "$HOME/.agents/skills/$_sk" "$st_dir/skills/" 2>/dev/null
+            elif [ -d "$HOME/.agents/skills/$_sk" ]; then
+                rsync -a "$HOME/.agents/skills/$_sk" "$st_dir/skills/" 2>/dev/null
+            fi
         done
     fi
 }

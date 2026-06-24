@@ -1,0 +1,17 @@
+{
+  "skill_name": "spec-trouble-resolve",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "$spec-trouble-resolve /data00/home/lihao.hellohake/go/src/code.byted.org/ecom/search_stream/openspec/changes/image-enhance-preload-topvv-switch/ troubleshoot.md",
+      "expected_output": "Locks task identity as spec-trouble-resolve, reads the specified troubleshoot.md as primary input, ignores stale context not traceable to troubleshoot entries, and either fixes/archives troubleshoot entries or asks for clarification.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "上一轮刚做过其它收尾任务，但现在运行 spec-trouble-resolve 处理 openspec/changes/foo/troubleshoot.md。",
+      "expected_output": "Explicitly states the task lock, refuses to mix unrelated prior context with troubleshoot resolution, and only handles actions traceable to the specified troubleshoot.md entries.",
+      "files": []
+    }
+  ]
+}

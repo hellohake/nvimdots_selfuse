@@ -1,0 +1,56 @@
+{
+  "skill_name": "spec-opti-workflow-v2",
+  "evals": [
+    {
+      "id": "missing_prompt_doc_path_requires_gate",
+      "prompt": "运行 spec-opti-workflow-v2 /data00/home/lihao.hellohake/go/src/code.byted.org/ecom/search_loader/main/openspec/changes/search-ai-board",
+      "expected_output": "The skill must stop before reading proposal artifacts or writing spec-workflow-retro.md, ask the user to provide the original prompt document path, and offer short choices plus custom path input for continuing without input-side review.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Stops and asks for the original prompt document path when no $2 is provided."
+        },
+        {
+          "text": "Does not generate or update spec-workflow-retro.md before the user answers the prompt intake gate."
+        },
+        {
+          "text": "Uses short choices such as 1 for adding a path and 2 for skipping, while also allowing the user to paste a custom path directly."
+        }
+      ]
+    },
+    {
+      "id": "confirmed_no_prompt_doc_allows_degraded_retro",
+      "prompt": "运行 spec-opti-workflow-v2 search-ai-board。补充说明：2",
+      "expected_output": "The skill may proceed after explicit confirmation, but the output must omit the input-side review section and report that it was skipped by user confirmation.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Proceeds only because the user explicitly confirmed no original prompt document exists."
+        },
+        {
+          "text": "Omit intake.md creation and omit section 六、输入侧复盘."
+        },
+        {
+          "text": "Receipt says input-side review was skipped by user confirmation, not silently skipped."
+        }
+      ]
+    },
+    {
+      "id": "prompt_doc_path_enables_intake_review",
+      "prompt": "运行 spec-opti-workflow-v2 search-ai-board /data00/home/lihao.hellohake/.agents/.ai_doc/0_biz_impl/2026-06-20-search-ai-board.md",
+      "expected_output": "The skill should copy the prompt document into intake.md, include the input-side review section, and report the prompt-root-cause distribution.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Creates or updates intake.md as a faithful snapshot of the provided prompt document path."
+        },
+        {
+          "text": "Includes section 六、输入侧复盘 with prompt quality attribution."
+        },
+        {
+          "text": "Receipt includes the intake.md path and attribution ratio ①/②/③."
+        }
+      ]
+    }
+  ]
+}

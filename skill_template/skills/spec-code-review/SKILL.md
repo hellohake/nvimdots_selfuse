@@ -1,6 +1,6 @@
 ---
 name: spec-code-review
-description: openspec/speckit 提案 apply 完成后、spec-commit-push 前的 AI pre-commit review。独立 reviewer 结合 proposal/spec/design/tasks、真实 git diff、改动点上下文、引用点、邻近实现、gotchas/AGENTS 约束，审查需求一致性、spec 反向风险、代码位置、命名、边界、简洁性和验证缺口，产出可给 coding agent 消费的 spec_code_review.md（含 Fix Queue 和一条可复制执行指令）。第一版只产 review report，不自动改代码、不 loop、不 commit/push。Use when 用户说"AI review 这次代码 / pre-commit review / apply 后帮我审一下 / 写完代码先做 spec-code-review"，或 hello-spec-v2 apply 完成后准备提交前。
+description: OpenSpec-style SDD 提案 apply 完成后、spec-commit-push 前的 AI pre-commit review。独立 reviewer 结合 proposal/spec/design/tasks、真实 git diff、改动点上下文、引用点、邻近实现、gotchas/AGENTS 约束，审查需求一致性、spec 反向风险、代码位置、命名、边界、简洁性和验证缺口，产出可给 coding agent 消费的 spec_code_review.md（含 Fix Queue 和一条可复制执行指令）。第一版只产 review report，不自动改代码、不 loop、不 commit/push。Use when 用户说"AI review 这次代码 / pre-commit review / apply 后帮我审一下 / 写完代码先做 spec-code-review"，或 OpenSpec-style SDD apply 完成后准备提交前。
 ---
 
 # spec-code-review
@@ -21,7 +21,7 @@ description: openspec/speckit 提案 apply 完成后、spec-commit-push 前的 A
 
 ## 输入
 
-- `$1`：提案名或提案目录绝对路径。可选；未提供时从当前目录、`openspec/changes/*`、`.specify/specs/*` 推断。
+- `$1`：提案名或提案目录绝对路径。可选；未提供时从当前目录、`openspec/changes/*` 推断。
 - `$ARGUMENTS`：额外 review 指令，例如"重点看共享结构污染"、"只 review repo A"。
 - 当前 git 工作树：apply 后的未提交 diff，或已 staged diff。
 
@@ -87,7 +87,7 @@ Gate：
 
 1. 定位提案目录，优先级：
    - `$1` 是绝对路径且存在。
-   - `$1` 是提案名：查 `openspec/changes/$1`、`.specify/specs/$1`。
+   - `$1` 是提案名：查 `openspec/changes/$1`。
    - 当前目录向上查找 proposal/spec/design/tasks/plan 组合。
 2. 定位改动仓库：
    - 当前 cwd 是 git 仓库则加入。
@@ -108,7 +108,8 @@ Gate：
    - 未 staged：`git diff --stat` + `git diff`。
    - staged：也读 `git diff --cached --stat` + `git diff --cached`。
    - diff 很大时先按文件分组，逐文件读取关键 hunk 和上下文，避免整块塞满上下文。
-4. 读取提案级 `manual_test_commands.md`（存在则读；不存在则在报告中提示 ledger 缺失）。这是所有阶段共享的手动单测命令台账。
+4. 读取提案级 `manual_test_commands.md`（存在则读；不存在则在报告中提示该模板未启用 ledger，并给出可复制命令）。这是可选的手动单测命令台账；不要因为缺文件阻塞 review，也不要强制轻量模板创建。
+5. 读取提案级 `human-decisions.md`（存在则读；不存在表示本提案尚无执行期/审查期人工决策队列，不是错误）。
 
 ### 阶段 2：上下文审计
 
@@ -155,6 +156,10 @@ Gate：
 - `Nit` -> `deferred`
 - `Spec 反向风险` -> `human_decision`
 
+所有执行期/审查期的 `human_decision` 项必须映射到懒创建的 `human-decisions.md` 中的 `Dxxx` 条目；若条目不存在，报告应创建或给出建议新增内容（AI recommendation + options + blocking scope），不要只把决策留在散文里。
+
+边界：`human-decisions.md` 不替代 `grill-spec`。如果问题属于规划期需求没想清、术语不清、领域边界不清，应标记为 spec/design 需要回到 `grill-spec` 或 `spec-plan-revise`，而不是把长期澄清问题塞进执行期决策队列。
+
 Fix Queue 字段必须包含：
 
 - `ID`：稳定编号 `R001`、`R002`。
@@ -168,7 +173,7 @@ Fix Queue 字段必须包含：
 
 ### 阶段 5.5：生成 Manual Test Commands
 
-当 diff 中出现新增/修改的测试文件（如 Go 的 `*_test.go`、前端/脚本项目的 test/spec 文件）时，报告必须生成 `Manual Test Commands`，方便用户复制后手动运行看输出，并检查提案级 `manual_test_commands.md` 是否已有对应记录。
+当 diff 中出现新增/修改的测试文件（如 Go 的 `*_test.go`、前端/脚本项目的 test/spec 文件）时，报告必须生成 `Manual Test Commands`，方便用户复制后手动运行看输出。若提案级 `manual_test_commands.md` 存在，检查是否已有对应记录；若不存在，只在报告中标注“ledger 未启用/未创建”，不要要求模板预置该文件。
 
 原则：
 
@@ -181,7 +186,7 @@ Fix Queue 字段必须包含：
 4. **明确执行状态**：标注 `Status=not_run_by_skill`、`manual_only` 或 `skipped_by_repo_rule`，说明这是给用户手动执行的命令。
 5. **关联 finding**：每条命令标注覆盖哪些 finding/test 文件，例如 `C001 -> R001/R003`。
 6. **检查统一台账**：
-   - 如果 `manual_test_commands.md` 已有对应命令，在报告中引用其绝对路径和命令 ID。
+   - 如果 `manual_test_commands.md` 已有对应命令，在报告中引用其绝对路径和命令 ID；如果文件不存在，直接在报告中提供命令，并提示用户可按需创建 ledger。
    - 如果测试文件有变更但台账缺失对应命令，在报告中标为验证缺口，并在本轮 `Manual Test Commands` 中补出建议命令；同时建议 coding agent 或当前阶段更新台账。
    - 如果台账文件不存在，报告中提示提案可能来自旧模板，并给出建议创建路径。
 

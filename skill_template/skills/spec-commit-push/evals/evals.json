@@ -3,7 +3,7 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "代码 review 完了，帮我提交并 push p0-card-foundation 这个 hello-spec-v2 提案。",
+      "prompt": "代码 review 完了，帮我提交并 push p0-card-foundation 这个 OpenSpec-style SDD 提案。",
       "expected_output": "Treats p0-card-foundation as proposal input, locates the proposal directory, discovers changed repos from proposal docs and git status, generates commit messages from proposal context, and uses short-code confirmation such as y/n/e rather than asking for a full sentence.",
       "files": []
     },
@@ -17,6 +17,12 @@
       "id": 3,
       "prompt": "rebase 后本地和远端分叉了，可以继续 push。",
       "expected_output": "Shows local-vs-remote diff and requires single-character f confirmation for force-with-lease. Does not accept ordinary y/a as force confirmation.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "帮我提交并 push p0-card-foundation，但 spec_code_review.md 最新一轮 CR Readiness 是 PARTIAL，还有一个 human_decision。",
+      "expected_output": "Reads the latest Review Run in spec_code_review.md, reports the PARTIAL readiness and human_decision risk, requires single-character r to acknowledge review-readiness risk before ordinary y/a push confirmation, and does not treat PASS/Gate alone as approval.",
       "files": []
     }
   ]

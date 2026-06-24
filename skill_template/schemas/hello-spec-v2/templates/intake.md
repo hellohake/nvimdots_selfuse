@@ -12,7 +12,7 @@
 当用户传入提示词文档路径（$2）后【原样 copy】到这里，一字不改（含巨型协议 JSON 等）。
 
 【用途】
-作为 reflect_spec_workflow.md 第六节“输入侧复盘”的对照语料：
+作为 spec-workflow-retro.md 第六节“输入侧复盘”的对照语料：
 intake.md（你说了什么）↔ backup.md（出了什么问题）→ 归因 ①提示词/②隐性知识/③实现失误。
 
 【铁律】

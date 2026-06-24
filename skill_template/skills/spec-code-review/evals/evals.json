@@ -3,7 +3,7 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "hello-spec-v2 的 apply 已经完成了，帮我对当前提案做一次 AI pre-commit review，重点看 spec 有没有漏考虑改动代码附近的上下文逻辑，输出 report，不要改代码。",
+      "prompt": "OpenSpec-style SDD 提案的 apply 已经完成了，帮我对当前提案做一次 AI pre-commit review，重点看 spec 有没有漏考虑改动代码附近的上下文逻辑，输出 report，不要改代码。",
       "expected_output": "Produces spec_code_review.md with Gate, Review Findings, Spec 反向风险, Context Audit, Fix Queue, and a Coding Agent Copy Prompt containing the absolute report path.",
       "files": []
     },

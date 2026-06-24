@@ -37,6 +37,19 @@ Use this structure for every review run. If the file already exists, append a ne
 
 <Use Simplified Chinese. Tell the user exactly what they should review now. Include Blocker/Major, human_decision items, spec reverse risks, and whether a second spec-code-review run is recommended after coding-agent fixes.>
 
+### Human Decisions
+
+Use this section only for execution/review-stage decisions that AI should not make silently. It is not a replacement for `grill-spec`; planning-stage requirement/terminology/domain-boundary questions must go back to `grill-spec` or `spec-plan-revise`.
+
+- Decision queue path: `<absolute path to proposal/human-decisions.md or not_created>`
+- Queue status: `not_needed | created | updated | pending_blocking | pending_non_blocking`
+- Note:
+  - `<中文说明是否有 human_decision 项；若有，列出 Dxxx 与阻塞范围>`
+
+| Decision ID | Source Finding | Blocking | AI Recommendation | Options | Status |
+|---|---|---|---|---|---|
+| D001 | S001 | yes | <中文推荐方案> | A=<...>; B=<...> | pending_human |
+
 ### CR Readiness
 
 - Ready for human CR: `YES | NO | PARTIAL`
@@ -52,7 +65,7 @@ Use this structure for every review run. If the file already exists, append a ne
 Readiness rules:
 
 - `YES`: latest `Gate != BLOCKED`; latest Fix Queue has no unresolved `Status=accepted`; no new Blocker/Major needs coding-agent fixes; `human_decision` items are explicitly scoped; lightweight verification has no changed-file new error.
-- `PARTIAL`: no known Blocker remains, but there are human_decision/spec-contract risks or verification gaps that the user must check before commit.
+- `PARTIAL`: no known Blocker remains, but there are human_decision/spec-contract risks, pending human-decisions, or verification gaps that the user must check before commit.
 - `NO`: any Blocker remains, any accepted item is unresolved, new Blocker/Major keeps appearing across review runs, repair diff exceeds Fix Queue scope, or changed-file verification is missing/failed.
 
 ### Review Findings
@@ -96,11 +109,11 @@ Status values:
 
 ### Manual Test Commands
 
-Use this section to give the user copyable targeted test commands. Do not claim these were executed unless they actually were. Also check the proposal-level `manual_test_commands.md` ledger and reference it here.
+Use this section to give the user copyable targeted test commands. Do not claim these were executed unless they actually were. If the proposal-level `manual_test_commands.md` ledger exists, check and reference it; if it is absent, treat the ledger as optional/not enabled for this template and keep the commands in this report.
 
-- Ledger path: `<absolute path to proposal/manual_test_commands.md or missing>`
-- Ledger status: `covered | missing_command | missing_file | not_applicable`
-- Ledger note: `<中文说明台账是否已有对应命令；如果缺失，建议更新台账>`
+- Ledger path: `<absolute path to proposal/manual_test_commands.md | not_enabled>`
+- Ledger status: `covered | missing_command | not_enabled | not_applicable`
+- Ledger note: `<中文说明台账是否已有对应命令；如果未启用，说明本报告已提供可复制命令，可按需创建 ledger>`
 
 | ID | Covers | Test files | Command | Status | Notes |
 |---|---|---|---|---|---|
@@ -116,7 +129,7 @@ Rules:
 - If changed tests exist, include at least one command per touched package/module.
 - For Go, derive package-relative path from the repo root and extract `TestXxx` names from changed `*_test.go`; prefer `go test ./pkg -run 'TestA|TestB' -count=1`.
 - If the repo forbids automatic `go test`, mark `Status=not_run_by_skill` or `skipped_by_repo_rule`; the command is still useful for the user to run manually.
-- If `manual_test_commands.md` already contains the command, cite its command ID here. If it is missing, mark `Ledger status=missing_command` and include the command in this report so the user can still copy it.
+- If `manual_test_commands.md` already contains the command, cite its command ID here. If the file exists but misses the command, mark `Ledger status=missing_command` and include the command in this report. If the file does not exist, mark `Ledger status=not_enabled`; do not require the template to create it.
 - If no tests changed, write: `本轮未发现新增/修改测试文件，未生成手动单测命令。`
 
 ### Fix Queue

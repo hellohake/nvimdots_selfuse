@@ -9,10 +9,10 @@ language_policy:
     - If an invoked Skill returns English content, translate and adapt it into Simplified Chinese before writing final artifacts.
     - Do not produce an all-English proposal, design, task list, or plan unless the user explicitly requests English.
 description: >
-  Spec-driven Development workflow (Chinese artifacts) fusing four sources:
-  openspec (staged docs on disk) + superpowers (strong constraints / SOP) +
-  get-shit-done (context budget & write-to-disk-not-return) +
-  grill-with-docs (DDD ubiquitous-language grilling gate).
+  AI-native Spec-driven Development workflow (Chinese artifacts) based on
+  hello-spec-v2 proposal directories, Superpowers strong SOPs,
+  AI context discipline, grill-with-docs DDD clarification, and the gotchas
+  knowledge flywheel.
   Flow: brainstorm -> proposal -> specs -> design -> [GATE-1 clarify gate]
   -> tasks -> plan -> apply -> [GATE-2 retrospective + gotchas flywheel].
   The apply phase uses git worktrees and subagent-driven development.
@@ -28,6 +28,7 @@ knowledge_flywheel:
     context: ".ai_doc/spec-workflow/CONTEXT.md"   # DDD ubiquitous-language glossary (maintained inline by the GATE-1 clarify gate)
     adr_dir: ".ai_doc/spec-workflow/adr/"         # Architecture Decision Records (lazily created only when 3 criteria hold)
     gotchas: ".ai_doc/spec-workflow/gotchas.md"   # Project-level gotchas (distilled by the gotchas governance skill)
+    test_policy: ".ai_doc/spec-workflow/test_policy.yaml" # Project-level repo test capability overrides (optional)
   global_gotchas: "~/.agents/gotchas/general.md"  # General gotchas (promoted after recurring in >=2 projects)
   global_prompting: "~/.agents/gotchas/prompting.md"  # Personal prompting-quality self-check list (NOT auto-injected; for the user only)
   memory_boundary: |
@@ -38,6 +39,7 @@ knowledge_flywheel:
     - Code-stage issues   -> troubleshoot.md -> backup.md [代码偏差]
     - Planning deviations -> revise.md -> backup.md [规划偏差]
     - Manual test commands -> manual_test_commands.md (copyable targeted commands for the user to run)
+    - Human decisions    -> human-decisions.md (lazy execution/review-stage decision queue)
     - Original input      -> intake.md (verbatim snapshot of the user's prompt doc)
     - Prompting habits    -> prompting.md (the user's own prompt self-check; NOT auto-injected)
     (backup.md is the SHARED archive for both code & planning fixes, distinguished by scene marker.)
@@ -57,18 +59,79 @@ knowledge_flywheel:
     — so a reviewer can see the step was actually performed.
   produce: |
     [Producer] After GATE-2, MANUALLY run the `gotchas` governance skill on
-    backup.md + reflect_spec_workflow.md to distill gotchas through the three
+    backup.md + spec-workflow-retro.md to distill gotchas through the three
     gates (admission / layering / eviction) into the gotchas libraries.
 
 # ─────────────────────────────────────────────────────────────
-# Context Discipline — ported from get-shit-done, observed by all phases
+# AI Context Discipline — observed by all phases, audited in artifacts
 # ─────────────────────────────────────────────────────────────
-context_discipline:
-  - Read-depth tiering: the main thread reads only titles/frontmatter/summaries of each artifact; subagents read full bodies from disk on demand. Never inline large files into the main context.
-  - Write-to-disk, not return: subagents write outputs directly to openspec/changes/<name>/ or .ai_doc/spec-workflow/; the orchestrator receives only "file path + 1-3 line summary".
-  - Evidence summary: after reading each key file, emit a 1-3 line "key-facts summary (with path + line numbers)"; reason from summaries to avoid re-reads.
-  - Checkpoint to disk: at the end of each gate/phase, output "next command + suggested /clear" to enable lossless cross-session handoff.
-  - Predicate memory: gotchas/CONTEXT use single-line grep-able entries, not prose; inject by ID, never paste the body.
+ai_context_discipline:
+  principle: |
+    This is an AI-first workflow contract, not a style preference. The main
+    thread keeps only decision-grade summaries; full bodies live on disk and are
+    read by the worker that needs them. Every phase must leave a small audit trail
+    so reviewers can verify that context was handled intentionally.
+  rules:
+    - Read-depth tiering: the main thread reads only titles/frontmatter/summaries of each artifact; subagents read full bodies from disk on demand. Never inline large files into the main context.
+    - Write-to-disk, not return: subagents write outputs directly to hello-spec-v2 proposal directories or .ai_doc/spec-workflow/; the orchestrator receives only "file path + 1-3 line summary".
+    - Evidence summary: after reading each key file, emit a 1-3 line "key-facts summary (with path + line numbers)"; reason from summaries to avoid re-reads.
+    - Checkpoint to disk: at the end of each gate/phase, output "next command + suggested /clear" to enable lossless cross-session handoff.
+    - Predicate memory: gotchas/CONTEXT use single-line grep-able entries, not prose; inject by ID, never paste the body.
+    - Human decision queue: when AI cannot safely decide during apply/review/debug/MR handling, lazily write a recommendation to human-decisions.md instead of leaving the decision only in chat.
+  audit_contract: |
+    Any phase that creates or materially updates brainstorm.md, proposal.md,
+    specs/**/*.md, design.md, tasks.md, plan.md, spec_code_review.md,
+    debug-report.md, spec-workflow-retro.md, or human-decisions.md MUST append
+    or update this section in the touched artifact:
+
+    ## Agent Execution Audit
+    - Context discipline: PASS | PARTIAL | FAIL
+    - Key files read: <path:line summary bullets, or none>
+    - Large content inlined: no | yes:<reason>
+    - Output written to disk: yes | no:<reason>
+    - Human decision queue: <none | D001,D002 in human-decisions.md>
+    - Next command: `<copyable command or none>`
+    - Suggested /clear resume: `<copyable command or none>`
+
+    If an artifact format cannot safely include this section, write the same
+    fields into human-decisions.md or the phase terminal summary and reference
+    the artifact path.
+
+# ─────────────────────────────────────────────────────────────
+# Test Capability Policy — per-repo, not one-size-fits-all
+# ─────────────────────────────────────────────────────────────
+test_policy:
+  principle: |
+    Do NOT use a global "no unit tests" rule. Decide by repository capability:
+    - Repos that can run targeted unit tests MUST use test-first / regression-test-first steps for behavior changes.
+    - Repos that cannot run unit tests may skip unit-test execution, but must record why and fall back to gopls diagnostics / code review / manual verification.
+    - Repos not listed in project/user overrides default to `unit_test_required` after identity detection, unless repo docs or the user explicitly say targeted unit tests are not runnable.
+    - Full-suite commands such as `go test ./...` or full `go build` remain forbidden unless the repo explicitly says they are safe.
+  default: unit_test_required
+  override_files:
+    project: ".ai_doc/spec-workflow/test_policy.yaml"
+    user: "~/.agents/test_policy.yaml"
+  rules: |
+    Before tasks/plan/apply, classify every touched repo as one of:
+    0. Identify repository identity first:
+       - run/read equivalent of `git remote get-url origin` for repo remote;
+       - read `module ...` from go.mod for Go module when present;
+       - do NOT classify by absolute worktree path only, because development may
+         happen under feature worktree directories rather than `main`.
+       - read project override `.ai_doc/spec-workflow/test_policy.yaml` if present;
+       - read user override `~/.agents/test_policy.yaml` if present;
+       - override priority: proposal tasks/plan classification > project override
+         > user override > schema default.
+    - `unit_test_required`: targeted unit tests can run; plan must include test-first or regression-test-first micro-steps, and apply should run/capture targeted commands when safe.
+    - `manual_test_only`: tests exist or can be inferred, but agent should not run them; write copyable commands to manual_test_commands.md for the user.
+    - `unit_test_disabled`: unit tests are known broken/too costly; do not generate mandatory test tasks, do not run go test, and record the reason in manual_test_commands.md or the plan.
+    - `unknown`: inspect repo docs/AGENTS and nearby scripts. If still unclear
+      and no override says otherwise, default to `unit_test_required` for behavior
+      changes, but use targeted package/test commands only.
+    Persist the classification in tasks.md/plan.md before apply so executors do
+    not need to re-infer it from memory.
+    For Go, prefer package-scoped targeted commands (`go test ./pkg -run 'TestXxx' -count=1`).
+    For non-Go repos, use existing package scripts only if they are clearly targeted and cheap.
 
 artifacts:
   - id: brainstorm
@@ -153,11 +216,12 @@ artifacts:
     template: manual_test_commands.md
     instruction: |
       Create manual_test_commands.md as a placeholder using the template verbatim.
-      DO NOT infer commands at proposal-creation time. This file is updated
-      later by implementation/review/fix stages when they add or modify test
-      files.
+      At proposal-creation time, keep it as a lightweight empty inbox:
+      do NOT infer commands, do NOT add examples, and do NOT expand the rules
+      outside the template comment. This file is updated later by
+      implementation/review/fix stages when they add or modify test files.
 
-      Rules:
+      Later-stage rules:
       - Any stage that creates or modifies test files MUST append or update a
         record in this file.
       - Commands must be copyable and include `cd <absolute repo path>`.
@@ -181,7 +245,7 @@ artifacts:
       - **What Changes**: Specific changes agreed upon
       - **Capabilities**: Identify which specs will be created or modified:
         - **New Capabilities**: List capabilities being introduced. Each becomes a new `specs/<name>/spec.md`. Use kebab-case names.
-        - **Modified Capabilities**: List existing capabilities whose REQUIREMENTS are changing. Check `openspec/specs/` for existing spec names.
+        - **Modified Capabilities**: List existing capabilities whose REQUIREMENTS are changing. Check the repo's baseline specs directory for existing spec names.
       - **Impact**: Affected code, APIs, dependencies, or systems.
 
       Since brainstorming already explored the problem space,
@@ -206,7 +270,7 @@ artifacts:
 
       Create one spec file per capability listed in the proposal's Capabilities section.
       - New capabilities: use the exact kebab-case name from the proposal (specs/<capability>/spec.md).
-      - Modified capabilities: use the existing spec folder name from openspec/specs/<capability>/ when creating the delta spec at specs/<capability>/spec.md.
+      - Modified capabilities: use the existing spec folder name from the repo's baseline specs directory when creating the delta spec at specs/<capability>/spec.md.
 
       Delta operations (use ## headers):
       - **ADDED Requirements**: New capabilities
@@ -270,7 +334,7 @@ artifacts:
       - Do NOT write ADRs to `docs/adr/`. Write to `.ai_doc/spec-workflow/adr/NNNN-<slug>.md`.
       - If a `CONTEXT-MAP.md` is needed, it also lives under `.ai_doc/spec-workflow/`.
 
-      Inputs (read-only, on demand, obey context_discipline):
+      Inputs (read-only, on demand, obey ai_context_discipline):
       - This change's `design.md` (focus: Open Questions section)
       - This change's `specs/**/*.md` (focus: ambiguous / unclear-boundary scenarios)
       - `.ai_doc/spec-workflow/CONTEXT.md` (existing terms, read if present)
@@ -324,7 +388,15 @@ artifacts:
       - Each task MUST be a checkbox: `- [ ] X.Y Task description`
       - Tasks should be small enough to complete in one session
       - Order tasks by dependency (what must be done first?)
-      - Do not include unit tests. The project is too large to successfully run unit tests and the go build process.
+      - Apply `test_policy` per touched repo:
+        - `unit_test_required`: include targeted regression-test tasks before/with code changes.
+        - `manual_test_only`: include manual verification command tasks that update manual_test_commands.md.
+        - `unit_test_disabled`: do not add mandatory unit-test tasks; record the reason and fallback checks.
+      - Never add broad full-suite commands (`go test ./...`, full `go build`) unless the repo explicitly allows them.
+      - Write a short "测试能力分类" note into tasks.md listing each touched repo,
+        its `unit_test_required/manual_test_only/unit_test_disabled/unknown`
+        classification, and the evidence (`repo_remote`, `go_module`, repo docs,
+        or user confirmation). This note is consumed by plan/apply.
 
       Reference specs for what needs to be built, design for how to build it.
       Each task should be verifiable - you know when it's done.
@@ -343,7 +415,16 @@ artifacts:
       IMPORTANT output redirection:
       - Do NOT write to `docs/superpowers/plans/`. Instead, write
         the plan directly to this change's `plan.md`.
-      - Do not include unit tests, not allow go build execute. The project is too large to successfully run unit tests and the go build process.
+      - Apply `test_policy` per touched repo. If a repo is `unit_test_required`,
+        plan targeted test-first / regression-test-first micro-steps. If a repo
+        is `unit_test_disabled`, do not add mandatory unit-test execution steps;
+        record the reason and fallback checks. Full `go build` and full-suite
+        `go test ./...` remain forbidden unless the repo explicitly allows them.
+      - Read the "测试能力分类" note from tasks.md. If it is missing, create it
+        before writing implementation micro-steps by matching repo remote/module
+        against project/user `test_policy.yaml` overrides; do not rely on local
+        worktree path equality. If no override matches, use schema default
+        `unit_test_required`.
       - **NO auto-commit steps**: do NOT generate any `git add` / `git commit`
         tasks. Code changes must be reviewed by the human FIRST; committing is a
         manual action the user performs after review. The plan ends at "code
@@ -366,13 +447,15 @@ apply:
   requires: [plan]
   tracks: tasks.md
   instruction: |
-    Note when implementing, it is forbidden to execute go build and go test. The project is too large. These operations will cause lag and memory exhaustion.
+    Note when implementing: do not run full `go build` or full-suite `go test ./...` by default. Use `test_policy` per touched repo. Some repos can run targeted unit tests and must use them; some repos cannot run unit tests and must fall back to gopls/manual verification.
 
-    0. **Context Discipline**: obey the top-level `context_discipline` throughout:
+    0. **AI Context Discipline**: obey the top-level `ai_context_discipline` throughout:
        - the main thread reads only summaries/frontmatter; subagents read full
          bodies from disk; never inline large files;
        - subagents return only "path + 1-3 line summary" after writing to disk;
        - checkpoint plan.md/tasks.md to disk after each task for resumability.
+       - maintain the `Agent Execution Audit` section in touched artifacts when
+         a phase creates or materially changes them.
 
     0.1 **Gotchas red-line injection**: before starting:
        a. WRITE OUT the domain tags this change touches (explicit, no silent guess);
@@ -382,6 +465,40 @@ apply:
        c. Audit trail (mandatory): record one line in the apply log / first task —
           `已查 gotchas：标签[<tags>] 命中[<ids>] / 无匹配` — so the step is verifiable.
 
+    0.2 **Test capability classification**: before coding, classify each touched
+       repo using top-level `test_policy`:
+       - Identify repo by `git remote get-url origin` and, for Go repos, the
+         `module` line in go.mod. Do not classify by absolute path equality only:
+         worktrees may be under feature directories instead of `main`.
+       - `unit_test_required`: targeted unit tests can run. For behavior changes,
+         write/adjust regression tests first when feasible, run only targeted
+         package/test commands, and capture commands/results in
+         `manual_test_commands.md`.
+       - `manual_test_only`: do not auto-run tests, but write copyable targeted
+         commands in `manual_test_commands.md`.
+       - `unit_test_disabled`: do not generate mandatory unit-test execution
+         steps; record the reason and rely on gopls diagnostics / code review /
+         manual checks.
+       - `unknown`: inspect repo docs/AGENTS; if still unclear and the repo is
+         not explicitly listed as `unit_test_disabled`, default to
+         `unit_test_required` for behavior changes, using targeted commands only.
+       Audit trail (mandatory): record one line —
+       `测试能力：<repo>=<unit_test_required|manual_test_only|unit_test_disabled|unknown>，依据：<repo_remote/go_module/repo-doc/user-confirmation>`。
+       Also ensure tasks.md/plan.md contain the same classification so subagents
+       can consume it after /clear or in a fresh worktree.
+
+    0.3 **Human decision queue**: before coding, read `human-decisions.md` if it exists.
+       This is a lazy execution/review-stage queue, not a planning-stage
+       substitute for grill-spec. Missing file means no execution-stage decision
+       has been raised yet.
+       - If it contains unresolved `pending_human` decisions that block the
+         current task, stop and ask the user to approve/reject/defer them.
+       - If implementation uncovers a new unsafe decision, write a `Dxxx` entry
+         with AI recommendation and options instead of leaving the decision only
+         in chat.
+       - Do not commit or mark apply complete while blocking decisions remain
+         `pending_human`.
+
     1. **Executor**: Use the Skill tool to invoke **superpowers:subagent-driven-development** to execute the plan.md micro-tasks with fresh subagents per task.
 
        Tell the executor:
@@ -390,6 +507,10 @@ apply:
        - Update tasks.md checkboxes as coarse tasks complete
        - Work within the created worktree
        - Obey the gotchas red-lines injected in step 0.1
+       - Obey the test capability classification from step 0.2. In
+         `unit_test_required` repos, write targeted regression tests for behavior
+         changes and run targeted commands when safe. In `unit_test_disabled`
+         repos, do not run unit tests and document the fallback.
        - If any task creates or modifies test files (`*_test.go`, `*.spec.*`,
          `*.test.*`, or project-specific test files), append/update a record in
          this change's `manual_test_commands.md` with copyable targeted commands
@@ -419,6 +540,11 @@ apply:
        this file contains matching targeted commands or a clear reason why no
        reliable command could be inferred.
 
+    6. **Human decision ledger**: before declaring apply complete, ensure every
+       unresolved `human_decision` / design-risk item discovered during apply is
+       represented in `human-decisions.md`, and that blocking `pending_human`
+       entries are called out in the final summary.
+
     If any skill is unavailable, fall back to manual implementation
     using the standard task-by-task loop from tasks.md.
 
@@ -429,7 +555,7 @@ retrospective:
     decoupled steps:
 
     Step 1 · Produce retro material: run the **spec-opti-workflow-v2** skill to
-      produce `reflect_spec_workflow.md` for this change. Pass the ORIGINAL PROMPT
+      produce `spec-workflow-retro.md` for this change. Pass the ORIGINAL PROMPT
       DOC path as $2 (expected by default, e.g. your `0_biz_impl/<date>-<name>.md`)
       to also trigger INPUT-SIDE reflection: it copies the prompt doc verbatim to
       `intake.md` and attributes each backup issue to ①prompt / ②tacit-knowledge /
@@ -440,7 +566,7 @@ retrospective:
       omitted, input-side reflection is skipped (the skill will say so).
 
     Step 2 · Distill into the library: run the **gotchas** governance skill on
-      this change's backup.md + reflect_spec_workflow.md, through three gates:
+      this change's backup.md + spec-workflow-retro.md, through three gates:
       - Admission gate: admit only if all hold — ① recurring ② has `when`
         ③ has `do`/`don't`; "spec was underspecified" issues do NOT belong in
         gotchas — they feed `prompting.md` instead.
@@ -496,21 +622,32 @@ debug:
   trigger: Manual (after apply, during end-to-end testing, when symptom is unclear and root cause unknown)
   instruction: |
     When end-to-end testing surfaces a problem but you don't know where it is,
-    run **spec-e2e-debug** — an internal-network-augmented root-cause locator.
+    run **spec-e2e-debug** — a provider-based read-only root-cause locator.
 
-    - Input: PRIMARY = `debug.md` in the change dir (symptom / logid / psm / lane /
-      tcc / libra / repro). Lazily created — write it when testing fails, or dictate
+    - Input: PRIMARY = `debug.md` in the change dir (symptom / request id or logid /
+      service name / environment / config / experiment / repro). Lazily created — write it when testing fails, or dictate
       and let the skill draft it. At least a logid OR (service name + time) is needed.
-    - It runs a HYPOTHESIS→VERIFY loop using bytedcli internal platforms (logs /
-      service tree / tcc / libra / metrics / instances / DB / RPC-repro) to locate
-      the root cause, then classifies it into one of four: code bug / business-logic
-      issue / normal behavior / edge case — each with an evidence chain.
+    - It runs a HYPOTHESIS→VERIFY loop using the selected diagnostic provider
+      (for example bytedcli, another project CLI, or no-provider fallback) to
+      locate the root cause, then classifies it into one of four: code bug /
+      business-logic issue / normal behavior / edge case — each with an evidence chain.
+    - Provider capabilities are open-ended, not a closed whitelist. If debug.md
+      mentions a platform/tool not listed in the common capability table, the
+      skill should use provider-native command discovery, classify candidate
+      commands as read-only/write-capable, and only run commands that are proven
+      read-only. Unsupported or unclear commands are reported as evidence gaps or
+      manual actions.
     - Output: `debug-report.md` in the change dir (NOT backup.md — it's a diagnosis,
       not a fix archive).
-    - 🔴 READ-ONLY HARD LINE: the skill executes ONLY read/query bytedcli & RPC calls.
-      ANY write op (tcc/libra/instance/DB/deploy/RPC-that-writes) is FORBIDDEN to
-      execute — it only lists the command + risk for the user to run manually. A
-      mis-write here can cause a production incident.
+    - Output path lock: spec-e2e-debug may only append diagnostic reports to
+      `debug-report.md` and reset `debug.md` after archiving its full input.
+      It must NOT write `backup.md`, must NOT edit business code, and must NOT
+      perform the repair itself even when the conclusion is "code bug".
+    - 🔴 READ-ONLY HARD LINE: the skill executes ONLY read/query provider calls.
+      ANY write op (config changes, experiment changes, instance/deploy/DB writes,
+      RPC-that-writes, etc.) is FORBIDDEN to execute — it only lists the command
+      + risk for the user to run manually. A mis-write here can cause a
+      production incident.
     - Log handling: dumps key-psm logs to a temp file and greps for hits — never
       inlines whole logs (context safety).
 
@@ -563,6 +700,8 @@ code_review:
     - If the report has multiple `Review Run` sections, the copy prompt must
       tell the coding agent to process ONLY the latest run's `Fix Queue` rows
       with `Status=accepted`.
+    - Any `human_decision` row must point to an entry in `human-decisions.md`
+      (`Dxxx`) or create one with the AI recommendation and blocking scope.
     - First version is report-only: it does NOT edit code, does NOT start an
       infinite review/fix loop, and does NOT commit/push.
 
@@ -596,11 +735,21 @@ commit:
     - Generates a CONCISE Conventional-Commits message from the proposal
       (background / what changed / blast radius), Chinese-first with English terms
       kept. First commit = full background; later commits = incremental.
+    - Review readiness preflight: if `spec_code_review.md` exists in the proposal
+      directory, read the latest Review Run. If `CR Readiness` is `NO` or the
+      latest Fix Queue still has unresolved `Status=accepted` rows, stop and ask
+      the user to fix/decide first. If readiness is `PARTIAL` or the report is
+      missing, show the risk and require short-code `r` before continuing.
+      `PASS` is not automatic submit approval.
+    - Human decision preflight: read `human-decisions.md` if present. Any blocking
+      `pending_human` item stops commit/push until the user approves, rejects, or
+      explicitly defers it.
     - CONFIRM gate: shows message + diff stat; user can tweak the message verbally
       before anything is committed. Push only after short-code confirmation:
-      `y` for ordinary commit+push, `f` for force-with-lease after the diff has
-      been shown, `n` to cancel, `e` to edit message. Do not ask the user to type
-      a full confirmation sentence.
+      `r` to accept review-readiness risk when needed, `y` for ordinary
+      commit+push, `f` for force-with-lease after the diff has been shown, `n`
+      to cancel, `e` to edit message. Do not ask the user to type a full
+      confirmation sentence.
     - 🔴 Protected-branch hard line (3 checks) — never commit/push to master etc.
     - 🔴 NEVER auto-force. Rebasing an already-pushed branch diverges -> STOPS,
       shows local-vs-remote diff, and only on the user's explicit OK uses

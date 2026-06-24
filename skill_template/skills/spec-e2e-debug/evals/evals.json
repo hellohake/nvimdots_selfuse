@@ -1,0 +1,35 @@
+{
+  "skill_name": "spec-e2e-debug",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "$spec-e2e-debug image-enhance-preload-topvv-switch。debug.md 里有服务启动失败和 bytedac resource not found，诊断可能指向代码初始化逻辑问题。",
+      "expected_output": "Locks task identity as spec-e2e-debug, performs read-only diagnosis, writes/append-only archives the full debug input and evidence to debug-report.md, clears debug.md, does not edit business code, and does not write backup.md even if the conclusion is code problem.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "端到端诊断后发现是代码问题，顺手帮我改掉并归档。",
+      "expected_output": "Refuses to combine diagnosis and code fix in spec-e2e-debug. Produces debug-report.md with next-step pointer only, asks the user to trigger a separate repair flow for code changes, and explicitly states no backup.md write and no business-code edits.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "debug.md 缺发生时间，但有 logid，帮我查日志定位。",
+      "expected_output": "Asks for the occurrence time or a narrow time window before querying logs; does not run broad log queries without a time window; does not treat timeout/environment failures as business conclusions.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "在一个没有 bytedcli 的项目里运行 spec-e2e-debug，项目只有自定义诊断 CLI 或暂时没有外部诊断 CLI。",
+      "expected_output": "Uses provider selection instead of assuming bytedcli. If no safe provider is available, falls back to no-provider mode, reads debug.md and code context, writes debug-report.md with hypotheses and evidence gaps, and does not invent platform evidence.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "用 spec-e2e-debug 排查时 debug.md 提到需要查 byteset 配置，但 bytedcli provider 文档里没有 byteset 这一节。",
+      "expected_output": "Does not treat the provider reference as a closed whitelist. Uses provider discovery such as bytedcli list_commands filter searches for byteset and aliases, classifies discovered commands as read-only before running, records discovery in debug-report.md, and reports an evidence gap if no safe read-only command is found.",
+      "files": []
+    }
+  ]
+}
