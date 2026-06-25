@@ -320,18 +320,23 @@ artifacts:
   - id: grill-spec
     generates: design.md
     template: design.md
-    description: DDD-aware grilling gate (powered by grill-with-docs) that resolves open questions, sharpens terminology into CONTEXT.md, and records hard decisions as ADRs.
+    description: DDD-aware grilling gate (powered by grill-with-docs -> grilling + domain-modeling) that resolves open questions, sharpens terminology into CONTEXT.md, and records hard decisions as ADRs.
     instruction: |
       Use the Skill tool to invoke **grill-with-docs**.
+      In the current skill set, grill-with-docs is a wrapper: it runs a
+      **grilling** session while using **domain-modeling** for glossary/ADR
+      side effects. Treat the path overrides below as constraints on
+      domain-modeling, because domain-modeling is the skill that writes
+      CONTEXT.md and ADR files.
 
       Purpose: before moving to implementation planning, clarify and nail down
       every open question, sharpen fuzzy terms into ubiquitous language, and
       record hard-to-reverse decisions as ADRs. This gate keeps later context
       clean and prevents rework.
 
-      IMPORTANT path override (grill-with-docs defaults to repo root; redirect it):
-      - Do NOT write CONTEXT.md to repo root. Write to `.ai_doc/spec-workflow/CONTEXT.md`.
-      - Do NOT write ADRs to `docs/adr/`. Write to `.ai_doc/spec-workflow/adr/NNNN-<slug>.md`.
+      IMPORTANT domain-modeling path override:
+      - Do NOT write domain-modeling's CONTEXT.md to repo root. Write to `.ai_doc/spec-workflow/CONTEXT.md`.
+      - Do NOT write domain-modeling's ADRs to `docs/adr/`. Write to `.ai_doc/spec-workflow/adr/NNNN-<slug>.md`.
       - If a `CONTEXT-MAP.md` is needed, it also lives under `.ai_doc/spec-workflow/`.
 
       Inputs (read-only, on demand, obey ai_context_discipline):
@@ -340,11 +345,13 @@ artifacts:
       - `.ai_doc/spec-workflow/CONTEXT.md` (existing terms, read if present)
       - `.ai_doc/spec-workflow/adr/` (existing decisions, read if present)
 
-      grill-with-docs will: ask ONE question at a time with a recommended answer
-      (explore code/docs instead of asking when answerable); stress-test domain
-      boundaries with concrete scenarios; write resolved terms INLINE to CONTEXT.md;
-      and offer an ADR only when all three hold (hard to reverse + surprising
-      without context + a real trade-off). New ADRs MUST carry `日期` + `来源提案`.
+      Combined behavior:
+      - grilling asks ONE question at a time with a recommended answer, and
+        explores code/docs instead of asking when answerable.
+      - domain-modeling stress-tests domain boundaries with concrete scenarios,
+        writes resolved terms INLINE to `.ai_doc/spec-workflow/CONTEXT.md`, and
+        offers an ADR only when all three hold (hard to reverse + surprising
+        without context + a real trade-off). New ADRs MUST carry `日期` + `来源提案`.
 
       ADR invalidation (when a new decision overturns an existing ADR): do NOT
       delete or move it — keep it in place, set its Status to
