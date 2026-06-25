@@ -9,7 +9,7 @@ return function()
 
 	require("modules.utils").load_plugin("render-markdown", {
 		-- Whether Markdown should be rendered by default or not
-		enabled = true,
+		enabled = false,
 		-- Maximum file size (in MB) that this plugin will attempt to render
 		-- Any file larger than this will effectively be ignored
 		max_file_size = 2.0,

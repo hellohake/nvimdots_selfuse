@@ -22,7 +22,7 @@
     {
       "id": 4,
       "prompt": "apply 后 coding agent 新增了 Go 单测文件，例如 server_middleware/scene_inject_mw_test.go。请做 spec-code-review，报告里除了 gopls 也要给我能直接复制手动跑的 targeted go test 命令。",
-      "expected_output": "Produces spec_code_review.md with Manual Test Commands and checks the proposal-level manual_test_commands.md ledger. For changed Go *_test.go files, includes copyable commands such as cd <repo> && go test ./server_middleware -run 'TestSceneFromRequest' -count=1, marked as manual/not run by the skill when repo rules forbid automatic go test. If ledger coverage is missing, reports that as a verification gap.",
+      "expected_output": "Produces spec_code_review.md with Manual Test Commands. For changed Go *_test.go files, includes copyable commands such as cd <repo> && go test ./server_middleware -run 'TestSceneFromRequest' -count=1, marked as manual/not run by the skill when repo rules forbid automatic go test. If proposal-level manual_test_commands.md exists, checks ledger coverage and reports missing commands as a verification gap; if the ledger file is absent, marks Ledger status=not_enabled and keeps the copyable commands in the report without requiring lightweight templates to create the file.",
       "files": []
     }
   ]

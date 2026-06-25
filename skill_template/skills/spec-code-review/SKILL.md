@@ -156,7 +156,7 @@ Gate：
 - `Nit` -> `deferred`
 - `Spec 反向风险` -> `human_decision`
 
-所有执行期/审查期的 `human_decision` 项必须映射到懒创建的 `human-decisions.md` 中的 `Dxxx` 条目；若条目不存在，报告应创建或给出建议新增内容（AI recommendation + options + blocking scope），不要只把决策留在散文里。
+所有执行期/审查期的 `human_decision` 项必须在报告里映射为稳定 `Dxxx` 条目（AI recommendation + options + blocking scope），不要只把决策留在散文里。`human-decisions.md` 是可选持久队列：轻量 `hello-spec` 模板默认不创建，报告中写 `Decision queue path: not_created`；只有出现 blocking human decision 且需要跨轮跟踪，或用户明确要求持久队列时，才懒创建/更新 `<proposal_dir>/human-decisions.md`。
 
 边界：`human-decisions.md` 不替代 `grill-spec`。如果问题属于规划期需求没想清、术语不清、领域边界不清，应标记为 spec/design 需要回到 `grill-spec` 或 `spec-plan-revise`，而不是把长期澄清问题塞进执行期决策队列。
 
@@ -187,8 +187,8 @@ Fix Queue 字段必须包含：
 5. **关联 finding**：每条命令标注覆盖哪些 finding/test 文件，例如 `C001 -> R001/R003`。
 6. **检查统一台账**：
    - 如果 `manual_test_commands.md` 已有对应命令，在报告中引用其绝对路径和命令 ID；如果文件不存在，直接在报告中提供命令，并提示用户可按需创建 ledger。
-   - 如果测试文件有变更但台账缺失对应命令，在报告中标为验证缺口，并在本轮 `Manual Test Commands` 中补出建议命令；同时建议 coding agent 或当前阶段更新台账。
-   - 如果台账文件不存在，报告中提示提案可能来自旧模板，并给出建议创建路径。
+   - 如果台账文件存在但缺失对应命令，在报告中标为验证缺口，并在本轮 `Manual Test Commands` 中补出建议命令；同时建议 coding agent 或当前阶段更新台账。
+   - 如果台账文件不存在，标记 `Ledger status=not_enabled`，说明轻量模板未启用该台账，本报告已内联可复制命令；不要把“文件不存在”当作验证缺口。
 
 Go 示例：
 

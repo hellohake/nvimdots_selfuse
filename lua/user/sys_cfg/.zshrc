@@ -295,7 +295,7 @@ sync_cfg() {
     [ -f "$HOME/gai.sh" ] && [ -d "$s_dir" ] && { [ ! -e "$s_dir/gai.sh" ] || [[ "$HOME/gai.sh" -nt "$s_dir/gai.sh" ]]; } && cp "$HOME/gai.sh" "$s_dir/gai.sh"
     [ -f "$HOME/.local/bin/osc52-edit" ] && [ -d "$s_dir" ] && { [ ! -e "$s_dir/osc52-edit" ] || [[ "$HOME/.local/bin/osc52-edit" -nt "$s_dir/osc52-edit" ]]; } && cp "$HOME/.local/bin/osc52-edit" "$s_dir/osc52-edit" && chmod +x "$s_dir/osc52-edit"
 
-    # openspec 模板 + 自定义技能 同步到 skill_template（只覆盖/新增不删）
+    # openspec 模板 + 自定义技能 同步到 skill_template（普通同步只覆盖/新增；导出模板的内部 provider 残留显式清理）
     local st_dir="$HOME/.config/nvim/skill_template"
     if command -v rsync >/dev/null 2>&1 && [ -d "$HOME/.agents/template/schemas" ]; then
         mkdir -p "$st_dir/schemas" "$st_dir/skills"
@@ -307,6 +307,8 @@ sync_cfg() {
                     --exclude 'references/bytedcli-debug-map.md' \
                     --exclude 'references/providers/bytedcli.md' \
                     "$HOME/.agents/skills/$_sk" "$st_dir/skills/" 2>/dev/null
+                rm -f "$st_dir/skills/spec-e2e-debug/references/bytedcli-debug-map.md" \
+                    "$st_dir/skills/spec-e2e-debug/references/providers/bytedcli.md"
             elif [ -d "$HOME/.agents/skills/$_sk" ]; then
                 rsync -a "$HOME/.agents/skills/$_sk" "$st_dir/skills/" 2>/dev/null
             fi
