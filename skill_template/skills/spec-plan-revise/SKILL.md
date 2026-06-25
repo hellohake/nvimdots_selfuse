@@ -74,6 +74,27 @@ brainstorm → proposal → specs → design → (grill 澄清) → tasks → pl
    - **A 认知不清**（需求模糊/术语没定/方案没拍板）→ 进阶段 2 先就地澄清。
    - **B 已明确**（用户清楚哪错、要改成啥）→ 跳过澄清，直接阶段 3 改。
 
+### 阶段 1.5：构建 Revision Packet（偏差注入包）
+在进入澄清或修正文档前，必须把本轮偏差整理成一个短小、可传递给下游阶段的 `Revision Packet`。它是后续修正 proposal/specs/design/tasks/plan 的唯一偏差上下文，避免模型在同步下游时丢掉用户真正想改的点。
+
+格式：
+
+```markdown
+## Revision Packet
+- Source layer: <brainstorm | proposal | specs | design | tasks | plan>
+- Deviation: <现有文档哪里错，引用文件/章节/requirement/task>
+- Expected change: <用户期望改成什么；若未定，写 pending clarification>
+- Constraints: <Non-Goals / 不允许改什么 / 业务边界>
+- Affected downstream: <需要重核或修正的下游 artifact 列表>
+- Evidence: <revise.md 条目 / $ARGUMENTS / 原文 path:line>
+- Mode hint: <patch | regenerate-section | regenerate-artifact | pending>
+```
+
+规则：
+- 偏差性质为 A 时，`Expected change` 和 `Mode hint` 可以先标 `pending clarification` / `pending`，阶段 2 澄清后必须回填。
+- 偏差性质为 B 时，必须在阶段 3 前填完整，不允许带着空泛的 `Expected change` 去改文档。
+- 下游每修完一层，都要把新的已落地事实写回 `Revision Packet` 的工作副本，再用更新后的 packet 修下一层。
+
 ### 阶段 2：就地澄清（仅 A 类，内置，不跳转）
 用 grill-with-docs 的澄清方式：**一次问一个、每题给推荐答案、能查代码/文档就去查**。逼问到偏差点彻底清晰为止。
 
@@ -82,25 +103,118 @@ brainstorm → proposal → specs → design → (grill 澄清) → tasks → pl
 - 满足三判据（难回退 + 无背景会困惑 + 真实权衡）的决策 → `.ai_doc/spec-workflow/adr/NNNN-<slug>.md`（懒创建，新 ADR 必带 `日期` + `来源提案`）。
 - ADR 失效：旧 ADR 留原地标 `superseded by ADR-NNNN`/`deprecated`，不删不搬。
 
-澄清清楚后进入阶段 3。
+澄清清楚后，先回填 `Revision Packet` 的 `Expected change` / `Constraints` / `Mode hint`，再进入阶段 3。
 
-### 阶段 3：沿依赖链同步修正（核心）
-从**源头层**开始，按上方依赖链表格逐层向下修正。每类文档的修正规则：
-- **plan.md** → 调 **superpowers:writing-plans** 重新生成（plan 由它生成，复用它才能保持微步骤风格/粒度一致）。
-- **proposal / specs / design / tasks** → 先定位本工作流的 schema，再按其中对应阶段的 instruction + 模板规则修正：
-  - **定位 schema（先读再改）**：先读 `<提案目录>/.openspec.yaml` 的 `schema` 字段；再按顺序尝试：
-    1. `<repo>/openspec/schemas/<schema>/schema.yaml`
-    2. `<repo>/openspec/schemas/<schema>.yaml`
-    3. `~/.agents/template/schemas/<schema>/schema.yaml`
-    4. `~/.agents/template/schemas/<schema>.yaml`
-    找不到时不要回退到固定模板；提示用户提供 schema 路径，或按现有文档风格最小修正。
-  - 找到 schema 后，读取目标层的 `instruction` 字段（如改 design 就读 `id: design` 的 instruction）与其 `template`，**按当前提案实际 schema 的规则改**，确保 hello-spec 与 hello-spec-v2 都同源、风格一致。
-- 重核范围：design 实质改动 → 重核 tasks、重生成 plan；specs 改 → 从 design 起重核全链（参照上方表格）。
+### 阶段 3：Schema-guided repair（按原阶段规则修，不重跑整个 workflow）
+从**源头层**开始，按依赖链逐层向下修正。但这不是“重新跑整个 OpenSpec workflow”，而是 `schema-guided repair`：每个受影响 artifact 都先读取它自己的 OpenSpec/schema 阶段说明，再把 `Revision Packet` 作为额外约束注入，做最小必要修正。
+
+#### 3.0 执行器选择（Inline vs 串行 Subagent）
+默认 inline 修正。只有满足以下任一条件，才启用**串行 subagent mode**：
+
+- 受影响 artifact >= 3；
+- 源头层为 proposal/specs/design 且影响 tasks/plan；
+- 任一 artifact 需要 `regenerate-section` 或 `regenerate-artifact`；
+- plan 需要重生成；
+- 当前主上下文已读取大量 spec/代码，继续执行会导致上下文污染。
+
+Subagent mode 不是并行执行，必须按依赖链串行：proposal → specs → design → tasks → plan。主 agent 保留职责：维护 `Revision Packet`、选择修正模式、发起 worker、review worker 结果、最终一致性反查、归档和清理。Subagent 只负责单个 artifact 或一个明确 artifact group 的受控修正。
+
+每个 subagent 的输入必须包含：
+- 当前 `Revision Packet`；
+- 授权写入集（只能改这些文件/目录）；
+- 目标 artifact 的 OpenSpec/schema instruction + template；
+- 上游已更新摘要；
+- 禁止目标：不碰代码、不改 backup.md、不清理 revise.md、不提交、不扩大范围。
+
+每个 subagent 的回执必须包含：
+
+```markdown
+## Worker Result
+- Artifact: <artifact-id>
+- Files changed:
+  - <abs path>
+- Mode used: <patch | regenerate-section | regenerate-artifact>
+- Revision Packet fields addressed:
+  - Deviation: <resolved | partial | not addressed>
+  - Expected change: <implemented | partial | not implemented>
+  - Constraints: <respected | violated + why>
+- Downstream impact:
+  - <artifact>: <none | needs update because ...>
+- Risk / open question:
+  - <none | ...>
+```
+
+#### 3.0.1 Subagent 快照 diff review gate（不依赖 git diff）
+OpenSpec 提案文档可能未被 git 跟踪，或被 `.gitignore` 忽略，所以主 agent **不得依赖 `git diff` review worker 结果**。每个 subagent 前后必须走快照 diff：
+
+1. **确定授权写入集**：例如单文件 `design.md`，或目录型 artifact `specs/**/*.md`。未授权文件一律不得修改。
+2. **worker 前做快照**：复制授权写入集到 `/tmp/spec-plan-revise-snapshots/<change>/<artifact>/<timestamp>/before/`。不存在的授权文件记录为 `MISSING` 标记。
+3. **worker 后做 diff**：
+   - 单文件：`diff -u before/file.md current/file.md`
+   - 目录：`diff -ru before/specs current/specs`
+   - 新增文件：检查是否只新增授权文件，并把新文件内容纳入 review。
+   - 删除文件：默认视为 review fail，除非 `Revision Packet` 明确要求删除该 artifact/文件。
+4. **主 agent review gate**：只读 worker 回执 + snapshot diff + 必要上下文段落，不重做 worker 全量分析。
+
+Review gate 通过条件：
+- 只改授权 artifact / 文件；
+- 未碰代码、`backup.md`、`revise.md`；
+- diff 对齐 `Revision Packet` 的 `Deviation` / `Expected change`；
+- 未违反 `Constraints` / Non-Goals；
+- 保持目标 artifact 的 schema/template 格式；
+- worker 明确给出下游影响摘要。
+
+Review gate 不通过时：
+- 小问题：主 agent 可做局部 patch，并记录原因；
+- 中等问题：要求同一 worker 返工一次，传入 snapshot diff 和 review comments；
+- 方向性问题或约束冲突：停止并向用户提问；
+- 连续两次返工仍不收敛：停止，输出当前 diff、失败原因和建议选择。
+
+通过后，主 agent 更新 `Revision Packet` 工作副本，再启动下一个下游 worker。
+
+#### 3.1 定位当前提案 schema（先读再改）
+先读 `<提案目录>/.openspec.yaml` 的 `schema` 字段；再按顺序尝试：
+1. `<repo>/openspec/schemas/<schema>/schema.yaml`
+2. `<repo>/openspec/schemas/<schema>.yaml`
+3. `~/.agents/template/schemas/<schema>/schema.yaml`
+4. `~/.agents/template/schemas/<schema>.yaml`
+
+找不到时不要回退到固定模板；提示用户提供 schema 路径，或按现有文档风格最小修正。
+
+#### 3.2 获取目标 artifact 的原始阶段说明
+对每个受影响 artifact（proposal/specs/design/tasks/plan），优先使用 OpenSpec CLI 读取真实 instruction：
+
+```bash
+openspec instructions <artifact-id> --change "<change-name>" --json
+```
+
+如果 CLI 不可用或当前环境无法定位 change，则读取 schema.yaml 中对应 artifact 的 `instruction` 和 `template`。不要凭本技能自己的自由理解改写。
+
+#### 3.3 注入 Revision Packet 并选择修正模式
+把 `Revision Packet` 作为本次修正的额外输入约束，结合目标 artifact 的原始 instruction/template，选择下列模式之一：
+
+| 模式 | 适用场景 | 处理方式 |
+|---|---|---|
+| `patch` | 单个字段、段落、边界、命名、任务描述有偏差 | 只改相关段落，保留其余内容 |
+| `regenerate-section` | 某一节整体不对，但 artifact 其余部分仍有效 | 重写该节，并检查上下文衔接 |
+| `regenerate-artifact` | 下游 artifact 已整体失效，继续 patch 会制造更多漂移 | 按该阶段 instruction/template 重新生成整个 artifact；仅在 tasks/plan 或严重失效文档中使用 |
+
+默认策略：
+- proposal/specs/design：默认 `patch`；整节语义失效才 `regenerate-section`；除非用户明确要求或文档整体不可用，否则不全量重写。
+- tasks：上游 design/specs 实质变化时，可重建相关任务组；不要无关重排全部任务。
+- plan：tasks 或 design 实质变化时，优先重新生成相关 plan 段；若任务链整体变化，才全量重生成。
+
+#### 3.4 分层同步规则
+- **proposal / specs / design / tasks**：按目标 artifact 的 schema instruction + template + `Revision Packet` 修正。
+- **plan.md**：需要重生成时调用 **superpowers:writing-plans**，但输入必须包含更新后的 `Revision Packet`、最新 `tasks.md`、最新 `design.md`，并明确“只反映本次偏差及其下游影响，不添加无关任务”。
+- 每修完一层，更新 `Revision Packet` 的工作副本，记录该层已经落地的事实，再带着更新后的 packet 修下一层。
 
 **红线**：
 - 只改与本次偏差直接相关的文档，不顺手重写无关内容（最小改动）。
 - 不执行 `go build`/`go test`；不碰代码（纯文档阶段）。
 - 遵守上下文纪律：主线程只读摘要，大文件按需读盘。
+- 不允许“完整重跑整个 OpenSpec workflow”来代替修正；全量重生成只能作为单个 artifact 的模式选择，并且要说明原因。
+- subagent 结果必须经主 agent 的 snapshot diff review gate 验收后才能进入下一层。
 
 ### 阶段 4：一致性反查
 列出“改动点 ↔ 各下游对应位置”映射表，任何一条对不上 → 回阶段 3 补齐。确认 proposal/specs/design/plan 四类文档相互对齐。

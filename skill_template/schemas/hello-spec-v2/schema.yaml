@@ -318,8 +318,8 @@ artifacts:
       - specs
 
   - id: grill-spec
-    generates: design.md
-    template: design.md
+    generates: grill-spec.md
+    template: grill-spec.md
     description: DDD-aware grilling gate (powered by grill-with-docs -> grilling + domain-modeling) that resolves open questions, sharpens terminology into CONTEXT.md, and records hard decisions as ADRs.
     instruction: |
       Use the Skill tool to invoke **grill-with-docs**.
@@ -360,6 +360,9 @@ artifacts:
       decision history.)
 
       Persistence requirements (core of keeping context clean):
+      - Create `grill-spec.md` ONLY after all blocking Open Questions have been
+        resolved or explicitly marked as pending user confirmation. This file is
+        the GATE-1 completion marker; it must not replace `design.md`.
       - Write resolutions BACK into this change's `design.md` Decisions section,
         and CLEAR the Open Questions section. design.md is the SINGLE source of
         truth for Open Questions — brainstorm.md has no such section.
