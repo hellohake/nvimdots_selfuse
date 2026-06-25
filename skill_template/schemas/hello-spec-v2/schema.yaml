@@ -439,12 +439,19 @@ artifacts:
         tasks. Code changes must be reviewed by the human FIRST; committing is a
         manual action the user performs after review. The plan ends at "code
         written + diagnostics pass", never at "committed".
+      - **Progress traceability**: every checkbox micro-step in plan.md MUST carry
+        stable IDs in the text: `StepID=<change>-T<task>-S<step>` and
+        `TaskRef=<tasks.md checkbox id>`. Do not create anonymous checkboxes.
+        Example:
+        `- [ ] StepID=card-pack-runtime-T2-S1 TaskRef=2.1 Add read-only mapper`.
 
       The writing-plans skill will:
       1. Read the tasks.md and design.md for context
       2. Break each task into 2-5 minute micro-steps (TDD style)
       3. Include exact file paths, code snippets, test commands
-      4. Mark a logical "review point" after each task (a place where the human
+      4. Preserve the `StepID` / `TaskRef` mapping on every checkbox so apply can
+         reconcile plan.md with tasks.md deterministically.
+      5. Mark a logical "review point" after each task (a place where the human
          reviews the diff) — NOT an auto git commit.
 
       Pass the tasks.md content to the skill as the input for
@@ -458,6 +465,10 @@ apply:
   tracks: tasks.md
   instruction: |
     Note when implementing: do not run full `go build` or full-suite `go test ./...` by default. Use `test_policy` per touched repo. Some repos can run targeted unit tests and must use them; some repos cannot run unit tests and must fall back to gopls/manual verification.
+
+    Progress ledger rule: `tasks.md` is the OpenSpec coarse progress ledger, but
+    `plan.md` is the execution progress ledger. Apply is not allowed to pause,
+    summarize, or declare completion unless both ledgers have been reconciled.
 
     0. **AI Context Discipline**: obey the top-level `ai_context_discipline` throughout:
        - the main thread reads only summaries/frontmatter; subagents read full
@@ -513,8 +524,10 @@ apply:
 
        Tell the executor:
        - Read plan.md in this change directory for micro-tasks
-       - Update plan.md checkboxes status for finished tasks
-       - Update tasks.md checkboxes as coarse tasks complete
+       - Update plan.md checkboxes status for finished micro-steps; each checked
+         checkbox must keep its `StepID` and `TaskRef`
+       - Update tasks.md checkboxes as coarse tasks complete, based on the
+         corresponding `TaskRef` values in plan.md
        - Work within the created worktree
        - Obey the gotchas red-lines injected in step 0.1
        - Obey the test capability classification from step 0.2. In
@@ -534,23 +547,41 @@ apply:
          `git add` / `git commit`. Code must wait for the human's review before
          any commit. Stop at "code written + diagnostics pass".
 
-    2. **Completion**: When all tasks are done, present the diff for the user's
+    2. **Progress Reconcile Gate**: before every pause, final answer, context
+       handoff, or "task complete" claim, inspect plan.md and tasks.md together:
+       - For each checked plan.md micro-step, its `TaskRef` must point to a
+         tasks.md checkbox. If all plan.md micro-steps for one TaskRef are done,
+         the tasks.md checkbox must be checked.
+       - If a tasks.md checkbox is checked but all matching plan.md micro-steps
+         remain unchecked, continue the current apply loop and fix plan.md. Do
+         not merely write a report and stop.
+       - If work was completed outside a mapped micro-step, add or update the
+         nearest plan.md checkbox with a `StepID` / `TaskRef` and evidence before
+         checking tasks.md.
+       - If a verification or implementation step cannot complete, leave it
+         unchecked and add a short `blocked:` or `partial:` reason under that
+         plan.md task; do not mark it complete.
+       - Update `Agent Execution Audit` with a one-line progress summary such as
+         `Progress ledger: plan=<done>/<total>, tasks=<done>/<total>, status=PASS`.
+       Only after this gate passes may the agent pause or present completion.
+
+    3. **Completion**: When all tasks are done, present the diff for the user's
        REVIEW first. Only AFTER the user approves should commit/PR happen — and
        the commit is the user's call. If the user explicitly asks to wrap up,
        you may invoke **superpowers:finishing-a-development-branch**; otherwise do
        NOT auto-commit or auto-create a PR.
 
-    3. **Diagnostics**: After code implementation is complete, invoke the gopls MCP tool's go_diagnostics to validate correctness. Any error-level diagnostics must be fixed and re-validated until all checks pass.
+    4. **Diagnostics**: After code implementation is complete, invoke the gopls MCP tool's go_diagnostics to validate correctness. Any error-level diagnostics must be fixed and re-validated until all checks pass.
 
-    4. **Troubleshoot scope**: `troubleshoot.md` is NOT written by the apply phase or any subagent. It is a user-curated file. Issues discovered during implementation must be appended manually by the developer and are later consumed by the `/spec-trouble-resolve` command. Do not let executors auto-populate it.
+    5. **Troubleshoot scope**: `troubleshoot.md` is NOT written by the apply phase or any subagent. It is a user-curated file. Issues discovered during implementation must be appended manually by the developer and are later consumed by the `/spec-trouble-resolve` command. Do not let executors auto-populate it.
 
-    5. **Manual test command ledger**: `manual_test_commands.md` is the unified
+    6. **Manual test command ledger**: `manual_test_commands.md` is the unified
        proposal-level place for copyable manual test commands. Before declaring
        apply complete, if git diff shows new/modified test files, verify that
        this file contains matching targeted commands or a clear reason why no
        reliable command could be inferred.
 
-    6. **Human decision ledger**: before declaring apply complete, ensure every
+    7. **Human decision ledger**: before declaring apply complete, ensure every
        unresolved `human_decision` / design-risk item discovered during apply is
        represented in `human-decisions.md`, and that blocking `pending_human`
        entries are called out in the final summary.

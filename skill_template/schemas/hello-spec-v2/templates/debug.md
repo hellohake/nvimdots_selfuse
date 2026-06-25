@@ -1,34 +1,39 @@
-# Debug（端到端诊断输入）
+# Debug Inputs
 
 <!--
-本文件是 `spec-e2e-debug` 技能的诊断输入：端到端测试出现现象、但不知根因时，
-在此填写已知信息，技能据此结合代码 + bytedcli 内网平台做根因定位，产出 debug-report.md。
+本文件是 `spec-e2e-debug` 的端到端诊断输入收件箱。
 
-懒创建：不在提案创建期生成。测试出问题时你手动建此文件填入，或口述让技能代填。
-诊断完报告落在同级 debug-report.md；本技能只读不改、不碰线上写操作。
+提案创建期不生成；只有 apply 后端到端测试出现“现象不明、根因未知”时才创建。
+`spec-e2e-debug` 结合代码现状 + 当前 diagnostic provider 做只读根因定位，输出同级
+`debug-report.md`；不改业务代码，不写 backup.md，不执行写操作。
 
-填得越全，定位越快。至少要有【logid】或【服务名+时间】，否则定位不到具体请求/实例。
+最小输入：
+- 现象：实际 vs 期望。
+- 定位锚点：logid，或 psm + 发生时间。
+- 可选：环境/泳道、配置、实验、下游、DB 表、复现步骤、初步判断。
+
+建议格式：
+### D001 · <一句话现象标题>
+
+- Actual: <实际现象>
+- Expected: <期望行为>
+- LogID: <logid or none>
+- PSM: <service name or none>
+- Environment: <ppe / boe / lane / online / unknown>
+- Occurred at: <time point or narrow time range>
+- Suspects: <config / experiment / downstream / db / none>
+- Repro: <entry, request params, account, steps, or none>
+- Notes: <your initial guess or none>
+
+诊断完成后：
+- 完整输入会归档到 debug-report.md。
+- 本文件会被重置为空收件箱。
 -->
 
-## 现象（必填）
-<!-- 测试时实际发生了什么 vs 你期望什么。越具体越好。 -->
-- 实际：
-- 期望：
+## Inputs
 
-## 定位信息
-- **logid**：<!-- 最关键，强烈建议提供 -->
-- **服务名 psm**：<!-- 出问题的服务，如 ecom.search.xxx -->
-- **泳道/环境**：<!-- ppe / 泳道名 / boe 等 -->
-- **发生时间**：<!-- 大致时间点/区间，缩小日志范围 -->
+<!-- DEBUG:START -->
 
-## 可疑点（选填，有则填，帮助技能优先验证）
-- **tcc 配置**：<!-- 怀疑的配置 key / namespace -->
-- **libra 实验/开关**：<!-- 怀疑的实验名 / 参数 key -->
-- **下游接口**：<!-- 怀疑返回不对的下游 psm / method -->
-- **DB 表**：<!-- 怀疑数据落库异常的表 -->
+暂无。端到端测试出现未知根因问题时，在此追加 D001 条目。
 
-## 复现步骤（选填）
-<!-- 怎么触发的：入口、请求参数、测试账号等 -->
-
-## 我的初步判断（选填）
-<!-- 你觉得可能是哪的问题，给技能一个起点假设 -->
+<!-- DEBUG:END -->

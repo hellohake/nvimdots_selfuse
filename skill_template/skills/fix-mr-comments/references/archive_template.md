@@ -44,7 +44,8 @@
 
 - **触发人**：<git config user.name 兜底为 unknown>
 - **分支**：`<branch>`
-- **MR**：[<repo>#<n>](https://code.byted.org/<repo>/merge_requests/<n>)
+- **MR/PR**：[<repo>#<n>](<provider-supplied-url>)
+- **Provider**：<provider_name>
 - **本次处置评论数**：A=<x> / B=<x> / C=<x> / D=<x> / E=<x>；改码 <m> 条、回复 <r> 条、close <c> 条、保持 open <o> 条（其中人工评论已处理但按规则留人工自己 close 的 <h> 条，属预期）
 
 ### 评论处置矩阵

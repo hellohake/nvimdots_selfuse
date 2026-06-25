@@ -1,6 +1,6 @@
 ---
 name: fix-mr-comments
-description: 仅由用户**手动**触发（如 `/fix-mr-comments` 或显式说"修复 MR 评论"、"处理 MR review 意见"）。基于当前会话已发生的代码改动，自动定位涉及到的所有仓库与分支（兼容 OpenSpec-style SDD 多仓场景），通过 `bytedcli` MCP/CLI 拉取对应分支 MR 上的所有 review 评论，对每条评论做分类（有效/无效/答疑/nit）+ 作者类型（人工/机器人）判定，给出"改码/回复/close"三个独立动作的默认建议，**先以处置预案表和用户对齐确认、再执行**（默认不自作主张改一堆）。close 极克制：人工 reviewer 评论一律不主动 close，留人工自己 close；仅机器人/CI 评论修完自动 close。最终输出完整处理报告。
+description: 仅由用户**手动**触发（如 `/fix-mr-comments` 或显式说"修复 MR 评论"、"处理 MR review 意见"）。基于当前会话已发生的代码改动，自动定位涉及到的所有仓库与分支（兼容 OpenSpec-style SDD 多仓场景），通过 MR provider（如 bytedcli、GitHub/GitLab provider、no-provider fallback）拉取或消费对应 MR/PR review 评论，对每条评论做分类（有效/无效/答疑/nit）+ 作者类型（人工/机器人）判定，给出"改码/回复/close"三个独立动作的默认建议，**先以处置预案表和用户对齐确认、再执行**。close 极克制：人工 reviewer 评论一律不主动 close，留人工自己 close；仅机器人/CI 评论修完自动 close。最终输出完整处理报告。
 ---
 
 # fix-mr-comments
@@ -17,26 +17,29 @@ description: 仅由用户**手动**触发（如 `/fix-mr-comments` 或显式说"
 - **高风险评论先问用户**，不擅自重构关键路径。
 - **必须由用户显式触发**：仅在用户说出 `/fix-mr-comments`、"修复 MR 评论"、"处理 review 意见"、"跟进 MR comment" 等明确指令时才启动。
 
-## 前置依赖
+## Provider 架构与前置依赖
 
-- **bytedcli**：所有查询/回复/resolve **优先用 MCP**（`mcp__bytedcli__*`，通过 `invoke_tool` 调度，schema 见 `.mcp-tools/bytedcli/<tool>.md`）；MCP 不可用时再回落到 CLI（`bytedcli codebase ...`，未安装时用 `NPM_CONFIG_REGISTRY=http://bnpm.byted.org npx -y @bytedance-dev/bytedcli@latest`）。
-- **git**：分支与改动判断。
-- **gopls MCP**：Go 工程本地校验只用 `mcp__gopls__go_diagnostics`，不要跑 `go build / test / vet`——既慢也容易污染环境。
-- **鉴权**：需要有效的 codebase 身份（JWT / PAT）。第一次调用 bytedcli 命中 401/403 时，提示用户执行 `bytedcli codebase auth config-auth --jwt-token <token>` 或 `config-add-pat <pat>`，等用户操作完用一次轻量调用（如 `repo get`）验证再继续。**绝不**编造 token、**绝不** echo 密钥。
+本技能的核心是**通用 MR/PR 评论处置流程**，不是某个内网 CLI 的使用说明。平台操作一律通过 MR provider 抽象完成。
 
-## bytedcli 调用约定
+启动后先读取：
 
-整份文档后续直接说"调用『回复评论』"等抽象动作，对应实际入口如下：
+1. [`references/provider-contract.md`](references/provider-contract.md) — MR provider 能力契约、读写 gate、失败分类。
+2. 选中的 provider 文档：
+   - ByteDance / code.byted.org 环境优先用 [`references/providers/bytedcli.md`](references/providers/bytedcli.md)（若存在）。
+   - 无可用 MR provider、或用户只粘贴评论文本时，用 [`references/providers/no-provider.md`](references/providers/no-provider.md)。
 
-| 操作 | MCP（首选） | CLI 兜底 |
-|---|---|---|
-| 查 MR | `mcp__bytedcli__*`（mr get / mr list） | `bytedcli codebase mr list -R "<repo>" --state open -H "<branch>" -L 5` |
-| 列评论 | `mcp__bytedcli__*`（mr comment list） | `bytedcli codebase mr comment list <mr> -R "<repo>"` |
-| 回复评论 | `mcp__bytedcli__*`（mr comment reply） | `bytedcli codebase mr comment reply <mr> -R "<repo>" --thread-id <tid> --body "<reply>"` |
-| Resolve thread | `mcp__bytedcli__*`（mr comment resolve） | `bytedcli codebase mr comment resolve -R "<repo>" --id <tid>` |
-| 受保护分支 | `mcp__bytedcli__*`（protected-branch list） | `bytedcli codebase repo protected-branch list -R "<repo>"` |
+Provider selection：
 
-> ⚠️ bytedcli 用**位置参数**（`mr get 821`），不要套用 codebase CLI 的 `-N <mr>` 习惯，会报错。
+- 用户显式指定 provider → 优先使用。
+- 当前环境可用 ByteDance bytedcli / MCP 且目标是 code.byted.org → 使用 `bytedcli` provider。
+- 没有可执行 provider，但用户给了评论文本 → 使用 `no-provider`，只产处置预案/本地改码建议，不执行远端回复/resolve。
+
+通用依赖：
+
+- **git**：分支、改动、仓库根判断。
+- **gopls MCP**：Go 工程本地校验只用 `mcp__gopls__go_diagnostics`，不要跑 `go build / test / vet`。
+
+后文的『查 MR』『列评论』『回复评论』『Resolve thread』『受保护分支』都是 provider capability 名称；具体命令、鉴权和参数规则只在 provider 文档里定义。
 
 ## 保护分支铁律（最高优先级）
 
@@ -93,7 +96,7 @@ description: 仅由用户**手动**触发（如 `/fix-mr-comments` 或显式说"
 - `thread_id`、`path` / `line`（inline 时）、`author`、**作者类型（人工/机器人，判据见阶段 4）**、回复语言（中/英）。
 - `state`：`open` / `resolved`。
 - `body`：**整条 thread 所有 reply 都读完**，以最新一条**非 MR 作者本人**的意见为最终诉求；评论者已主动撤回（"OK / 算了 / nvm"）→ 归 A 类但允许直接 resolve。
-- 是否 outdated：bytedcli 没字段就看 thread 关联的 `commit_id` 是否仍在 MR 当前路径上；推不出来时按 open 处理。
+- 是否 outdated：优先使用 provider 的 `comment_outdated_detection` 能力；provider 没有明确字段时，看 thread 关联的 `commit_id` / diff position 是否仍在 MR 当前路径上；推不出来时按 `unknown` 处理，并按 open/non-outdated 保守进入分类。
 
 **只处理 state=open 且非 outdated 的评论**；outdated 的简要列出但不动。
 
@@ -161,14 +164,14 @@ description: 仅由用户**手动**触发（如 `/fix-mr-comments` 或显式说"
 1. **改前再校验**：对每个仓库重跑 `git rev-parse --abbrev-ref HEAD`，与阶段 2 锁定分支精确比对——这是"保护分支铁律"在第二个时间点的复查。不一致硬停。工作树有与本任务无关的脏改动 → 先告诉用户，得到"继续"再动手，避免把脏改动混进 review fix。
 2. **改代码**（仅对预案标了"改"的条目）：用 `Edit`，每处改动都要能映射到具体某条评论；写入前再次确认目标路径在阶段 1 锁定的仓库根之下。预案标"不改"的（如 E nit、A 无效、用户说不用管的）→ **跳过，不动代码**。
 3. **本地校验（Go 工程）**：对本次改动的 `.go` 文件调用 `mcp__gopls__go_diagnostics`（`files` 传绝对路径），并扫一眼 workspace 级 error。**不**调用 `go build / test / vet`。校验出新增 error → **不要 resolve** 该 thread；按"失败与回退"撤回改动，记账到阶段 6 报告。非 Go 工程可跳过，或做最轻量的 syntax 检查（`python -m py_compile`、`tsc --noEmit -p`）。
-4. **回复评论**（仅对预案标了"回复"的条目）：调用『回复评论』。预案标"不回复"的（如 E nit、用户说别回复的）→ **跳过**。
+4. **回复评论**（仅对预案标了"回复"的条目）：调用 provider 的『回复评论』能力。预案标"不回复"的（如 E nit、用户说别回复的）→ **跳过**。若当前 provider 不支持远端回复（如 `no-provider`），不要伪造已回复，只在报告里标记 `not_supported_by_provider`。
    - **回复语言对齐 reviewer 原文**（中/英），不混用——同事看到混语言会觉得诡异。
    - 模板（按需裁剪、按语言翻译）：
      - 已修复：`已按建议修复：<一句话>。详见 commit <短sha> / 改动见 <path:line>。`
      - 拒绝/解释：`这里暂不修改：<原因>。相关上下文：<事实/代码引用>。如果还有不同意见欢迎继续讨论。`
      - 答疑：`这块的逻辑是：<解释>。代码位置：<path:line>。`
-   - **回复后复读**：再次拉一次该 thread，确认新 reply 已落库——避免"以为发了其实没发"。
-5. **Resolve thread**（仅对预案标了"close"的条目）：调用『Resolve thread』。**close 铁律**（优先级最高，违反即越权）：
+   - **回复后复读**：provider 支持时再次拉一次该 thread，确认新 reply 已落库——避免"以为发了其实没发"。
+5. **Resolve thread**（仅对预案标了"close"的条目）：调用 provider 的『Resolve thread』能力。若当前 provider 不支持 resolve，报告为 `not_supported_by_provider`，不得臆造 close 状态。**close 铁律**（优先级最高，违反即越权）：
    - 🔴 **人工 reviewer 的评论：绝不主动 close**，哪怕已改已回复——除非用户在阶段 4.5 明确点名"这条帮我 close"。
    - **机器人/CI 评论**：已改 + 已回复后按预案 close。
    - **评论者明确撤回**：可 close。
@@ -230,7 +233,7 @@ description: 仅由用户**手动**触发（如 `/fix-mr-comments` 或显式说"
 
 - **改完本地校验失败**：撤回该处改动（`git checkout -- <file>` 或 `Edit` 还原），把这条评论降级为 C 类，告知用户。
 - **评论已 outdated**：不处理，仅在报告中列出。
-- **bytedcli 异常输出**：先 `--help` 确认参数（位置参数 vs flag），仍失败则在报告中标记并跳过。
+- **provider 异常输出**：按 `provider-contract.md` 分类处理。鉴权/版本/权限失败是 provider 环境问题，不当作评论处理结论；参数/能力不支持则在报告中标记并跳过对应远端动作。
 
 ## 调用入口示例
 

@@ -301,7 +301,7 @@ sync_cfg() {
         mkdir -p "$st_dir/schemas" "$st_dir/skills"
         rsync -a "$HOME/.agents/template/schemas/" "$st_dir/schemas/" 2>/dev/null
         local _sk
-        for _sk in gotchas spec-opti-workflow spec-opti-workflow-v2 spec-plan-revise spec-trouble-resolve spec-e2e-debug spec-code-review spec-commit-push; do
+        for _sk in gotchas spec-opti-workflow spec-opti-workflow-v2 spec-plan-revise spec-trouble-resolve spec-e2e-debug spec-code-review spec-commit-push fix-mr-comments; do
             if [ "$_sk" = "spec-e2e-debug" ] && [ -d "$HOME/.agents/skills/$_sk" ]; then
                 rsync -a \
                     --exclude 'references/bytedcli-debug-map.md' \
@@ -309,6 +309,11 @@ sync_cfg() {
                     "$HOME/.agents/skills/$_sk" "$st_dir/skills/" 2>/dev/null
                 rm -f "$st_dir/skills/spec-e2e-debug/references/bytedcli-debug-map.md" \
                     "$st_dir/skills/spec-e2e-debug/references/providers/bytedcli.md"
+            elif [ "$_sk" = "fix-mr-comments" ] && [ -d "$HOME/.agents/skills/$_sk" ]; then
+                rsync -a \
+                    --exclude 'references/providers/bytedcli.md' \
+                    "$HOME/.agents/skills/$_sk" "$st_dir/skills/" 2>/dev/null
+                rm -f "$st_dir/skills/fix-mr-comments/references/providers/bytedcli.md"
             elif [ -d "$HOME/.agents/skills/$_sk" ]; then
                 rsync -a "$HOME/.agents/skills/$_sk" "$st_dir/skills/" 2>/dev/null
             fi
