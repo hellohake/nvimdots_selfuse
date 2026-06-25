@@ -97,9 +97,6 @@ ai_context_discipline:
     fields into human-decisions.md or the phase terminal summary and reference
     the artifact path.
 
-# ─────────────────────────────────────────────────────────────
-# Test Capability Policy — per-repo, not one-size-fits-all
-# ─────────────────────────────────────────────────────────────
 test_policy:
   principle: |
     Do NOT use a global "no unit tests" rule. Decide by repository capability:
@@ -626,9 +623,6 @@ retrospective:
     Flywheel closure: the distilled gotchas/CONTEXT are auto-consumed by the next
     change's brainstorm phase.
 
-# ─────────────────────────────────────────────────────────────
-# Revision — handling planning-stage (doc-phase) deviations (NOT an artifact)
-# ─────────────────────────────────────────────────────────────
 revision:
   trigger: Manual (when generated planning docs deviate from intent, AFTER they exist)
   instruction: |
@@ -656,9 +650,6 @@ revision:
     - Planning-stage (docs) deviation -> revise.md + spec-plan-revise -> backup.md[规划偏差]
     - Code-stage (post-apply) issue   -> troubleshoot.md + /spec-trouble-resolve -> backup.md[代码偏差]
 
-# ─────────────────────────────────────────────────────────────
-# Debug — end-to-end test root-cause location (NOT an artifact)
-# ─────────────────────────────────────────────────────────────
 debug:
   trigger: Manual (after apply, during end-to-end testing, when symptom is unclear and root cause unknown)
   instruction: |
@@ -700,9 +691,6 @@ debug:
     Boundary: spec-e2e-debug = locate root cause (read-only, internal-net);
     spec-trouble-resolve = fix the code once you know it's a code bug.
 
-# ─────────────────────────────────────────────────────────────
-# Code Review — AI pre-commit review report (NOT an artifact)
-# ─────────────────────────────────────────────────────────────
 code_review:
   trigger: Manual (after apply, before spec-commit-push)
   instruction: |
@@ -750,9 +738,6 @@ code_review:
     - "修 Fix Queue 里 Status=accepted 的项"
     - or "只修 R001/R003，R002 先跳过"
 
-# ─────────────────────────────────────────────────────────────
-# Commit — multi-repo commit & push closure (NOT an artifact)
-# ─────────────────────────────────────────────────────────────
 commit:
   trigger: Manual (after apply, spec-code-review/human review, when ready to commit & push)
   instruction: |
