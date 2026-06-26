@@ -1,0 +1,63 @@
+{
+  "skill_name": "gw-worktree",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "从 master 拉一个图片预加载 topvv 优化 worktree",
+      "expected_output": "Infers branch feat/image-preload-topvv and dir image-preload-topvv, preflight-checks ../image-preload-topvv, shows the plan, then executes gw-add with master as base.",
+      "files": [],
+      "assertions": [
+        "Uses an explicit master base without asking a follow-up question.",
+        "Uses branch format <type>/<slug> and a short directory slug without the prefix.",
+        "Checks target directory existence before running gw-add.",
+        "Executes gw-add through zsh so the local function is available."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "帮我拉一个搜索过滤修复的 worktree",
+      "expected_output": "Does not execute because base is missing; asks which base branch to use.",
+      "files": [],
+      "assertions": [
+        "Does not run gw-add or git worktree commands.",
+        "Asks for the base branch before proceeding.",
+        "May infer a likely fix/* branch and short dir only as a proposed plan, not as an executed command."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "从开发分支 dev/search-router 拉一个 packer 路由重构 worktree，目录叫 packer-router",
+      "expected_output": "Uses base dev/search-router, branch refactor/packer-router, dir packer-router, and stops if ../packer-router already exists.",
+      "files": [],
+      "assertions": [
+        "Uses the explicitly named development branch as base.",
+        "Uses refactor/ prefix for a refactor request.",
+        "Honors the user-provided directory name.",
+        "Stops and asks for a new directory name if the target directory already exists."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "$gw-worktree 004-init-engine-framework",
+      "expected_output": "Treats 004-init-engine-framework as an existing branch if local or origin branch exists, does not invent feat/004-init-engine-framework, and runs gw-add with -d so no base is required.",
+      "files": [],
+      "assertions": [
+        "Checks refs/heads/004-init-engine-framework and refs/remotes/origin/004-init-engine-framework before asking for a base branch.",
+        "Uses branch=004-init-engine-framework exactly when the branch exists.",
+        "Uses command form gw-add 004-init-engine-framework -d 004-init-engine-framework for existing branch checkout.",
+        "Does not create feat/004-init-engine-framework for this prompt."
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "我在 search_loader 这种 bare-root 目录下，给已有远端分支 004-init-engine-framework 拉 worktree",
+      "expected_output": "Detects the current directory is a bare-root repo, sets target to ./004-init-engine-framework under the repo root, and reports if that branch is already checked out elsewhere.",
+      "files": [],
+      "assertions": [
+        "Detects .git containing gitdir: ./.bare and plans target ./004-init-engine-framework.",
+        "Runs git worktree list --porcelain to check whether the branch is already checked out.",
+        "Stops instead of creating a duplicate worktree if the branch is already present in worktree list."
+      ]
+    }
+  ]
+}

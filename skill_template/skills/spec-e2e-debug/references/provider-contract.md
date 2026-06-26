@@ -7,10 +7,10 @@
 Choose exactly one provider per run:
 
 1. User-specified provider in the prompt, if present.
-2. Environment default when available. In ByteDance internal repos, this is usually `bytedcli`.
-3. `no-provider` fallback when no diagnostic CLI is available.
+2. Environment default only when detectable. In ByteDance internal repos, this is usually `bytedcli`; choose it only when MCP/list_commands is available or the local `bytedcli` binary exists.
+3. `no-provider` fallback when no diagnostic CLI is available, or when provider auth/tooling fails but useful code/input-side diagnosis can still proceed.
 
-The selected provider must be written into `debug-report.md`.
+The selected provider must be written into the locked diagnosis report path for the current run.
 
 ## Provider Metadata
 
@@ -24,7 +24,7 @@ Every provider reference should define:
 
 ## Capability Contract
 
-The table below is a common taxonomy, not a closed whitelist. Providers may expose additional read-only domains/tools. If a diagnostic need does not fit the table, use provider discovery to look for a safe read-only command and record the discovered capability in `debug-report.md`.
+The table below is a common taxonomy, not a closed whitelist. Providers may expose additional read-only domains/tools. If a diagnostic need does not fit the table, use provider discovery to look for a safe read-only command and record the discovered capability in the diagnosis report.
 
 | Capability | Purpose | Typical inputs | Required evidence in report |
 |---|---|---|---|
@@ -35,13 +35,14 @@ The table below is a common taxonomy, not a closed whitelist. Providers may expo
 | `metrics` | Read metrics, alarms, dashboards | metric, tags, time window | datapoints/link/summary |
 | `db` | Read database or warehouse data | table, key, SELECT query | rows/count/query path |
 | `rpc` | Reproduce read-only downstream calls | method, request | request/response summary |
+| `capture` | Parse client capture / Anywhere / shared request-response evidence | share URL, capture ID | saved raw capture path + request/response field summary |
 | `discovered:<name>` | Provider-specific read-only capability discovered at runtime | depends on provider | discovery result + read-only justification + evidence |
 
 ## Provider Discovery
 
 Use discovery when:
 
-- debug.md mentions a platform/tool not listed in the common capability table;
+- debug.md or the user's prompt mentions a platform/tool not listed in the common capability table;
 - the obvious capability does not fit the evidence needed;
 - the user explicitly asks to inspect a provider-native platform, such as a config/feature/metadata system.
 
@@ -74,5 +75,5 @@ If either condition is missing, do not run the command.
 
 - Provider commands must be read-only. Any write/update/delete/deploy/restart/cancel/scale command is forbidden and should only be listed for the user with risk notes.
 - Large outputs must be written to temp files and searched locally; only evidence snippets should enter the report.
-- Missing capabilities are acceptable. Skip unsupported verification paths and state the gap in `debug-report.md`.
-- Auth/tool/version failures are provider environment failures, not business conclusions.
+- Missing capabilities are acceptable. Skip unsupported verification paths and state the gap in the diagnosis report.
+- Auth/tool/version failures are provider environment failures, not business conclusions. If platform evidence is mandatory, stop and ask the user to fix auth/tooling manually; if code/input-side diagnosis can still proceed, fall back to `no-provider` and record the missing platform evidence.

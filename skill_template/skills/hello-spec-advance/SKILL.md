@@ -1,9 +1,13 @@
 ---
 name: hello-spec-advance
-description: Advance a hello-spec-v2 OpenSpec-style SDD proposal safely. Use when the user wants to continue or quickly advance a hello-spec-v2 change without using openspec-propose or openspec-ff-change. It auto-creates only lightweight placeholder artifacts, stops at business/design/gate artifacts, and never enters apply or edits business code.
+description: Compatibility alias for hello-spec-next. Use only when the user explicitly says hello-spec-advance or an older workflow references it. Prefer hello-spec-start for new changes and hello-spec-next for continuing hello-spec-v2 changes. It must not use openspec-propose or openspec-ff-change, and must never enter apply or edit business code.
 ---
 
 # hello-spec-advance
+
+> Compatibility note: this skill is retained for older prompts. For current
+> `hello-spec-v2` work, use `hello-spec-start` to create a change and
+> `hello-spec-next` to continue it.
 
 ## Purpose
 
@@ -16,7 +20,8 @@ This skill is a safety wrapper around OpenSpec's artifact status/instructions:
 - Stop hard at `grill-spec`.
 - Never run `openspec-propose`, `openspec-ff-change`, `openspec-apply-change`, or write business code.
 
-Use this instead of fast-forward commands for `hello-spec-v2`.
+Use `hello-spec-next` instead of this name for new workflows. If this skill was
+invoked, follow the same behavior as `hello-spec-next`.
 
 ## Inputs
 
@@ -71,7 +76,7 @@ Do not auto-create `grill-spec.md`. When it is ready:
 Start with:
 
 ```text
-已锁定任务：hello-spec-advance；本轮只安全推进 hello-spec-v2 artifact，不进入 apply，不改业务代码。
+已锁定任务：hello-spec-advance（兼容入口，等价 hello-spec-next）；本轮只安全推进 hello-spec-v2 的下一个 artifact，不进入 apply，不改业务代码。
 ```
 
 Forbidden objectives:
@@ -168,7 +173,7 @@ Always finish with:
 
 ## Suggested /clear Resume
 ```text
-cd <repo root> && hello-spec-advance <change>
+cd <repo root> && hello-spec-next <change>
 ```
 ````
 

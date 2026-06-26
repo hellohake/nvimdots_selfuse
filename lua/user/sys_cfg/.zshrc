@@ -188,6 +188,15 @@ copygit() {
     echo "Branch '$branch' copied."
 }
 
+lazygit() {
+    local cwd="$PWD"
+    if [ -f "$cwd/.git" ] && grep -qx 'gitdir: \./\.bare' "$cwd/.git" && [ -d "$cwd/main" ]; then
+        command lazygit --path "$cwd/main" "$@"
+    else
+        command lazygit "$@"
+    fi
+}
+
 osc52() {
   local data
   if [ -t 0 ]; then
@@ -211,13 +220,23 @@ copypathN() {
 gw-init-links() {
     echo "🔗 Linking shared configs..."
     if [ -e "../AGENTS_meta.md" ]; then
-        ln -sfn "../AGENTS_meta.md" "./AGENTS.md" && echo "  ✅ AGENTS.md -> ../AGENTS_meta.md" || echo "  ⚠️  link AGENTS.md failed"
+        if [ ! -e "./AGENTS.md" ] || [ -L "./AGENTS.md" ]; then
+            ln -sfn "../AGENTS_meta.md" "./AGENTS.md" && echo "  ✅ AGENTS.md -> ../AGENTS_meta.md" || echo "  ⚠️  link AGENTS.md failed"
+        else
+            echo "  ⚠️  AGENTS.md exists; keep local file"
+        fi
     else
         echo "  ⚠️  ../AGENTS_meta.md and ../AGENTS.md missing"
     fi
 
     for f in .coco .ai_doc .trae .specify openspec specs; do
-        [ -e "../$f" ] && ln -sfn "../$f" "./$f" && echo "  ✅ $f" || echo "  ⚠️  ../$f missing"
+        if [ ! -e "../$f" ]; then
+            echo "  ⚠️  ../$f missing"
+        elif [ ! -e "./$f" ] || [ -L "./$f" ]; then
+            ln -sfn "../$f" "./$f" && echo "  ✅ $f" || echo "  ⚠️  link $f failed"
+        else
+            echo "  ⚠️  $f exists; keep local entry"
+        fi
     done
 }
 
@@ -248,8 +267,12 @@ gw-add() {
         target_dir="$dirname"
     fi
 
-    # Root handling
-    [ ! -e "../.coco" ] && [ -e "./.coco" ] && [[ "$target_dir" == ../* ]] && target_dir="./${dirname}"
+    # If called from the bare-root directory, peer worktrees belong under this root.
+    if [ -f ".git" ] && grep -qx 'gitdir: \./\.bare' ".git" && [[ "$target_dir" == ../* ]]; then
+        target_dir="./${dirname}"
+    elif [ ! -e "../.coco" ] && [ -e "./.coco" ] && [[ "$target_dir" == ../* ]]; then
+        target_dir="./${dirname}"
+    fi
 
     echo "🌲 Setup '$branch' in '$target_dir'..."
 
@@ -259,10 +282,18 @@ gw-add() {
             git rev-parse --verify "master" >/dev/null 2>&1 && base="master"
     fi
 
-    # Smart Logic: Check existence first
+    if [ -e "$target_dir" ]; then
+        echo "❌ Target directory already exists: $target_dir"
+        return 1
+    fi
+
+    # Smart Logic: existing branch checkout first; exact remote branch second.
     if git rev-parse --verify "$branch" >/dev/null 2>&1; then
         echo "✅ Branch '$branch' exists. Checking out..."
         git worktree add "$target_dir" "$branch"
+    elif git rev-parse --verify "origin/$branch" >/dev/null 2>&1; then
+        echo "✅ Remote branch 'origin/$branch' exists. Creating local tracking branch..."
+        git worktree add -b "$branch" "$target_dir" "origin/$branch"
     else
         echo "🆕 Branch '$branch' not found. Creating..."
         if [ -n "$base" ]; then
@@ -295,27 +326,37 @@ sync_cfg() {
     [ -f "$HOME/gai.sh" ] && [ -d "$s_dir" ] && { [ ! -e "$s_dir/gai.sh" ] || [[ "$HOME/gai.sh" -nt "$s_dir/gai.sh" ]]; } && cp "$HOME/gai.sh" "$s_dir/gai.sh"
     [ -f "$HOME/.local/bin/osc52-edit" ] && [ -d "$s_dir" ] && { [ ! -e "$s_dir/osc52-edit" ] || [[ "$HOME/.local/bin/osc52-edit" -nt "$s_dir/osc52-edit" ]]; } && cp "$HOME/.local/bin/osc52-edit" "$s_dir/osc52-edit" && chmod +x "$s_dir/osc52-edit"
 
-    # openspec 模板 + 自定义技能 同步到 skill_template（普通同步只覆盖/新增；导出模板的内部 provider 残留显式清理）
+    # openspec 模板 + 自定义技能 同步到 skill_template
     local st_dir="$HOME/.config/nvim/skill_template"
     if command -v rsync >/dev/null 2>&1 && [ -d "$HOME/.agents/template/schemas" ]; then
         mkdir -p "$st_dir/schemas" "$st_dir/skills"
         rsync -a "$HOME/.agents/template/schemas/" "$st_dir/schemas/" 2>/dev/null
-        local _sk
-        for _sk in gotchas spec-opti-workflow spec-opti-workflow-v2 spec-plan-revise spec-trouble-resolve spec-e2e-debug spec-code-review spec-commit-push fix-mr-comments; do
-            if [ "$_sk" = "spec-e2e-debug" ] && [ -d "$HOME/.agents/skills/$_sk" ]; then
-                rsync -a \
-                    --exclude 'references/bytedcli-debug-map.md' \
-                    --exclude 'references/providers/bytedcli.md' \
-                    "$HOME/.agents/skills/$_sk" "$st_dir/skills/" 2>/dev/null
-                rm -f "$st_dir/skills/spec-e2e-debug/references/bytedcli-debug-map.md" \
-                    "$st_dir/skills/spec-e2e-debug/references/providers/bytedcli.md"
-            elif [ "$_sk" = "fix-mr-comments" ] && [ -d "$HOME/.agents/skills/$_sk" ]; then
-                rsync -a \
-                    --exclude 'references/providers/bytedcli.md' \
-                    "$HOME/.agents/skills/$_sk" "$st_dir/skills/" 2>/dev/null
-                rm -f "$st_dir/skills/fix-mr-comments/references/providers/bytedcli.md"
-            elif [ -d "$HOME/.agents/skills/$_sk" ]; then
-                rsync -a "$HOME/.agents/skills/$_sk" "$st_dir/skills/" 2>/dev/null
+
+        local manifest="$st_dir/sync_manifest.zsh"
+        local -a _sync_skills=()
+        local -A _sync_excludes=()
+        if [ -f "$manifest" ]; then
+            source "$manifest"
+            _sync_skills=("${SYNC_SKILLS[@]}")
+            _sync_excludes=("${(@kv)SYNC_SKILL_EXCLUDES}")
+        else
+            _sync_skills=(gotchas spec-opti-workflow spec-opti-workflow-v2 spec-plan-revise spec-trouble-resolve spec-e2e-debug spec-code-review spec-commit-push fix-mr-comments hello-spec-start hello-spec-next hello-spec-advance gw-worktree git-worktree-converter summary)
+            _sync_excludes[spec-e2e-debug]="references/bytedcli-debug-map.md references/providers/bytedcli.md"
+            _sync_excludes[fix-mr-comments]="references/providers/bytedcli.md"
+        fi
+
+        local _sk _exclude
+        local -a _rsync_args
+        for _sk in "${_sync_skills[@]}"; do
+            if [ -d "$HOME/.agents/skills/$_sk" ]; then
+                _rsync_args=(-a)
+                for _exclude in ${(z)_sync_excludes[$_sk]}; do
+                    _rsync_args+=(--exclude "$_exclude")
+                done
+                rsync "${_rsync_args[@]}" "$HOME/.agents/skills/$_sk" "$st_dir/skills/" 2>/dev/null
+                for _exclude in ${(z)_sync_excludes[$_sk]}; do
+                    rm -f "$st_dir/skills/$_sk/$_exclude"
+                done
             fi
         done
     fi

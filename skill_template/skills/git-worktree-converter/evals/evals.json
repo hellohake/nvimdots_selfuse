@@ -1,0 +1,53 @@
+{
+  "skill_name": "git-worktree-converter",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "把 /tmp/demo-repo 这个普通 git 仓库改造成我 search_loader 那种 worktree 目录。它当前在 master 分支，先给我计划，不要直接动。",
+      "expected_output": "Runs the bundled script in dry-run mode, detects primary branch without assuming main, and returns a conversion plan with no mutation.",
+      "files": [],
+      "expectations": [
+        "Uses convert_to_worktree_layout.py without --execute",
+        "Reports current branch, detected primary branch, primary confirmation status, checkout_dir, dirty count, and next execute command",
+        "Does not run destructive filesystem moves during the planning request"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "这个仓库默认分支是 main，不是 master。帮我直接转换成 worktree 根目录结构，转换完检查 git worktree list。",
+      "expected_output": "Preflights the repo, detects or accepts main as primary, executes only if safe, and verifies the resulting bare-root plus checkout structure.",
+      "files": [],
+      "expectations": [
+        "Does not assume master as the primary branch",
+        "Runs a dry-run plan before any --execute conversion",
+        "Requires explicit user confirmation and passes --primary main before executing",
+        "Stops if the repository is dirty unless the user explicitly allowed dirty conversion",
+        "Runs verification commands after successful conversion"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "我在一个 feature/foo 分支上的普通 checkout，想变成 worktree 模式，主干分支叫 release/2026。按 search_loader 风格处理。",
+      "expected_output": "Recognizes the current branch is not the primary branch, requires or uses explicit primary branch release/2026, and chooses a non-main checkout directory unless overridden.",
+      "files": [],
+      "expectations": [
+        "Uses release/2026 as primary branch because the user specified it",
+        "Does not name the current feature checkout main when current branch differs from primary",
+        "Does not execute without passing --primary release/2026",
+        "Offers --checkout-dir override if the generated feature directory name is not desired"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "转换后我在 repo 根目录运行 lazygit 报 this operation must be run in a work tree，帮我判断是不是转换坏了。",
+      "expected_output": "Explains that the bare root is intentionally not a worktree, verifies the checkout directory works, and recommends running worktree tools from main/ or using the shell wrapper.",
+      "files": [],
+      "expectations": [
+        "Does not change root .git to point at .bare/worktrees/main",
+        "States that git -C <repo-root> rev-parse --show-toplevel failing is expected for the bare root",
+        "Verifies git commands work from <repo-root>/main or another peer worktree",
+        "Mentions lazygit should be run from main/ or through the root wrapper"
+      ]
+    }
+  ]
+}

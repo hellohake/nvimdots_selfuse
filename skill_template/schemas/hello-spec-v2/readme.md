@@ -31,23 +31,54 @@ brainstorm
 - `Agent Execution Audit` 是核心产物的审计段，用来证明本阶段遵守了 AI context discipline：读了哪些关键文件、是否内联大内容、下一步命令和 `/clear` 恢复命令是什么。
 - `spec-commit-push` 推荐显式传提案名或绝对路径；空上下文不能唯一定位提案时必须停手询问。
 
-## OpenSpec 原生技能交互
+## 推荐启动与推进方式
 
-`hello-spec-v2` 继续复用 OpenSpec 的 change 目录、artifact status、`openspec instructions <artifact-id>` 和 apply 指令生成能力，但不推荐使用所有 OpenSpec 原生技能作为入口。原因是本工作流有强人工 gate、DDD 澄清、经验飞轮、review 前置和多仓测试策略；fast-forward 型技能会把文档阶段一次性推进到 apply-ready，容易绕过人审节奏。
+`hello-spec-v2` 继续复用 OpenSpec 的 change 目录、artifact status、`openspec instructions <artifact-id>` 和 apply 指令生成能力，但推荐用薄封装技能控制节奏，避免 fast-forward 绕过人工 gate。
 
 推荐入口：
+
+```text
+hello-spec-start <change-name> <原始输入...>
+hello-spec-next <change-name>
+```
+
+使用约定：
+
+- `hello-spec-start`：创建新 change，消费本轮原始输入（飞书链接、本地文档路径或直接粘贴的需求），只启动到第一个业务 artifact。它不写 `intake.md`，不创建 `source.md`，不进入 apply；高密度输入需要可重读的外部来源，无法读取时需用户确认降级。
+- `hello-spec-next`：继续当前 change。它只自动创建轻量 placeholder；业务 artifact 每次最多生成一个；到 `grill-spec` 必须停。
+- `openspec-apply-change`：仅在用户本轮明确要求“开始实现 / apply / 按 plan 实现”后使用。它会进入代码实现阶段，不应由 `openspec-new-change` 或 `openspec-continue-change` 自动串起。
+- `openspec-verify-change` / `openspec-archive-change`：作为实现后的校验、归档动作使用，仍需结合 `spec-code-review`、人工 review 和 `spec-commit-push` 的约束。
+- `hello-spec-advance`：旧名兼容入口，等价推荐语义是 `hello-spec-next`；新流程不要主动使用这个名字。
+
+推荐顺序：
+
+```text
+hello-spec-start <change-name> <原始输入...>  # 创建 change + placeholder + 可生成 brainstorm
+  -> hello-spec-next <change-name>  # proposal
+  -> hello-spec-next <change-name>  # specs/design
+  -> GATE-1: grill-with-docs / grill-spec
+  -> hello-spec-next <change-name>  # tasks
+  -> hello-spec-next <change-name>  # plan
+  -> human review
+  -> openspec-apply-change <change-name>
+```
+
+原始输入边界：
+
+- 原始输入主要服务于 brainstorm/proposal/design 形成之前。
+- `hello-spec-start` 不写 `intake.md`；飞书/本地文档/长 prompt/硬约束需要可重读的外部来源，用户明确降级时记录 `NO_SOURCE_CONFIRMED=true`。
+- `brainstorm.md` 必须记录 `Input Sources` 和短摘要。
+- `proposal/specs/design` 以已生成 artifact 为主输入，必要时回查原始输入确认硬约束。
+- `tasks/plan` 默认不读原始输入；如果发现 canonical artifacts 与原始输入冲突，停止并走 `spec-plan-revise`，不要在 plan 阶段直接改口径。
+
+仍可使用的 OpenSpec 原生命令：
 
 ```text
 openspec-new-change <change-name>
 openspec-continue-change <change-name>
 ```
 
-使用约定：
-
-- `openspec-new-change`：创建 change 目录，展示第一个 ready artifact 的 instruction，然后停止。适合作为 `hello-spec-v2` 的标准入口。
-- `openspec-continue-change`：每次只创建一个 ready artifact，创建后停止。适合按 `brainstorm -> proposal -> specs -> design -> grill-spec -> tasks -> plan` 单步推进，并在关键节点让人 review。
-- `openspec-apply-change`：仅在用户本轮明确要求“开始实现 / apply / 按 plan 实现”后使用。它会进入代码实现阶段，不应由 `openspec-new-change` 或 `openspec-continue-change` 自动串起。
-- `openspec-verify-change` / `openspec-archive-change`：作为实现后的校验、归档动作使用，仍需结合 `spec-code-review`、人工 review 和 `spec-commit-push` 的约束。
+它们适合低风险或通用 schema；对于 `hello-spec-v2`，优先使用 `hello-spec-start` / `hello-spec-next`。
 
 不推荐入口：
 
