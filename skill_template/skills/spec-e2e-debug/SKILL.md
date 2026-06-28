@@ -1,6 +1,6 @@
 ---
 name: spec-e2e-debug
-description: 只读端到端/线上/泳道问题诊断器，适用于 OpenSpec-style SDD 提案测试后，也适用于非 spec 的日常排查。输入可以是 debug.md、任意门/Anywhere 抓包链接、LogID、PSM+时间、现象口述或复现步骤；结合代码现状和 diagnostic provider（bytedcli、其他 CLI、no-provider fallback）做假设-验证式根因定位，产出四分类诊断结论（代码问题/业务逻辑问题/正常现象/边界case）+ 证据链。Use when 用户说"端到端测了有问题但不知道哪错、帮我查 logid、定位根因、排查线上/泳道现象、任意门链接/anywhere 链接、这个返回不对帮我诊断"，即使没有 OpenSpec 提案也要用。
+description: Use when 用户需要只读诊断端到端、线上、泳道或真实客户端请求问题，适用于 OpenSpec-style SDD 测试后和日常排查。输入可能是 debug.md、HTTP 请求/响应抓包证据（curl/HAR/trace/share link；字节内部可称任意门/Anywhere）、LogID、PSM+时间、现象口述或复现步骤；典型说法包括“返回不对、帮我查 logid、定位根因、真实请求入参、抓包响应、端到端测了有问题”。
 ---
 
 # spec-e2e-debug
@@ -42,7 +42,7 @@ description: 只读端到端/线上/泳道问题诊断器，适用于 OpenSpec-s
 
 ## 角色与目标
 
-你是严谨的资深 SRE + 服务端工程师。处理**端到端/线上/泳道/客户端抓包**中的疑难：测试或真实请求出现现象，但**不确定根因在哪**。你的目标是**结合真实输入输出 + 代码现状 + 当前环境 diagnostic provider**，用**假设-验证**的方式定位根因，给出**四分类诊断结论 + 证据链**，并按本轮模式落盘报告。
+你是严谨的资深 SRE + 服务端工程师。处理**端到端/线上/泳道/HTTP 请求响应抓包**中的疑难：测试或真实请求出现现象，但**不确定根因在哪**。你的目标是**结合真实输入输出 + 代码现状 + 当前环境 diagnostic provider**，用**假设-验证**的方式定位根因，给出**四分类诊断结论 + 证据链**，并按本轮模式落盘报告。
 
 **定位（与邻居的边界）**：
 - 本技能 = **诊断器**，产出"是什么问题 / 为什么"，**不改代码**。
@@ -52,7 +52,7 @@ description: 只读端到端/线上/泳道问题诊断器，适用于 OpenSpec-s
 ## 用户输入
 
 - `$1`：可选。可以是 OpenSpec 提案名/绝对路径、仓库路径、报告输出目录，或直接省略。
-- **诊断输入（主）**：优先读取用户本轮口述、任意门/Anywhere 链接、LogID、PSM+时间、复现步骤；若 spec 模式下提案目录存在 `debug.md`，也读取它。
+- **诊断输入（主）**：优先读取用户本轮口述、HTTP 请求/响应抓包证据（curl/HAR/trace/share link/内部抓包链接等）、LogID、PSM+时间、复现步骤；若 spec 模式下提案目录存在 `debug.md`，也读取它。
 - `$ARGUMENTS`（辅）：临时补充现象。
 - 若没有持久输入文件：不要强制创建 `debug.md`。非 spec 场景直接从本轮口述规整输入，并把原文归档到报告。
 
@@ -63,7 +63,7 @@ description: 只读端到端/线上/泳道问题诊断器，适用于 OpenSpec-s
 | 模式 | 触发条件 | 报告路径 |
 |---|---|---|
 | **spec 模式** | `$1` 明确指向 `openspec/changes/<change>`、提案目录，或用户明确说按提案诊断 | `<proposal_dir>/debug-report.md`，纯追加 |
-| **standalone 模式** | 默认；用户只有现象、LogID、任意门链接、线上/泳道问题，未给提案目录 | `<repo_root>/.ai_doc/debug/{YYYYMMDD-HHMM}-{short-topic}-diagnosis.md` |
+| **standalone 模式** | 默认；用户只有现象、LogID、抓包证据、线上/泳道问题，未给提案目录 | `<repo_root>/.ai_doc/debug/{YYYYMMDD-HHMM}-{short-topic}-diagnosis.md` |
 
 standalone 报告命名规则：
 - `{short-topic}` 从现象或核心对象提取，使用小写短横线，如 `feelgood-missing`、`mall-ab-page-suspension`、`logid-20260625`。
@@ -77,7 +77,7 @@ standalone 报告命名规则：
 本技能在高上下文、刚跑过修复类技能、或诊断结论指向“代码问题”时，最容易被旧上下文带偏成“顺手修复”。启动后必须先在心里锁定当前任务身份，但**第一条状态更新要等输入/模式/报告路径确定后再发**：
 
 - **当前技能身份**：`spec-e2e-debug`
-- **唯一主输入**：`debug.md`（spec 模式可选），或用户本轮明确口述的 E2E/线上/泳道现象，或任意门/Anywhere 抓包链接，或 LogID/PSM/时间。
+- **唯一主输入**：`debug.md`（spec 模式可选），或用户本轮明确口述的 E2E/线上/泳道现象，或 HTTP 请求/响应抓包证据，或 LogID/PSM/时间。
 - **唯一主输出**：本轮锁定的诊断报告路径（spec: `<proposal_dir>/debug-report.md`；standalone: `<repo_root>/.ai_doc/debug/{timestamp}-{topic}-diagnosis.md`）
 - **唯一主目标**：只读定位根因，输出四分类诊断和证据链
 - **禁止目标**：不得修改业务代码、不得执行修复、不得写 `backup.md`、不得清理 `troubleshoot.md`、不得生成代码偏差归档
@@ -85,7 +85,7 @@ standalone 报告命名规则：
 启动后第一条对用户的状态更新必须包含：
 
 ```text
-已锁定任务：spec-e2e-debug；本轮只读诊断 <debug.md/口述现象/LogID/任意门链接>，模式=<spec|standalone>，报告只写入 <DEBUG_REPORT_PATH>，不改代码、不写 backup.md。
+已锁定任务：spec-e2e-debug；本轮只读诊断 <debug.md/口述现象/LogID/抓包证据>，模式=<spec|standalone>，报告只写入 <DEBUG_REPORT_PATH>，不改代码、不写 backup.md。
 ```
 
 硬停条件：
@@ -103,10 +103,10 @@ standalone 报告命名规则：
    - 确定 `DEBUG_REPORT_PATH` 后，再发第一条状态更新。
 1. **读 + 规整 debug 输入**（手写输入可能很随意，技能负责兜底规整，别要求用户填表）：
    - spec 模式若 `debug.md` 存在则读取；standalone 模式优先读取本轮口述/链接/LogID，不要求 debug.md。
-   - 从输入中**解析**出标准字段：现象 / 期望 / 任意门链接 / logid / psm / **发生时间** / 泳道 / tcc / libra / 复现步骤。
+   - 从输入中**解析**出标准字段：现象 / 期望 / 抓包证据（curl/HAR/trace/share link/内部抓包链接）/ logid / psm / **发生时间** / 泳道 / tcc / libra / 复现步骤。
    - 用户写得再随意都先尽力解析；**缺关键字段就主动问**，按以下优先级：
-     - 🔴 **必须有一个定位入口**：任意门/Anywhere 链接、logid、(psm + 发生时间)、或可复现步骤/明确代码现象。都没有才必问。
-     - 🔴 **查日志必须有发生时间**（哪怕大致区间）——日志查询强依赖它防超时（见阶段2）；但如果已有任意门链接，可先解析真实请求/响应，再按需要追问时间。
+     - 🔴 **必须有一个定位入口**：HTTP 请求/响应抓包证据、logid、(psm + 发生时间)、或可复现步骤/明确代码现象。都没有才必问。
+     - 🔴 **查日志必须有发生时间**（哪怕大致区间）——日志查询强依赖它防超时（见阶段2）；但如果已有抓包证据，可先解析真实请求/响应，再按需要追问时间。
      - 🟡 其余（泳道/tcc/libra/复现）缺失不阻断，但会降低定位效率，可顺带问。
    - 把规整后的结构化输入在心里（或临时）成形，作为后续诊断依据，并供阶段4原样归档。
 2. **Provider selection**：读取 [references/provider-contract.md](./references/provider-contract.md)，选择本轮 diagnostic provider：
@@ -141,7 +141,7 @@ standalone 报告命名规则：
 | `metrics` | 指标、告警、看板异常 |
 | `db` | 只读查询真实数据 |
 | `rpc` | 幂等查询类下游 RPC / API 复现 |
-| `capture` | 任意门/Anywhere/抓包链接解析真实客户端请求入参和响应值 |
+| `capture` | HTTP 请求/响应抓包证据解析真实客户端请求入参和响应值 |
 | `discovered:<name>` | 运行时发现的 provider 专有只读能力 |
 
 #### Provider discovery（开放能力发现）
@@ -169,17 +169,18 @@ standalone 报告命名规则：
 6. 需要扩链路再按需拉下一个 psm，重复上述。
 7. **若仍超时**：进一步收窄时间窗 / 缩小 psm 范围 / 加更具体的过滤条件，而不是重试同样的大范围查询。
 
-#### 任意门 / Anywhere 抓包优先级（真实请求/响应证据）
-如果用户提供任意门、Anywhere、anywheer、share URL、抓包链接，先把它当成最高价值证据之一处理，因为它能直接回答“客户端真实请求了什么、服务真实返回了什么”：
+#### 请求/响应抓包证据优先级（真实客户端输入输出）
+如果用户提供 curl 命令、HAR 文件、HTTP trace、share URL、provider-native capture link 或手工粘贴的请求/响应，先把它当成最高价值证据之一处理，因为它能直接回答“客户端真实请求了什么、服务真实返回了什么”。
 
-1. 使用 provider discovery 查找只读命令；bytedcli 内部环境优先尝试 `bits anywhere share get --url <share_url>`。
-2. 默认通过 bytedcli MCP 工具执行。只有当 MCP 未暴露该子命令、命令经 `--help`/discovery 判定为只读、且本机 shell `bytedcli bits anywhere share get --url ...` 可用时，才允许 shell fallback；在报告中记录“provider discovery 未暴露，shell bytedcli 只读 fallback”的事实。
-3. 把原始抓包结果落到 `/tmp/e2e-debug-<id>/anywhere-share.json` 或类似路径，再用结构化解析提取字段，避免把大 JSON 整体塞进上下文。
-4. 报告必须单列“真实请求/响应摘要”，至少包含：
+1. 先识别证据形态：`curl`/raw HTTP/HAR/trace 文件/share URL/provider-native capture link/粘贴的 request+response。
+2. 对可本地解析的文本证据（curl、raw HTTP、粘贴 JSON、HAR 文件），直接用结构化解析提取 endpoint、headers/query/body、response JSON path；不要为了“更完整”先查日志。
+3. 对 share URL 或 provider-native capture link，使用 selected provider 的 `capture` 能力；若 provider 没有 `capture` 能力，走 discovery 查找只读命令，仍找不到则把能力缺口写入报告。
+4. 把原始抓包结果落到 `/tmp/e2e-debug-<id>/capture-raw.<json|har|txt>` 或类似路径，再用结构化解析提取字段，避免把大 JSON 整体塞进上下文。
+5. 报告必须单列“真实请求/响应摘要”，至少包含：
    - 请求 URL/接口、核心 query/body 字段、版本号/aid/device/user 相关字段（按问题相关性选择）；
    - 响应中证明现象的 JSON 路径和值，例如 `page_data.suspension_layer.feelgood_msg` 缺失；
    - 抓包证据文件路径和执行命令。
-5. 任意门证据优先用于校准假设：如果代码推导和真实响应冲突，先解释冲突，不要直接下代码结论。
+6. 抓包证据优先用于校准假设：如果代码推导和真实响应冲突，先解释冲突，不要直接下代码结论。
 
 ### 阶段 3：收敛定性（四分类 + 证据链）
 把验证结果收敛成**根因结论**，归入四类之一，每条结论**必须挂证据**（哪个平台查到什么、日志哪行、配置什么值）：
@@ -228,10 +229,10 @@ FORBIDDEN_ARCHIVE_PATH=<proposal_dir>/backup.md
 - **根因一句话**：
 - **最关键证据**：
 
-### 真实请求/响应摘要（有任意门/抓包时必填）
+### 真实请求/响应摘要（有抓包证据时必填）
 | 字段 | 值 | 证据 |
 |---|---|---|
-| 请求接口 | ... | /tmp/.../anywhere-share.json |
+| 请求接口 | ... | /tmp/.../capture-raw.json |
 | 关键入参 | ... | ... |
 | 关键响应路径 | ... | ... |
 
@@ -242,7 +243,7 @@ FORBIDDEN_ARCHIVE_PATH=<proposal_dir>/backup.md
 
 ### 链路图（ASCII，当前真实链路优先）
 ~~~text
-客户端请求/任意门入参
+客户端真实请求入参
   |
   v
 入口服务/handler
@@ -279,7 +280,7 @@ FORBIDDEN_ARCHIVE_PATH=<proposal_dir>/backup.md
 3. 🔴 **诊断优先不改代码**：本技能只产结论和下一步指针，禁止编辑业务代码。
 4. **假设驱动**：先提假设再按需查，不堆砌全平台数据。
 5. **证据可追溯**：每条结论必须挂具体证据（平台+数据+行号），禁止凭感觉下结论。
-6. **不臆测现象**：手写输入随意时技能负责规整；没有任意门/LogID/PSM+时间/复现步骤/明确代码现象等任何定位入口时才必问。只有准备查日志时，发生时间才是必填。
+6. **不臆测现象**：手写输入随意时技能负责规整；没有抓包证据/LogID/PSM+时间/复现步骤/明确代码现象等任何定位入口时才必问。只有准备查日志时，发生时间才是必填。
 7. **环境失败不当诊断信号**：provider 鉴权/版本/权限类失败只提示用户手动处理（login / update / 申请权限），不重试、不自动执行、不写进业务结论；非预期报错如实反馈用户。
 8. 🔴 **日志查询必带时间窗**：准备查日志但没有发生时间时先问用户，绝不无时间范围全量扫（必超时）；超时就收窄，不重试大范围。
 9. 🔴 **输出路径锁**：spec 模式写 `<proposal_dir>/debug-report.md`；standalone 模式写 `<repo_root>/.ai_doc/debug/{timestamp}-{topic}-diagnosis.md`；不得写根部 `.ai_doc/debug-report.md` 作为非 spec 默认路径；不得写 backup.md。

@@ -35,7 +35,7 @@ The table below is a common taxonomy, not a closed whitelist. Providers may expo
 | `metrics` | Read metrics, alarms, dashboards | metric, tags, time window | datapoints/link/summary |
 | `db` | Read database or warehouse data | table, key, SELECT query | rows/count/query path |
 | `rpc` | Reproduce read-only downstream calls | method, request | request/response summary |
-| `capture` | Parse client capture / Anywhere / shared request-response evidence | share URL, capture ID | saved raw capture path + request/response field summary |
+| `capture` | Parse HTTP request/response capture evidence | curl/HAR/trace, share URL, provider-native capture link, pasted raw request/response | saved raw capture path + request/response field summary |
 | `discovered:<name>` | Provider-specific read-only capability discovered at runtime | depends on provider | discovery result + read-only justification + evidence |
 
 ## Provider Discovery

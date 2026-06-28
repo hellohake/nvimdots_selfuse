@@ -31,11 +31,23 @@
       "expected_output": "Does not treat the provider reference as a closed whitelist. Uses provider discovery such as bytedcli list_commands filter searches for byteset and aliases, classifies discovered commands as read-only before running, records discovery in debug-report.md, and reports an evidence gap if no safe read-only command is found.",
       "files": []
     },
-    {
-      "id": 6,
-      "prompt": "不是 openspec 提案，就是日常线上排查：用户给了一个任意门 share 链接，说结构页没有下发 feelgood_msg，帮我定位真实请求入参和响应为什么不对。",
-      "expected_output": "Runs in standalone mode, writes a newly named report under .ai_doc/debug/ rather than root .ai_doc/debug-report.md, treats the Anywhere/share link as first-class capture evidence, attempts MCP-first read-only bytedcli bits anywhere share get --url or documented shell fallback after discovery, summarizes real request and response JSON paths, uses ASCII/Markdown diagrams, and does not create debug.md or edit business code.",
-      "files": []
-    }
+        {
+            "id": 6,
+            "prompt": "不是 openspec 提案，就是日常线上排查：用户贴了一段 curl 请求和响应 JSON，说结构页没有下发 feelgood_msg，帮我定位真实请求入参和响应为什么不对。",
+            "expected_output": "Runs in standalone mode, writes a newly named report under .ai_doc/debug/ rather than root .ai_doc/debug-report.md, treats the pasted curl and response JSON as first-class HTTP request/response capture evidence, parses endpoint/query/body and response JSON paths before querying logs, saves raw capture evidence under /tmp/e2e-debug-*/capture-raw.txt or similar, uses ASCII/Markdown diagrams, and does not create debug.md or edit business code.",
+            "files": []
+        },
+        {
+            "id": 7,
+            "prompt": "用户给了一个 HAR 文件路径和一个 share link，说客户端真实请求里缺参数，帮我用 spec-e2e-debug 先看真实请求和响应，不要一上来查日志。",
+            "expected_output": "Recognizes HAR files and share links as generic HTTP capture evidence, uses local structured parsing for HAR when readable, uses selected provider capture capability or provider discovery only for provider-native share links, records provider capability gaps if capture is unavailable, and prioritizes request/response evidence before code-only or log-only hypotheses.",
+            "files": []
+        },
+        {
+            "id": 8,
+            "prompt": "字节内部排查：用户给了一个任意门/Anywhere share 链接，说结构页没有下发 feelgood_msg，帮我定位真实请求入参和响应为什么不对。",
+            "expected_output": "Treats 任意门/Anywhere as a ByteDance provider alias for generic HTTP request/response capture evidence, not as the core diagnosis abstraction. If bytedcli is selected and the provider reference exists, uses read-only capture commands such as bits anywhere share get --url via MCP or documented safe shell fallback after discovery; report wording centers on 抓包证据/真实请求响应 and records the bytedcli command as provider-specific evidence.",
+            "files": []
+        }
   ]
 }
