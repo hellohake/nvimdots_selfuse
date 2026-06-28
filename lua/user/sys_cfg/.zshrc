@@ -340,7 +340,7 @@ sync_cfg() {
             _sync_skills=("${SYNC_SKILLS[@]}")
             _sync_excludes=("${(@kv)SYNC_SKILL_EXCLUDES}")
         else
-            _sync_skills=(gotchas spec-opti-workflow spec-opti-workflow-v2 spec-plan-revise spec-trouble-resolve spec-e2e-debug spec-code-review spec-commit-push fix-mr-comments hello-spec-start hello-spec-next hello-spec-advance gw-worktree git-worktree-converter summary)
+            _sync_skills=(gotchas spec-opti-workflow spec-opti-workflow-v2 spec-plan-revise spec-trouble-resolve spec-e2e-debug spec-code-review spec-commit-push fix-mr-comments hello-spec-start hello-spec-next gw-worktree git-worktree-converter summary)
             _sync_excludes[spec-e2e-debug]="references/bytedcli-debug-map.md references/providers/bytedcli.md"
             _sync_excludes[fix-mr-comments]="references/providers/bytedcli.md"
         fi

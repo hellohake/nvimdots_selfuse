@@ -1,6 +1,6 @@
 # spec_code_review.md Template
 
-Use this structure for every review run. If the file already exists, append a new `## Review Run` section and preserve older runs.
+This file is the mandatory output contract for `spec-code-review` whenever the skill writes `spec_code_review.md`. If the file already exists, append a new `## Review Run` section and preserve older runs. Skip this template only when the user explicitly asks for oral pre-review and no report file is written.
 
 ````markdown
 # Spec Code Review
@@ -17,6 +17,8 @@ Use this structure for every review run. If the file already exists, append a ne
   - `<unstaged/staged/base ref, command used>`
 - Reviewer model:
   - `<model or fallback>`
+- Reviewer dispatch:
+  - `mode=<independent_agent | inline_fallback | degraded_no_diff_or_context>`; `readonly=<yes | no + reason>`; `context=<curated_review_pack | degraded + reason>`
 - Extra instructions:
   - `<user instructions or none>`
 
@@ -61,6 +63,8 @@ Use this section only for execution/review-stage decisions that AI should not ma
   - `<中文列出人工只需要重点核对的文件、finding、spec 反向风险、diff stat 或验证结果>`
 - Suggested next action:
   - `<继续让 coding agent 修 accepted / 再跑一轮 spec-code-review / 进入人工 CR / 停止 AI loop 做人工深审>`
+- Review consumption note:
+  - `<中文说明 coding agent 只能处理最新 Fix Queue 的 accepted 项，且修复前必须验证 finding 证据仍成立；若证据不成立、scope 变大或指令不清，必须停止并更新状态，而不是盲修。>`
 
 Readiness rules:
 
@@ -73,6 +77,13 @@ Readiness rules:
 | ID | Severity | Category | File:Line | Finding | Evidence | Recommendation | Status |
 |---|---|---|---|---|---|---|---|
 | R001 | Blocker | 上下文正确性 | `/abs/path/a.go:42` | <中文描述问题> | <中文说明代码/spec/引用点证据，保留代码标识符原文> | <中文说明具体建议> | accepted |
+
+Severity calibration:
+
+- `Blocker`: 可能破坏核心需求、线上行为、数据/契约/权限/并发/缓存/实验链路，或明显违反架构边界。
+- `Major`: 高概率维护/行为风险，默认应修，但未达到阻塞提交级别。
+- `Minor`: 局部质量或可维护性建议，不阻塞。
+- `Nit`: 纯风格或偏好，不进入 `accepted`，除非用户明确要求。
 
 Categories:
 
@@ -89,6 +100,8 @@ Status values:
 - `human_decision`: needs human design or risk decision.
 - `deferred`: not blocking this commit.
 - `false_positive`: reviewer concern rejected by evidence.
+- `fixed`: coding agent fixed an accepted item and mapped the change to this finding.
+- `blocked`: coding agent could not safely fix an accepted item because evidence changed, instructions were unclear, or required scope exceeded the Fix Queue.
 
 ### Spec 反向风险
 
@@ -106,6 +119,8 @@ Status values:
   - `<none or list>`
 - Project constraints checked:
   - `<AGENTS.md/gotchas/design docs read>`
+- YAGNI checks for broadening suggestions:
+  - `<none / searched callers via rg ... and found ... / no usage found so deferred / human_decision>`
 
 ### Manual Test Commands
 
@@ -163,12 +178,16 @@ The coding agent must follow these constraints:
 2. Do not modify `human_decision`, `deferred`, or `false_positive` items.
 3. Every code change must map to a finding ID.
 4. Do not do opportunistic refactors or unrelated cleanup.
-5. If an accepted item requires broader scope than listed, stop and report instead of expanding silently.
-6. After fixing, update this report's Fix Queue status:
+5. Before fixing each accepted item, verify the finding evidence still applies to the current code. If it no longer applies, update the row to `false_positive` or `blocked` with evidence.
+6. If the instruction, file scope, or acceptance criteria are unclear, stop and mark the row `blocked` with the clarification needed.
+7. If an accepted item requires broader scope than listed, touches contracts/data/cross-repo boundaries, or conflicts with repo constraints, stop and report instead of expanding silently.
+8. If a reviewer suggestion asks for a more generic or "proper" implementation, check actual usage and spec demand first; if unsupported by evidence, mark `deferred` or `human_decision` rather than implementing extra capability.
+9. After fixing, update this report's Fix Queue status:
    - `accepted -> fixed`
    - `accepted -> blocked` with reason if it cannot be fixed safely.
-7. Run the lightweight verification listed below.
-8. Do not treat an older review run's `Gate` as current after fixes. After fixes, recommend a second `spec-code-review` run unless the user explicitly skips it.
+   - `accepted -> false_positive` with code/spec evidence if the finding is invalid.
+10. Run the lightweight verification listed below.
+11. Do not treat an older review run's `Gate` as current after fixes. After fixes, recommend a second `spec-code-review` run unless the user explicitly skips it.
 
 ### Verification Guidance
 

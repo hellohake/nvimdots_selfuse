@@ -1,6 +1,6 @@
 ---
 name: spec-code-review
-description: OpenSpec-style SDD 提案 apply 完成后、spec-commit-push 前的 AI pre-commit review。独立 reviewer 结合 proposal/spec/design/tasks、真实 git diff、改动点上下文、引用点、邻近实现、gotchas/AGENTS 约束，审查需求一致性、spec 反向风险、代码位置、命名、边界、简洁性和验证缺口，产出可给 coding agent 消费的 spec_code_review.md（含 Fix Queue 和一条可复制执行指令）。第一版只产 review report，不自动改代码、不 loop、不 commit/push。Use when 用户说"AI review 这次代码 / pre-commit review / apply 后帮我审一下 / 写完代码先做 spec-code-review"，或 OpenSpec-style SDD apply 完成后准备提交前。
+description: Use when an OpenSpec-style SDD proposal has been applied and needs AI pre-commit review before human CR, commit, or push; also use when the user says "AI review 这次代码", "pre-commit review", "写完代码先做 spec-code-review", Fix Queue, CR Readiness, or spec_code_review.md.
 ---
 
 # spec-code-review
@@ -19,6 +19,66 @@ description: OpenSpec-style SDD 提案 apply 完成后、spec-commit-push 前的
 
 优先使用独立 reviewer agent；如果平台支持不同模型，优先按用户指定模型（如 GPT-5.5 / Claude 4.8）执行 review。不同模型是降低确认偏差的手段，但质量主要来自本 SOP：必须看 spec、diff、上下文、引用点和邻近实现。
 
+这不是通用代码审查的替代品，也不要降级成只看代码质量的 broad review。它的核心价值是把 SDD 约束和真实代码上下文放在同一个 gate 里：既审实现是否符合 spec，也审 spec 是否误判真实系统。
+
+## Dispatch Mode Decision
+
+根据当前 harness 能力选择 review 模式，并在报告 `Scope -> Reviewer dispatch` 里记录：
+
+| Mode | 触发条件 | 允许行为 | 报告记录 |
+|---|---|---|---|
+| `independent_agent` | 平台允许开独立 reviewer，且用户/系统未禁止 | 给 reviewer 一个整理后的审查包；reviewer 只读；主流程写报告 | `mode=independent_agent; readonly=yes; context=curated_review_pack` |
+| `inline_fallback` | 不能开 subagent、用户未授权、或当前工具无 agent 能力 | 当前 agent 按同一 SOP 审查；必须显式承认不是独立模型视角 | `mode=inline_fallback; readonly=yes; context=degraded + reason` |
+| `degraded_no_diff_or_context` | 找不到可靠 diff、提案文档或关键上下文 | 不输出完整 gate；停手要求补输入，或只给口头预审 | `mode=degraded_no_diff_or_context; readonly=yes; context=degraded + missing inputs` |
+
+## Review Dispatch Contract
+
+如果使用 `independent_agent`，给 reviewer 的输入必须是整理后的审查包，而不是当前会话的完整历史。这样可以降低实现者叙事对 reviewer 的影响，也避免 reviewer 顺着 coding agent 的推理继续合理化。
+
+审查包至少包含：
+
+- 提案摘要：`proposal.md` / `design.md` / `tasks.md` / 相关 `spec.md` 的关键要求和边界。
+- 改动范围：每个仓库的绝对路径、branch、`git status --porcelain`、diff baseline 和实际使用的 diff 命令。
+- 真实 diff：`git diff --stat` / `git diff`，以及 staged diff（如存在）。
+- 上下文证据：关键改动符号的定义、引用点、邻近模式、入口/出口。
+- 约束：仓库 `AGENTS.md`、相关 gotchas、用户本轮额外 review 指令。
+
+Reviewer agent 必须只读：不得修改 working tree、index、HEAD、branch、提案文档或报告文件。需要比较其他 revision 时，只能使用只读命令或临时 worktree；最终由主流程把审查结论整理进 `spec_code_review.md`。
+
+## NEVER
+
+- NEVER 把本技能降级成只看代码质量的通用 code review；必须同时审 spec、diff、上下文和 spec 反向风险。
+- NEVER 在没有 `file:line`、spec 条款、引用点、命令输出或邻近模式证据时写确定 finding。
+- NEVER 自动改代码、commit、push、创建 MR，或处理真实 MR 评论。
+- NEVER 让 coding agent 修 `human_decision`、`deferred`、`false_positive`，除非用户明确改状态或另行授权。
+- NEVER 把缺失的可选 `manual_test_commands.md` / `human-decisions.md` 当作流程失败；按轻量模板语义标 `not_enabled` / `not_created`。
+- NEVER 静默扩大 Fix Queue 的 `Files`/`Scope`；触碰契约、数据、跨仓或设计判断时转 `human_decision`。
+- NEVER 把旧 `Gate` 或旧 `CR Readiness` 当成修复后的当前状态；修复后需要新一轮 review 才能刷新 gate。
+
+## Finding Calibration Contract
+
+严重级别按真实风险校准，不按 reviewer 的表达强度校准：
+
+- 只有可能破坏核心需求、线上行为、数据/契约/权限/并发/缓存/实验链路、或把代码放进错误架构边界的问题，才标 `Blocker`。
+- 明确会增加维护风险、漏掉关键边界、或需要默认修复的问题，标 `Major`。
+- 局部质量、可读性、低风险重复代码，标 `Minor`。
+- 纯风格、命名偏好、无行为影响的建议，标 `Nit`，默认不进入 `accepted`。
+
+每个 finding 必须回答三件事：证据在哪里、为什么对这个提案重要、怎样最小化修复。没有 `file:line`、引用点、spec 条款或命令证据的判断，不能写成确定结论；只能写成 `human_decision` 或审查不确定性。
+
+对"做得更完整"、"更专业"、"建议泛化/抽象/兼容更多场景"这类意见要先做 YAGNI 检查：查调用方、spec 需求和现有邻近模式。没有实际使用或明确需求支撑时，默认 `deferred` 或 `human_decision`，不要放进 `accepted`。
+
+## Review Consumption Contract
+
+`spec_code_review.md` 是 review 结果，不是盲目执行清单。后续 coding agent 消费 Fix Queue 时必须遵循：
+
+- 只处理最新 `Review Run` 中 `Status=accepted` 的项。
+- 修每一项前先验证 finding 证据在当前代码里仍然成立；如果代码已变化或证据不成立，更新为 `false_positive` 或 `blocked` 并写明证据。
+- 如果 `Instruction`、`Files` 或 `Acceptance` 不足以安全执行，停止并标 `blocked`，不要猜测扩展。
+- 如果修复需要超过 Fix Queue 的文件范围、触碰契约/数据/跨仓边界，停止并转 `human_decision`，不要静默扩大 scope。
+- 如果 reviewer 建议和用户已定架构、repo 约束、YAGNI 或真实调用链冲突，必须技术性 push back，并把证据写回报告。
+- 修复后只更新本轮 Fix Queue 的状态和必要的修复记录，不把旧 Gate 当作自动刷新；是否收敛由下一轮 `spec-code-review` 判定。
+
 ## 输入
 
 - `$1`：提案名或提案目录绝对路径。可选；未提供时从当前目录、`openspec/changes/*` 推断。
@@ -29,7 +89,7 @@ description: OpenSpec-style SDD 提案 apply 完成后、spec-commit-push 前的
 
 - 主输出：提案目录下的 `spec_code_review.md`。
 - 终端摘要：Gate 结论、Blocker/Major 数量、报告绝对路径、可复制给 coding agent 的一句话指令。
-- 报告模板见 [references/report_template.md](./references/report_template.md)，按需读取并严格使用其结构。
+- 写报告前必须读取 [references/report_template.md](./references/report_template.md)，并严格使用其结构；除非用户只要口头预审且不写文件，否则不要跳过模板。
 
 ## 报告语言
 
@@ -164,7 +224,7 @@ Fix Queue 字段必须包含：
 
 - `ID`：稳定编号 `R001`、`R002`。
 - `Severity`
-- `Status`：`accepted / human_decision / deferred / false_positive`
+- `Status`：初始 review 状态为 `accepted / human_decision / deferred / false_positive`；coding agent 修复后可更新为 `fixed / blocked / false_positive`。
 - `Fixability`：`clear / needs_design / risky / unclear`
 - `Scope`：`local / cross-file / contract / data / unknown`
 - `Files`：建议允许修改的文件范围。
@@ -175,31 +235,11 @@ Fix Queue 字段必须包含：
 
 当 diff 中出现新增/修改的测试文件（如 Go 的 `*_test.go`、前端/脚本项目的 test/spec 文件）时，报告必须生成 `Manual Test Commands`，方便用户复制后手动运行看输出。若提案级 `manual_test_commands.md` 存在，检查是否已有对应记录；若不存在，只在报告中标注“ledger 未启用/未创建”，不要要求模板预置该文件。
 
-原则：
-
-1. **技能不自动跑重型测试**：遵守仓库约束。比如 `search_card_admin` 禁止自动执行完整 `go build` / `go test ./...`，但可以给用户列出 targeted command。
-2. **命令必须可复制**：写成 fenced code block；包含 `cd <repo>`，避免用户在错目录执行。
-3. **优先最小范围**：
-   - Go：从测试文件路径推导 package 目录，从 `func TestXxx` 提取测试名，生成 `go test ./<pkg> -run 'TestA|TestB' -count=1`。
-   - 如果只知道 package 不知道测试名，生成 `go test ./<pkg> -count=1`，并说明粒度较粗。
-   - 非 Go 项目按仓库已有 package scripts 或邻近文档生成 targeted command；拿不准时写“未能可靠推导”，不要编造。
-4. **明确执行状态**：标注 `Status=not_run_by_skill`、`manual_only` 或 `skipped_by_repo_rule`，说明这是给用户手动执行的命令。
-5. **关联 finding**：每条命令标注覆盖哪些 finding/test 文件，例如 `C001 -> R001/R003`。
-6. **检查统一台账**：
-   - 如果 `manual_test_commands.md` 已有对应命令，在报告中引用其绝对路径和命令 ID；如果文件不存在，直接在报告中提供命令，并提示用户可按需创建 ledger。
-   - 如果台账文件存在但缺失对应命令，在报告中标为验证缺口，并在本轮 `Manual Test Commands` 中补出建议命令；同时建议 coding agent 或当前阶段更新台账。
-   - 如果台账文件不存在，标记 `Ledger status=not_enabled`，说明轻量模板未启用该台账，本报告已内联可复制命令；不要把“文件不存在”当作验证缺口。
-
-Go 示例：
-
-```bash
-cd /data00/home/lihao.hellohake/go/src/code.byted.org/ecom/search_card_admin/card_type_support
-go test ./server_middleware -run 'TestSceneFromRequest' -count=1
-```
+核心原则：不自动跑重型测试；命令必须可复制并包含 `cd <repo>`；优先最小范围；明确 `not_run_by_skill` / `manual_only` / `skipped_by_repo_rule`；每条命令关联 finding 或测试文件。字段、状态和 Go 命令推导规则以 `references/report_template.md` 为准，避免在主体和模板之间维护两套表格契约。
 
 ### 阶段 6：写报告与可复制指令
 
-1. 读取 [references/report_template.md](./references/report_template.md)。
+1. 必须读取 [references/report_template.md](./references/report_template.md)；这是输出格式 contract，不是可选参考。
 2. 写入提案目录 `spec_code_review.md`，若文件已存在则追加一个新 review run，不覆盖历史。
 3. 报告必须包含 **Coding Agent Copy Prompt**，并且这句话里必须使用 `spec_code_review.md` 的**绝对路径**，方便用户整句复制给 coding agent。
 4. 多轮 review 时，Copy Prompt 必须明确“只处理最新一轮 Review Run 的 Fix Queue”，避免 coding agent 误处理历史 run。

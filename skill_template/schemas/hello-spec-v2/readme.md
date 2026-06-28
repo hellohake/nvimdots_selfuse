@@ -48,7 +48,6 @@ hello-spec-next <change-name>
 - `hello-spec-next`：继续当前 change。它只自动创建轻量 placeholder；业务 artifact 每次最多生成一个；到 `grill-spec` 必须停。
 - `openspec-apply-change`：仅在用户本轮明确要求“开始实现 / apply / 按 plan 实现”后使用。它会进入代码实现阶段，不应由 `openspec-new-change` 或 `openspec-continue-change` 自动串起。
 - `openspec-verify-change` / `openspec-archive-change`：作为实现后的校验、归档动作使用，仍需结合 `spec-code-review`、人工 review 和 `spec-commit-push` 的约束。
-- `hello-spec-advance`：旧名兼容入口，等价推荐语义是 `hello-spec-next`；新流程不要主动使用这个名字。
 
 推荐顺序：
 

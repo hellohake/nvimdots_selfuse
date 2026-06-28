@@ -20,6 +20,19 @@ business artifacts and hard-stops at `grill-spec`.
 If the change cannot be uniquely identified, ask for the change name or absolute
 proposal path.
 
+Intent semantics:
+
+- Status-only requests such as "看一下状态" or "where is this change" only report
+  status and do not write files.
+- Progress requests such as "continue", "next", "推进", or `hello-spec-next
+  <change>` authorize advancing the current ready artifact by exactly one safe
+  step.
+- A generic progress request authorizes creating the current ready Business
+  Artifact, except when the ready artifact is `grill-spec`, which is always a
+  gate stop.
+- Explicit requests for a named artifact may create only that artifact if it is
+  the current ready artifact. Do not skip ahead to satisfy the named request.
+
 ## Artifact Classes
 
 ### Auto Placeholder
@@ -77,6 +90,67 @@ Do not auto-create `grill-spec.md`. When it is ready:
 6. If any blocking item is `pending_user_confirmation` or lacks evidence, keep
    `grill-spec.md` pending and do not generate tasks/plan.
 
+## Machine Contract
+
+The purpose of this skill is to remove guesswork. Treat missing machine fields as
+a stop condition, not as permission to infer paths from memory or naming habits.
+
+### Stop Reasons
+
+Use these exact enum-like values in the final `Stopped at:` field. Keep this list
+small; add a new value only when the stop condition needs distinct downstream
+handling.
+
+- `missing_status_contract`: `openspec status --json` lacks required fields.
+- `missing_instructions_contract`: `openspec instructions --json` lacks required
+  fields for the current artifact.
+- `path_contract_mismatch`: status JSON and instructions JSON disagree on
+  `resolvedOutputPath`.
+- `existing_human_content`: an Auto Placeholder output path already exists and
+  differs from the template.
+- `awaiting_progress_request`: the user asked for status only, so no artifact was
+  created.
+
+### Status JSON
+
+Run `openspec status --change "<CHANGE_NAME>" --json` after `REPO_ROOT` and
+schema discovery are locked. Required fields:
+
+- `schemaName`: must equal `hello-spec-v2`.
+- `changeDir`: absolute or repo-root-relative path to the proposal directory.
+- `nextReadyArtifact.id`: artifact id to handle next.
+- `artifacts[]`: list containing at least `id`, `status`, and
+  `resolvedOutputPath` for each artifact.
+
+Use `nextReadyArtifact.id` as the only source of truth for the next step. Use
+`artifacts[].resolvedOutputPath` to find existing artifact files. If any required
+field is missing, stop with `Stopped at: missing_status_contract` and include the
+missing field names.
+
+### Instructions JSON
+
+Run `openspec instructions <artifact-id> --change "<CHANGE_NAME>" --json` for
+the current `nextReadyArtifact.id`. Required fields:
+
+- `artifactId`: must match `nextReadyArtifact.id`.
+- `resolvedOutputPath`: output path for this artifact.
+- `template`: required only for Auto Placeholder artifacts.
+- `instructions` or equivalent artifact guidance: required for Business
+  Artifacts.
+
+If `resolvedOutputPath` disagrees with the matching `artifacts[]` entry from
+status JSON, stop with `Stopped at: path_contract_mismatch`. If required fields
+are missing, stop with `Stopped at: missing_instructions_contract`.
+
+### Completion Checks
+
+- Treat an artifact as ready only when it is named by `nextReadyArtifact.id`.
+- Treat `grill-spec.md` as complete only under the status/evidence rule in the
+  Interactive Gate section. Do not accept a checked box, file existence, or
+  casual "looks done" wording as sufficient.
+- Do not guess schema paths, output paths, or artifact ordering when JSON is
+  incomplete.
+
 ## Workflow
 
 ### Phase 0 - Identity Lock
@@ -106,6 +180,13 @@ Accepted inputs:
 - Absolute change dir: `/abs/repo/openspec/changes/<change>`
 - Change name: find under nearest `openspec/changes/<change>`
 
+First lock the repo root:
+
+1. Locate the nearest ancestor containing `.openspec.yaml`.
+2. Read `.openspec.yaml` to discover the active schema configuration.
+3. Only continue when schema discovery and `openspec status --json` both confirm
+   `schemaName=hello-spec-v2`.
+
 Run:
 
 ```bash
@@ -133,7 +214,12 @@ Repeat while the next ready artifact is in `Auto Placeholder`:
    ```
 
 2. Read `template` and `resolvedOutputPath` from JSON.
-3. Write the template verbatim to `resolvedOutputPath`.
+3. Apply the overwrite guard:
+   - If `resolvedOutputPath` does not exist, write the template verbatim.
+   - If it exists and its content is byte-for-byte equal to `template`, treat it
+     as already satisfied and do not rewrite it.
+   - If it exists and differs from `template`, stop with `Stopped at:
+     existing_human_content`; report the path and do not overwrite it.
 4. Re-run status.
 
 Stop after a non-placeholder artifact becomes ready.
@@ -146,8 +232,11 @@ When a non-placeholder artifact is ready:
 2. If artifact is `grill-spec`, stop and present the gate instructions.
 3. If artifact is `tasks` or `plan`, first verify `grill-spec.md` exists and is
    complete under the evidence/status rule.
-4. Create exactly one business artifact only when the user asked this turn to
-   draft/continue that artifact. After writing it, stop.
+4. Create exactly one business artifact only when this turn is a progress
+   request or explicitly names that current ready artifact. After writing it,
+   stop.
+5. If this turn is status-only, do not create the artifact. Stop with
+   `Stopped at: awaiting_progress_request`.
 
 For `plan.md`, enforce the atomic-step gate:
 
@@ -189,8 +278,11 @@ cd <repo root> && hello-spec-next <change>
 ## Success Criteria
 
 - Placeholder artifacts may be created in one pass.
+- Existing human-authored placeholder files are never overwritten.
 - At most one business-bearing artifact is created.
 - `grill-spec` is never skipped.
 - `tasks` and `plan` remain blocked until `grill-spec.md` is complete with
   status/evidence.
+- Status and instructions JSON fields are validated before writing; missing
+  fields stop the workflow instead of triggering path or order guesses.
 - The skill never applies code changes.
