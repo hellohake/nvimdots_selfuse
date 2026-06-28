@@ -12,6 +12,96 @@
       "prompt": "上一轮刚做过其它收尾任务，但现在运行 spec-trouble-resolve 处理 openspec/changes/foo/troubleshoot.md。",
       "expected_output": "Explicitly states the task lock, refuses to mix unrelated prior context with troubleshoot resolution, and only handles actions traceable to the specified troubleshoot.md entries.",
       "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "$spec-trouble-resolve openspec/changes/foo/troubleshoot.md，里面只有一条：\"接口返回不符合预期，帮我修一下\"。",
+      "expected_output": "Does not search or edit code yet. Performs clarity precheck, explains that phenomenon/expected behavior/scope are insufficient, and asks up to three targeted clarification questions.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "$spec-trouble-resolve openspec/changes/foo/troubleshoot.md，问题记录说需要给 PackCard 请求新增一个 scene 字段，否则无法区分场景。",
+      "expected_output": "Classifies the issue as Type A because it changes a field/interface/contract, summarizes the technical route and blast radius, updates or plans updates to spec/design/plan/proposal before code, and does not disguise it as a local Type B fix.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "$spec-trouble-resolve openspec/changes/foo/troubleshoot.md，问题记录指向一个 Go 文件里的 nil pointer bug；修复后需要确认没有语法/类型错误。",
+      "expected_output": "Keeps the fix scoped to the troubleshoot item, calls gopls go_diagnostics for the modified Go file set after editing, treats error diagnostics as blocking, and does not replace diagnostics with go test or go build.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "$spec-trouble-resolve foo，当前仓库有 .openspec.yaml 且 changes root 不是 openspec/changes；请处理对应提案的 troubleshoot.md。",
+      "expected_output": "Performs schema/layout discovery by finding and reading the nearest .openspec.yaml, checking concrete candidate keys such as changes_root/change_root/proposal_root/spec_root before falling back. It records layout_source, candidate_roots, selected CHANGE_DIR, and stops if multiple candidate proposal directories exist.",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "$spec-trouble-resolve 这里有个 apply 后问题：handler 的 nil 判断漏了，现象、期望、范围都说清楚了，但我没有给提案目录，也没有 troubleshoot.md。",
+      "expected_output": "Allows diagnosis and minimal repair from the clear ARGUMENTS, but does not create a floating backup.md. Final response states that archival was skipped because the proposal directory is missing and asks for a change dir if archival is needed.",
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "$spec-trouble-resolve openspec/changes/foo/troubleshoot.md，里面的问题是一个测试脚本断言写错了，tasks.md 明确允许运行这个单测文件的 targeted test。",
+      "expected_output": "Classifies as Type D, limits changes to test/script files, keeps go_diagnostics mandatory only if Go files changed, forbids broad tests, and allows the explicitly permitted targeted test only after stating the command and scope.",
+      "files": []
+    },
+    {
+      "id": 9,
+      "prompt": "$spec-trouble-resolve openspec/changes/foo/troubleshoot.md，文件里有三条记录：## 问题 1 已处理目标、## 问题 2 本轮不处理、## 问题 3 待澄清。请只处理问题 1。",
+      "expected_output": "Before editing troubleshoot.md, mechanically identifies entry boundaries by problem headings, states the title or first-line summary that will be moved, archives only the handled entry, preserves unhandled entries, and adds a pending-clarification status for entries that still need user input.",
+      "files": []
+    },
+    {
+      "id": 10,
+      "prompt": "$spec-trouble-resolve openspec/changes/foo/troubleshoot.md，已有 backup.md 很长且不能改动历史内容；本次 troubleshoot 没有 ## 问题 或 --- 分隔符，无法唯一切分。",
+      "expected_output": "Uses append-only archival for backup.md without rewriting or cleaning existing content, detects that troubleshoot.md cannot be uniquely split, does not automatically delete source content, and instead appends a processed-but-not-auto-deleted status note.",
+      "files": []
+    },
+    {
+      "id": 11,
+      "prompt": "$spec-trouble-resolve openspec/changes/foo/troubleshoot.md，轻量模板只有 proposal.md 和 tasks.md，没有 design.md/plan.md；问题现象、期望、范围都清楚。",
+      "expected_output": "Records missing_docs for absent spec-family documents, continues only if the missing docs do not affect A/B/C/D/E classification or contract boundary decisions, and includes the missing-docs conclusion in the archive self-check.",
+      "files": []
+    },
+    {
+      "id": 12,
+      "prompt": "$spec-trouble-resolve /data00/home/lihao.hellohake/proposal/foo/troubleshoot.md，这个 apply 后偏差涉及 search_loader 和 search_stream 两个 repo 的 Go 文件。",
+      "expected_output": "Treats each repo independently for git status/diff and Go diagnostics, but keeps archival anchored to the single CHANGE_DIR from the troubleshoot path. If multiple proposal directories are plausible, it stops to ask the user to choose one.",
+      "files": []
+    },
+    {
+      "id": 13,
+      "prompt": "$spec-trouble-resolve openspec/changes/foo/troubleshoot.md，已修改 Go 文件但当前环境 gopls MCP go_diagnostics 不可用。",
+      "expected_output": "Reads and follows the Go diagnostics protocol, reports that static diagnostics were not completed because gopls go_diagnostics is unavailable, lists impacted Go files and any real fallback check, and does not claim diagnostics passed.",
+      "files": []
+    },
+    {
+      "id": 14,
+      "prompt": "$spec-trouble-resolve openspec/changes/foo/troubleshoot.md，问题记录说为了修复偏差，需要把原验收标准从“命中灰度用户才展示”改成“所有用户都展示”，并同步更新 spec。",
+      "expected_output": "Classifies as Type A but hard-stops for user confirmation because the fix changes acceptance criteria and user-visible business behavior. It must not proceed merely by updating documents first or presenting the change as a routine documentation sync.",
+      "files": []
+    },
+    {
+      "id": 15,
+      "prompt": "运行 spec-trouble-resolve：我没有传命令参数，但当前消息里有路径 /repo/openspec/changes/foo/troubleshoot.md，还有一句补充：只处理第 2 条。",
+      "expected_output": "Does not assume shell variables such as $1 or $ARGUMENTS exist. It normalizes the current user message into explicit_path, change_name, and problem_text, records TROUBLESHOOT_PATH and CHANGE_DIR, and only handles the specified entry.",
+      "files": []
+    },
+    {
+      "id": 16,
+      "prompt": "$spec-trouble-resolve openspec/changes/foo/troubleshoot.md，Type A 场景只是把 design.md 补齐成与现有代码和既有验收完全一致，没有改变契约、验收、用户可见行为或业务语义。",
+      "expected_output": "Recognizes this as the only Type A auto-continue case: pure documentation backfill aligned to existing code and expectations. It may update docs without a separate human confirmation only after confirming no contract, acceptance, user-visible behavior, core business semantics, IDL, cross-repo boundary, or route ambiguity changes.",
+      "files": []
+    },
+    {
+      "id": 17,
+      "prompt": "$spec-trouble-resolve openspec/changes/foo/troubleshoot.md，处理完成后给我结果。",
+      "expected_output": "Final response includes the required five-line template: classification, changed files/functions or docs, verification result or skipped reason, archive path or not-archived reason, and remaining user-confirmation items.",
+      "files": []
     }
   ]
 }

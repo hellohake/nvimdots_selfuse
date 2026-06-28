@@ -4,7 +4,6 @@
 typeset -ga SYNC_SKILLS=(
   gotchas
   spec-opti-workflow
-  spec-opti-workflow-v2
   spec-plan-revise
   spec-trouble-resolve
   spec-e2e-debug

@@ -2,6 +2,8 @@
 
 This file is the mandatory output contract for `spec-code-review` whenever the skill writes `spec_code_review.md`. If the file already exists, append a new `## Review Run` section and preserve older runs. Skip this template only when the user explicitly asks for oral pre-review and no report file is written.
 
+This template is the single source of truth for report fields and enum semantics. Do not redefine Severity, Status, CR Readiness, Fixability, Scope, or Manual Test Commands contracts in `SKILL.md`; keep behavioral intent there and field-level rules here.
+
 ````markdown
 # Spec Code Review
 
@@ -71,6 +73,7 @@ Readiness rules:
 - `YES`: latest `Gate != BLOCKED`; latest Fix Queue has no unresolved `Status=accepted`; no new Blocker/Major needs coding-agent fixes; `human_decision` items are explicitly scoped; lightweight verification has no changed-file new error.
 - `PARTIAL`: no known Blocker remains, but there are human_decision/spec-contract risks, pending human-decisions, or verification gaps that the user must check before commit.
 - `NO`: any Blocker remains, any accepted item is unresolved, new Blocker/Major keeps appearing across review runs, repair diff exceeds Fix Queue scope, or changed-file verification is missing/failed.
+- Verification gap rule: never mark readiness `YES` when lightweight verification was not run, could not be interpreted, or reported changed-file new errors. Use `PARTIAL` for explicit manual verification gaps and `NO` for missing/failed changed-file checks that block low-cost CR.
 
 ### Review Findings
 

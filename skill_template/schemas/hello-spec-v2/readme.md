@@ -19,7 +19,7 @@ brainstorm
   -> human review
   -> spec-commit-push <proposal-name-or-absolute-proposal-dir>
   -> fix-mr-comments
-  -> GATE-2: spec-opti-workflow-v2 + gotchas
+  -> GATE-2: spec-opti-workflow + gotchas
 ```
 
 说明：
@@ -121,7 +121,7 @@ openspec-continue-change <change-name>
 openspec-apply-change <change-name>
 spec-code-review <proposal-name-or-absolute-proposal-dir>
 spec-commit-push <proposal-name-or-absolute-proposal-dir>
-spec-opti-workflow-v2 <proposal-name-or-absolute-proposal-dir> <original-prompt-doc>
+spec-opti-workflow <proposal-name-or-absolute-proposal-dir> <original-prompt-doc>
 gotchas <proposal-name-or-absolute-proposal-dir>
 ```
 

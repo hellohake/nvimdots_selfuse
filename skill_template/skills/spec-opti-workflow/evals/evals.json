@@ -1,9 +1,9 @@
 {
-  "skill_name": "spec-opti-workflow-v2",
+  "skill_name": "spec-opti-workflow",
   "evals": [
     {
       "id": "missing_prompt_doc_path_requires_gate",
-      "prompt": "运行 spec-opti-workflow-v2 /data00/home/lihao.hellohake/go/src/code.byted.org/ecom/search_loader/main/openspec/changes/search-ai-board",
+      "prompt": "运行 spec-opti-workflow /data00/home/lihao.hellohake/go/src/code.byted.org/ecom/search_loader/main/openspec/changes/search-ai-board",
       "expected_output": "The skill must stop before reading proposal artifacts or writing spec-workflow-retro.md, ask the user to provide the original prompt document path, and offer short choices plus custom path input for continuing without input-side review.",
       "files": [],
       "assertions": [
@@ -20,7 +20,7 @@
     },
     {
       "id": "confirmed_no_prompt_doc_allows_degraded_retro",
-      "prompt": "运行 spec-opti-workflow-v2 search-ai-board。补充说明：2",
+      "prompt": "运行 spec-opti-workflow search-ai-board。补充说明：2",
       "expected_output": "The skill may proceed after explicit confirmation, but the output must omit the input-side review section and report that it was skipped by user confirmation.",
       "files": [],
       "assertions": [
@@ -37,18 +37,35 @@
     },
     {
       "id": "prompt_doc_path_enables_intake_review",
-      "prompt": "运行 spec-opti-workflow-v2 search-ai-board /data00/home/lihao.hellohake/.agents/.ai_doc/0_biz_impl/2026-06-20-search-ai-board.md",
+      "prompt": "运行 spec-opti-workflow search-ai-board /data00/home/lihao.hellohake/.agents/.ai_doc/0_biz_impl/2026-06-20-search-ai-board.md",
       "expected_output": "The skill should copy the prompt document into intake.md, include the input-side review section, and report the prompt-root-cause distribution.",
       "files": [],
       "assertions": [
         {
-          "text": "Creates or updates intake.md as a faithful snapshot of the provided prompt document path."
+          "text": "Creates or updates intake.md with metadata on line 1 and byte-for-byte source content starting on line 2."
         },
         {
           "text": "Includes section 六、输入侧复盘 with prompt quality attribution."
         },
         {
           "text": "Receipt includes the intake.md path and attribution ratio ①/②/③."
+        }
+      ]
+    },
+    {
+      "id": "natural_language_input_maps_proposal_intake_and_supplements",
+      "prompt": "帮我复盘 search-ai-board 这个提案，原始提示词在 /data00/home/lihao.hellohake/.agents/.ai_doc/0_biz_impl/2026-06-20-search-ai-board.md，补充材料看 /tmp/search-ai-board-review.md",
+      "expected_output": "The skill should parse the proposal name, original prompt document path, and supplemental file from natural language without requiring shell-style $1/$2/$3 arguments.",
+      "files": [],
+      "assertions": [
+        {
+          "text": "Treats search-ai-board as the proposal input."
+        },
+        {
+          "text": "Treats the path after 原始提示词 as the intake document path rather than a supplemental file."
+        },
+        {
+          "text": "Treats the remaining document path as a supplemental file."
         }
       ]
     }
