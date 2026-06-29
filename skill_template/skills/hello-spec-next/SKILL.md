@@ -1,6 +1,6 @@
 ---
 name: hello-spec-next
-description: Continue a hello-spec-v2 OpenSpec-style SDD proposal by exactly one safe step. Use when the user wants to continue, advance, or create the next artifact for a hello-spec-v2 change after hello-spec-start. Auto-creates only lightweight placeholders, stops at grill-spec gates, never uses openspec-propose or openspec-ff-change, and never enters apply or edits business code.
+description: Continue a hello-spec-v2 OpenSpec-style SDD proposal by exactly one safe step, with either an explicit change name/path or a safely resolved current change from cwd/context/unique active change. Use when the user wants to continue, advance, 推进, 继续当前提案, create the next artifact, or says hello-spec-next after hello-spec-start, even if they omit the proposal name. Auto-creates only lightweight placeholders, stops at grill-spec gates, never uses openspec-propose or openspec-ff-change, and never enters apply or edits business code.
 ---
 
 # hello-spec-next
@@ -14,11 +14,55 @@ business artifacts and hard-stops at `grill-spec`.
 
 ## Inputs
 
-- `$1`: change name or absolute proposal directory.
-- `$ARGUMENTS`: optional instruction such as "continue p3-pack-card-runtime".
+- `$1`: optional change name or absolute proposal directory.
+- `$ARGUMENTS`: optional instruction such as "continue p3-pack-card-runtime",
+  "继续当前提案", or "推进下一个".
 
-If the change cannot be uniquely identified, ask for the change name or absolute
-proposal path.
+If the change cannot be uniquely identified, stop and ask for the change name or
+absolute proposal path. Do not choose by fuzzy similarity, old chat recency, or
+"most likely" when more than one candidate exists.
+
+## Change Resolution Contract
+
+This is a state-changing workflow: resolving the wrong change can write files to
+the wrong proposal. Treat change resolution as a contract, not a convenience.
+
+Accepted resolution sources, in strict priority order:
+
+1. Explicit absolute change dir:
+   `/abs/repo/openspec/changes/<change>`.
+2. Explicit change name argument:
+   `hello-spec-next <change>`, where `<change>` matches an existing directory
+   under the locked repo's `openspec/changes/`.
+3. Current working directory is inside:
+   `<repo>/openspec/changes/<change>/...`.
+4. Current turn text or immediately preceding start/next output contains exactly
+   one stable resume token:
+   - `CHANGE_NAME=<change>`
+   - `Change: <change>`
+   - `hello-spec-next <change>`
+   - `cd <repo root> && hello-spec-next <change>`
+5. Locked repo has exactly one active change directory under
+   `openspec/changes/` whose `openspec status --change "<change>" --json`
+   verifies `schemaName == hello-spec-v2`.
+
+Resolution rules:
+
+- Lock `REPO_ROOT` before using any repo-local candidate. Prefer the nearest
+  ancestor containing `openspec/`; if cwd is outside a repo or multiple repos are
+  implied by the text, stop and ask for an absolute proposal path.
+- Only one candidate may survive. If zero candidates survive, stop with
+  `Stopped at: missing_change_context`. If multiple candidates survive, stop with
+  `Stopped at: ambiguous_change_context` and list candidate names plus their
+  source (`cwd`, `context`, or `active-change`).
+- Do not scan unrelated sibling repos or worktrees to "find" a likely change.
+- Do not pick the newest directory, the most recently mentioned name, or the
+  closest fuzzy match when multiple candidates exist.
+- Before any file write, report the resolved identity in the first status update:
+
+  ```text
+  已锁定任务：hello-spec-next；CHANGE_NAME=<change>（source=<explicit-path|explicit-name|cwd|context|sole-active-change>）；本轮只安全推进 hello-spec-v2 的下一个 artifact，不进入 apply，不改业务代码。
+  ```
 
 Intent semantics:
 
@@ -118,6 +162,10 @@ a value only when a stop needs distinct downstream handling.
   from `template`.
 - `awaiting_progress_request`: the user asked for status only; no artifact was
   created.
+- `missing_change_context`: no explicit or safely resolved current change was
+  found.
+- `ambiguous_change_context`: more than one candidate change was found; user
+  selection is required.
 
 ### The two JSON calls
 
@@ -144,7 +192,7 @@ under the Interactive Gate rule (item 5), not from `artifacts[].status` alone.
 Start with:
 
 ```text
-已锁定任务：hello-spec-next；本轮只安全推进 hello-spec-v2 的下一个 artifact，不进入 apply，不改业务代码。
+已锁定任务：hello-spec-next；CHANGE_NAME=<change>（source=<explicit-path|explicit-name|cwd|context|sole-active-change>）；本轮只安全推进 hello-spec-v2 的下一个 artifact，不进入 apply，不改业务代码。
 ```
 
 Forbidden objectives:
@@ -161,10 +209,12 @@ Forbidden objectives:
 
 Determine `CHANGE_NAME`, `CHANGE_DIR`, and `REPO_ROOT`.
 
-Accepted inputs:
-
-- Absolute change dir: `/abs/repo/openspec/changes/<change>`
-- Change name: find under nearest `openspec/changes/<change>`
+Resolve the change using the Change Resolution Contract before running any
+status or instruction command. If the user omitted the proposal name, try cwd,
+stable resume tokens in the current/immediately preceding context, and finally a
+single active `hello-spec-v2` change under the locked repo. If resolution is
+missing or ambiguous, stop with the corresponding Stop Reason and ask for a
+change name or absolute proposal path.
 
 First lock the repo root, then trust the JSON for the schema:
 
