@@ -1,6 +1,6 @@
 ---
 name: hello-spec-start
-description: Start a hello-spec-v2 OpenSpec-style SDD proposal safely from a natural-language prompt. Use when the user wants to create a new hello-spec-v2 change, start a proposal, begin an OpenSpec-style SDD workflow, or says hello-spec-start / 启动提案 / 新建 hello-spec-v2 / 开始一个提案. Use this only to START a new change (the first step); to advance an existing change, use hello-spec-next.
+description: Start a hello-spec-v2 OpenSpec-style SDD proposal safely from a natural-language prompt, with either an explicit change-name or an inferred kebab-case change-name when the user omits it. Use when the user wants to create a new hello-spec-v2 change, start a proposal, begin an OpenSpec-style SDD workflow, or says hello-spec-start / 启动提案 / 新建 hello-spec-v2 / 开始一个提案 / 不知道 change-name / 帮我起 change name. Use this only to START a new change (the first step); to advance an existing change, use hello-spec-next.
 ---
 
 # hello-spec-start
@@ -8,11 +8,12 @@ description: Start a hello-spec-v2 OpenSpec-style SDD proposal safely from a nat
 ## Purpose
 
 Start a `hello-spec-v2` proposal without fast-forwarding past human gates. This is
-the preferred entrypoint for new `hello-spec-v2` changes: it captures the change
-name plus all remaining user text as the initial source input, creates the
-OpenSpec change, fast-creates only lightweight placeholders, and stops at the
-first business artifact. It replaces the pattern of manually calling
-`openspec-new-change` and then accidentally using `openspec-ff-change` /
+the preferred entrypoint for new `hello-spec-v2` changes: it accepts either an
+explicit change name or a plain-language request, derives a stable kebab-case
+change name when needed, captures the remaining user text as the initial source
+input, creates the OpenSpec change, fast-creates only lightweight placeholders,
+and stops at the first business artifact. It replaces the pattern of manually
+calling `openspec-new-change` and then accidentally using `openspec-ff-change` /
 `openspec-propose`, which skip the gates.
 
 ## Input Shape
@@ -21,12 +22,26 @@ Accept natural language, not CLI-style flags (no `--prompt`):
 
 ```text
 hello-spec-start <change-name> <initial user input...>
+hello-spec-start <initial user input...>
 ```
 
-Example:
+Explicit change-name example:
 
 ```text
 hello-spec-start p3-pack-card-runtime-redesign 基于飞书技术方案 https://...，重做 P3 C端打包运行时；base=feat/card_type_support；不要复用旧实现计划。
+```
+
+Inferred change-name examples:
+
+```text
+hello-spec-start 给搜索卡片补一个路由兜底能力
+=> CHANGE_NAME=add-card-router-fallback
+
+hello-spec-start 基于这个飞书文档重构 P3 C端打包运行时 https://...
+=> CHANGE_NAME=p3-refactor-card-pack-runtime
+
+hello-spec-start 修复 apply 后 tasks 和 plan 进度不一致
+=> CHANGE_NAME=fix-tasks-plan-progress-sync
 ```
 
 If only the change name is provided (no initial input), stop and ask for the
@@ -35,6 +50,53 @@ source:
 ```text
 请提供这次提案的原始输入：可以是飞书文档链接、本地文档路径，或直接粘贴需求。
 ```
+
+## Change Name Contract
+
+This is a state-changing workflow: `CHANGE_NAME` becomes
+`openspec/changes/<CHANGE_NAME>`. Treat name parsing as a contract, not a casual
+guess.
+
+Explicit name detection:
+
+- The first non-space token after `hello-spec-start` is an explicit `CHANGE_NAME`
+  only if it matches `^[a-z0-9][a-z0-9-]{2,62}[a-z0-9]$`, contains at least one
+  hyphen, and is not a reserved workflow word.
+- Reserved workflow words are never valid explicit names: `hello-spec-v2`,
+  `hello-spec-start`, `proposal`, `change`, `start`, `spec`, `specs`, `design`,
+  `tasks`, `plan`, `brainstorm`, `apply`, `archive`.
+- If the first token is a URL, file path, branch name, config value, Chinese text,
+  or a reserved workflow word, treat the whole remaining text as `INITIAL_INPUT`
+  and infer `CHANGE_NAME`.
+
+Inference algorithm when no explicit name is present:
+
+1. Extract the main business object and action from `INITIAL_INPUT`.
+2. Generate a short English kebab-case name: lowercase ASCII, 3-7 tokens, max 64
+   chars, letters/digits/hyphens only.
+3. Preserve an explicit phase prefix such as `p0`, `p1`, `p2`, `p3`, or `p4` only
+   when the user includes that phase in the input.
+4. Prefer domain words over workflow words. Drop URLs, local paths, branch names,
+   dates, ticket IDs, and generic terms such as `proposal`, `change`, `spec`,
+   `start`, `feature`, `fix`, and `refactor` unless the verb is needed for
+   clarity.
+5. If the name would be vague (`update-stuff`, `fix-bug`, `new-feature`) or the
+   input does not expose a business object, stop and ask:
+
+   ```text
+   我无法从这段输入稳定生成 change-name。请补充一个 kebab-case 名称，或补充更具体的业务对象/动作。
+   ```
+
+6. Before any state-changing command, report the chosen name in the first status
+   update:
+
+   ```text
+   已锁定任务：hello-spec-start；CHANGE_NAME=<name>（explicit|inferred）；本轮只启动 hello-spec-v2 提案并推进到第一个业务 artifact，不进入 apply，不改业务代码。
+   ```
+
+Do not append numeric suffixes automatically when the inferred name conflicts
+with an existing change. Phase 3 handles conflicts by stopping and handing off to
+`hello-spec-next` or asking the user for a new name.
 
 ## Source Input Policy
 
@@ -100,13 +162,15 @@ phases can locate the source without another mandatory file:
 
 ## Workflow
 
-Before creating anything, ask three questions. A "no" to the first two, or a
-"yes" to the third, is a stop-and-report condition — never a reason to push
-ahead. This skill exists to hold these gates, not fast-forward past them.
+Before creating anything, ask four questions. An unparseable name, a "no" to
+questions 2-3, or a "yes" to question 4 is a stop-and-report condition — never a
+reason to push ahead. This skill exists to hold these gates, not fast-forward
+past them.
 
-1. Is the source re-readable, or recoverable only from this chat? (Phase 1)
-2. Is this repo actually configured for `hello-spec-v2`? (Phase 2)
-3. Does this change already exist? (Phase 3)
+1. Is `CHANGE_NAME` explicit or safely inferable? (Phase 1)
+2. Is the source re-readable, or recoverable only from this chat? (Phase 1)
+3. Is this repo actually configured for `hello-spec-v2`? (Phase 2)
+4. Does this change already exist? (Phase 3)
 
 **MANDATORY — READ ENTIRE FILE**: before driving any `openspec` command (Phase 2
 onward), read [`references/openspec-cli-contract.md`](references/openspec-cli-contract.md)
@@ -119,7 +183,7 @@ not need to re-open it per command.
 Start with:
 
 ```text
-已锁定任务：hello-spec-start；本轮只启动 hello-spec-v2 提案并推进到第一个业务 artifact，不进入 apply，不改业务代码。
+已锁定任务：hello-spec-start；CHANGE_NAME=<name>（explicit|inferred）；本轮只启动 hello-spec-v2 提案并推进到第一个业务 artifact，不进入 apply，不改业务代码。
 ```
 
 Forbidden objectives:
@@ -136,10 +200,16 @@ Forbidden objectives:
 
 ### Phase 1 - Parse and Source Input Gate
 
-Parse the invocation (shape per Input Shape above): `CHANGE_NAME` is the first
-kebab-case token after `hello-spec-start` (or infer one if absent); `INITIAL_INPUT`
-is all remaining text. If `CHANGE_NAME` is unclear, ask for it; if `INITIAL_INPUT`
-is empty, ask for the source and stop.
+Parse the invocation using the Change Name Contract:
+
+- If an explicit name is present, set `CHANGE_NAME` to that token and set
+  `INITIAL_INPUT` to all remaining text.
+- If no explicit name is present, set `INITIAL_INPUT` to all text after
+  `hello-spec-start`, infer `CHANGE_NAME` from it, and mark the name source as
+  `inferred`.
+- If `CHANGE_NAME` is not safely inferable, stop and ask for a concrete
+  change-name or more specific source input.
+- If `INITIAL_INPUT` is empty after parsing, ask for the source and stop.
 
 Run this gate BEFORE creating the OpenSpec change, so an unreadable source does
 not leave a half-initialized change directory. Classify `INITIAL_INPUT` into one
@@ -177,7 +247,7 @@ non-`hello-spec-v2` change and discover the mismatch afterward.
 
 ### Phase 3 - Create Change
 
-The three-question gate above must pass first; question 3 — does this change
+The four-question gate above must pass first; question 4 — does this change
 already exist — is resolved here. Before running `openspec new change`, check
 whether `openspec/changes/<CHANGE_NAME>` already exists. Existing change handling:
 

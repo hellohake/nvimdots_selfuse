@@ -39,12 +39,13 @@ brainstorm
 
 ```text
 hello-spec-start <change-name> <原始输入...>
+hello-spec-start <原始输入...>  # 未显式提供 change-name 时，由技能根据原始输入推断 kebab-case 名称
 hello-spec-next <change-name>
 ```
 
 使用约定：
 
-- `hello-spec-start`：创建新 change，消费本轮原始输入（飞书链接、本地文档路径或直接粘贴的需求），只启动到第一个业务 artifact。它不写 `intake.md`，不创建 `source.md`，不进入 apply；高密度输入需要可重读的外部来源，无法读取时需用户确认降级。
+- `hello-spec-start`：创建新 change，消费本轮原始输入（飞书链接、本地文档路径或直接粘贴的需求），只启动到第一个业务 artifact。可以显式传 `<change-name>`；也可以只传自然语言需求，由技能在状态变更前推断并回显 kebab-case `CHANGE_NAME`。它不写 `intake.md`，不创建 `source.md`，不进入 apply；高密度输入需要可重读的外部来源，无法读取时需用户确认降级。
 - `hello-spec-next`：继续当前 change。它只自动创建轻量 placeholder；业务 artifact 每次最多生成一个；到 `grill-spec` 必须停。
 - `openspec-apply-change`：仅在用户本轮明确要求“开始实现 / apply / 按 plan 实现”后使用。它会进入代码实现阶段，不应由 `openspec-new-change` 或 `openspec-continue-change` 自动串起。
 - `openspec-verify-change` / `openspec-archive-change`：作为实现后的校验、归档动作使用，仍需结合 `spec-code-review`、人工 review 和 `spec-commit-push` 的约束。
@@ -53,6 +54,7 @@ hello-spec-next <change-name>
 
 ```text
 hello-spec-start <change-name> <原始输入...>  # 创建 change + placeholder + 可生成 brainstorm
+hello-spec-start <原始输入...>  # 等价启动方式；缺省 change-name 时自动推断并回显
   -> hello-spec-next <change-name>  # proposal
   -> hello-spec-next <change-name>  # specs/design
   -> GATE-1: grill-with-docs / grill-spec
