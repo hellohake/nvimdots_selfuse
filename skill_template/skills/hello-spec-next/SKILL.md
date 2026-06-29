@@ -86,70 +86,56 @@ Do not auto-create `grill-spec.md`. When it is ready:
    - `docs/adr/` -> `.ai_doc/spec-workflow/adr/`
 5. `grill-spec.md` can be `complete` only when each blocking question has
    `Status=user_confirmed` or `Status=resolved_by_evidence`, plus non-empty
-   `Evidence=<path:line or exact user answer>`.
+   `Evidence=<path:line or exact user answer>`. This is the single authoritative
+   completion rule for `grill-spec`; other sections refer back here.
 6. If any blocking item is `pending_user_confirmation` or lacks evidence, keep
-   `grill-spec.md` pending and do not generate tasks/plan.
+   `grill-spec.md` pending and do not generate tasks/plan. A checked box, the
+   mere existence of the file, or casual "looks done" wording never satisfies
+   this rule — only explicit status plus evidence does.
 
 ## Machine Contract
 
 The purpose of this skill is to remove guesswork. Treat missing machine fields as
 a stop condition, not as permission to infer paths from memory or naming habits.
 
+**MANDATORY — read the entire file `references/openspec-cli-contract.md`
+(~63 lines) before parsing any `openspec status --json` / `openspec instructions
+--json` output; do NOT set range limits when reading it.** That file holds the
+full field tables, the absent-field edge cases, and the field → Stop Reason map.
+The summary below covers only the happy path.
+
 ### Stop Reasons
 
-Use these exact enum-like values in the final `Stopped at:` field. Keep this list
-small; add a new value only when the stop condition needs distinct downstream
-handling.
+Exact enum-like values for the final `Stopped at:` field. Keep the list small; add
+a value only when a stop needs distinct downstream handling.
 
-- `missing_status_contract`: `openspec status --json` lacks required fields.
-- `missing_instructions_contract`: `openspec instructions --json` lacks required
-  fields for the current artifact.
-- `path_contract_mismatch`: status JSON and instructions JSON disagree on
-  `resolvedOutputPath`.
-- `existing_human_content`: an Auto Placeholder output path already exists and
-  differs from the template.
-- `awaiting_progress_request`: the user asked for status only, so no artifact was
+- `missing_status_contract`: status JSON lacks `schemaName` or `artifacts[]`.
+- `missing_instructions_contract`: instructions JSON lacks `changeDir`,
+  `outputPath`, or the body field for the current artifact.
+- `path_contract_mismatch`: status and instructions `outputPath` disagree for the
+  same artifact.
+- `existing_human_content`: an Auto Placeholder output path exists and differs
+  from `template`.
+- `awaiting_progress_request`: the user asked for status only; no artifact was
   created.
 
-### Status JSON
+### The two JSON calls
 
-Run `openspec status --change "<CHANGE_NAME>" --json` after `REPO_ROOT` and
-schema discovery are locked. Required fields:
+1. `openspec status --change "<CHANGE_NAME>" --json` → `schemaName` (must be
+   `hello-spec-v2`) and an ordered `artifacts[]` of `{id, outputPath, status}`.
+   There is no `nextReadyArtifact`: the next artifact is the FIRST entry whose
+   `status == "ready"`; if none is `ready`, report status only. Status JSON
+   carries no `changeDir` and no absolute paths.
+2. `openspec instructions <artifact-id> --change "<CHANGE_NAME>" --json` for that
+   ready artifact → `changeDir` (ABSOLUTE; source `CHANGE_DIR` here), `outputPath`
+   (relative; join with `changeDir` for the file path), `instruction` (Business
+   Artifact body) or `template` (Auto Placeholder verbatim body), plus
+   `dependencies[]` / `unlocks[]` for explaining a stop.
 
-- `schemaName`: must equal `hello-spec-v2`.
-- `changeDir`: absolute or repo-root-relative path to the proposal directory.
-- `nextReadyArtifact.id`: artifact id to handle next.
-- `artifacts[]`: list containing at least `id`, `status`, and
-  `resolvedOutputPath` for each artifact.
-
-Use `nextReadyArtifact.id` as the only source of truth for the next step. Use
-`artifacts[].resolvedOutputPath` to find existing artifact files. If any required
-field is missing, stop with `Stopped at: missing_status_contract` and include the
-missing field names.
-
-### Instructions JSON
-
-Run `openspec instructions <artifact-id> --change "<CHANGE_NAME>" --json` for
-the current `nextReadyArtifact.id`. Required fields:
-
-- `artifactId`: must match `nextReadyArtifact.id`.
-- `resolvedOutputPath`: output path for this artifact.
-- `template`: required only for Auto Placeholder artifacts.
-- `instructions` or equivalent artifact guidance: required for Business
-  Artifacts.
-
-If `resolvedOutputPath` disagrees with the matching `artifacts[]` entry from
-status JSON, stop with `Stopped at: path_contract_mismatch`. If required fields
-are missing, stop with `Stopped at: missing_instructions_contract`.
-
-### Completion Checks
-
-- Treat an artifact as ready only when it is named by `nextReadyArtifact.id`.
-- Treat `grill-spec.md` as complete only under the status/evidence rule in the
-  Interactive Gate section. Do not accept a checked box, file existence, or
-  casual "looks done" wording as sufficient.
-- Do not guess schema paths, output paths, or artifact ordering when JSON is
-  incomplete.
+Treat a missing field, or a status-vs-instructions `outputPath` mismatch, as the
+matching Stop Reason above (full mapping in the reference); never guess a path,
+schema, or artifact order to recover. `grill-spec.md` counts as complete only
+under the Interactive Gate rule (item 5), not from `artifacts[].status` alone.
 
 ## Workflow
 
@@ -180,12 +166,17 @@ Accepted inputs:
 - Absolute change dir: `/abs/repo/openspec/changes/<change>`
 - Change name: find under nearest `openspec/changes/<change>`
 
-First lock the repo root:
+First lock the repo root, then trust the JSON for the schema:
 
-1. Locate the nearest ancestor containing `.openspec.yaml`.
-2. Read `.openspec.yaml` to discover the active schema configuration.
-3. Only continue when schema discovery and `openspec status --json` both confirm
-   `schemaName=hello-spec-v2`.
+1. Find the nearest ancestor containing an `openspec/` directory; that is
+   `REPO_ROOT`. The project schema config, if any, is `openspec/config.yaml`
+   (the CLI auto-detects the schema from it). `.openspec.yaml` is only a
+   per-change marker inside a change dir, not the project config — do not rely
+   on it for discovery.
+2. Run `openspec status --change "<CHANGE_NAME>" --json` and read `schemaName`
+   from it. The CLI already resolves the active schema, so this is the
+   authority; no manual config read is required.
+3. Only continue when `schemaName == hello-spec-v2` (see Phase 2).
 
 Run:
 
@@ -213,9 +204,10 @@ Repeat while the next ready artifact is in `Auto Placeholder`:
    openspec instructions <artifact-id> --change "<CHANGE_NAME>" --json
    ```
 
-2. Read `template` and `resolvedOutputPath` from JSON.
+2. Read `template`, `changeDir`, and `outputPath` from JSON; the absolute file
+   path is `changeDir` joined with `outputPath`.
 3. Apply the overwrite guard:
-   - If `resolvedOutputPath` does not exist, write the template verbatim.
+   - If the file does not exist, write the template verbatim.
    - If it exists and its content is byte-for-byte equal to `template`, treat it
      as already satisfied and do not rewrite it.
    - If it exists and differs from `template`, stop with `Stopped at:
@@ -277,12 +269,15 @@ cd <repo root> && hello-spec-next <change>
 
 ## Success Criteria
 
-- Placeholder artifacts may be created in one pass.
-- Existing human-authored placeholder files are never overwritten.
-- At most one business-bearing artifact is created.
-- `grill-spec` is never skipped.
-- `tasks` and `plan` remain blocked until `grill-spec.md` is complete with
-  status/evidence.
-- Status and instructions JSON fields are validated before writing; missing
-  fields stop the workflow instead of triggering path or order guesses.
-- The skill never applies code changes.
+A run is correct when these verifiable invariants hold (rules defined above, not
+restated here):
+
+- At most one Business Artifact is created per invocation; placeholders may be
+  created in one pass.
+- An existing human-authored placeholder is never overwritten (overwrite guard,
+  Phase 3).
+- `tasks` and `plan` are not created until `grill-spec.md` is complete per the
+  Interactive Gate rule (item 5).
+- A missing/mismatched JSON field produces the matching Stop Reason instead of a
+  guessed path or order.
+- No business code, test, build, commit, or apply action is performed.

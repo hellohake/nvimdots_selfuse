@@ -2,6 +2,8 @@
 
 Read this file only when writing or incrementally merging `<proposal-dir>/spec-workflow-retro.md`.
 
+> **章节号 ↔ 阶段 2 维度号对照**：模板 `一/二/三/四/六` 节分别承接 SKILL.md 阶段 2 的第 1/2/3/4/6 维；`五、Checklist` 不对应独立扫描维，由第 1-4 维结论派生汇总（这是“维度无第 5 维、章节却有第五节”的原因）。`六、输入侧复盘` 是与 `gotchas` 技能约定的冻结接口（其阶段 1 读“第六节”），**章节标题序号请勿改动**。
+
 ```markdown
 # Spec 工作流复盘原料 - {提案名}
 

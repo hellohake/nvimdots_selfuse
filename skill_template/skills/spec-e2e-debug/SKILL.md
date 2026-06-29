@@ -1,6 +1,6 @@
 ---
 name: spec-e2e-debug
-description: Use when 用户需要只读诊断端到端、线上、泳道或真实客户端请求问题，适用于 OpenSpec-style SDD 测试后和日常排查。输入可能是 debug.md、HTTP 请求/响应抓包证据（curl/HAR/trace/share link；字节内部可称任意门/Anywhere）、LogID、PSM+时间、现象口述或复现步骤；典型说法包括“返回不对、帮我查 logid、定位根因、真实请求入参、抓包响应、端到端测了有问题”。
+description: Use when 用户需要只读诊断端到端、线上、泳道或真实客户端请求问题，产出四分类（代码/业务逻辑/正常/边界）根因结论、证据链与诊断报告；适用于 OpenSpec-style SDD 测试后，以及端到端/线上/泳道/真实请求的日常排查。输入可能是 debug.md、HTTP 请求/响应抓包证据（curl/HAR/trace/share link；字节内部可称任意门/Anywhere）、LogID、PSM+时间、现象口述或复现步骤；典型说法包括“返回不对、帮我查 logid、定位根因、真实请求入参、抓包响应、端到端测了有问题”。
 ---
 
 # spec-e2e-debug
@@ -130,20 +130,7 @@ standalone 报告命名规则：
 ### 阶段 2：按诊断决策树验证（用 selected provider，只读）
 针对每个假设，按 [references/provider-contract.md](./references/provider-contract.md) 的能力模型选择验证路径。provider 支持的能力才调用；不支持的能力写入证据缺口，不硬查。若 provider 为 bytedcli，且 [references/providers/bytedcli.md](./references/providers/bytedcli.md) 存在，常见平台→命令映射可按需读取（不要一次性全加载）；若该内部 reference 不存在，使用 provider discovery 查找只读命令，并在报告中记录 reference 缺失与 discovery 过程。
 
-下表是常见能力分类，不是白名单。debug.md 提到的工具/平台不在表内时，必须走 provider discovery，而不是直接判定“不支持”。
-
-| Capability | 诊断意图 |
-|---|---|
-| `logs` | 按 logid / request id / service / time window 拉日志 |
-| `service` | 服务实例、上下游、泳道/环境、路由定位 |
-| `config` | 配置值、配置版本、发布记录核对 |
-| `experiment` | 实验/开关命中诊断 |
-| `metrics` | 指标、告警、看板异常 |
-| `db` | 只读查询真实数据 |
-| `rpc` | 幂等查询类下游 RPC / API 复现 |
-| `capture` | HTTP 请求/响应抓包证据解析真实客户端请求入参和响应值 |
-| `discovered:<name>` | 运行时发现的 provider 专有只读能力 |
-
+能力分类（`logs`/`service`/`config`/`experiment`/`metrics`/`db`/`rpc`/`capture`/`discovered:<name>`）的权威定义、典型入参与所需证据见 [references/provider-contract.md](./references/provider-contract.md) 的 Capability Contract，本处不再重复列表。**关键规则**：该表是常见分类、不是白名单——debug.md 提到的工具/平台不在表内时，必须走 provider discovery，而不是直接判定“不支持”。
 #### Provider discovery（开放能力发现）
 出现以下情况时必须先做 discovery：
 
@@ -242,6 +229,7 @@ FORBIDDEN_ARCHIVE_PATH=<proposal_dir>/backup.md
 | 1 | … | bytedcli:log / capture / no-provider | /tmp/e2e-debug-xxx/psm.log:1234 报错 X，或 JSON path 证据 | 成立/排除 |
 
 ### 链路图（ASCII，当前真实链路优先）
+> 图中函数名必须真实存在于代码；提出的目标态命名另列一节，不要混进当前真实链路图。
 ~~~text
 客户端真实请求入参
   |
@@ -274,15 +262,16 @@ FORBIDDEN_ARCHIVE_PATH=<proposal_dir>/backup.md
 
 > spec 模式下若用户/项目约定要求清空 debug.md，占位骨架保留模板注释，清掉本次填写内容，回到空收件箱；否则报告写“原始输入已归档，debug.md 未清空”。standalone 模式不创建 debug.md，本节写“standalone 模式，本次未使用 debug.md”。
 
-## 关键红线 (Hard Rules)
-1. 🔴 **外部系统只读，本地写入受限**（见顶部安全红线）：provider/业务系统写操作禁止执行，拿不准当写处理，列命令交人工；本地只允许写 `DEBUG_REPORT_PATH`，以及在显式允许时重置 `debug.md`。
-2. 🔴 **日志落盘不内联**：关键 psm 日志写 /tmp 临时文件，只读命中摘要，绝不整份内联。
-3. 🔴 **诊断优先不改代码**：本技能只产结论和下一步指针，禁止编辑业务代码。
-4. **假设驱动**：先提假设再按需查，不堆砌全平台数据。
-5. **证据可追溯**：每条结论必须挂具体证据（平台+数据+行号），禁止凭感觉下结论。
-6. **不臆测现象**：手写输入随意时技能负责规整；没有抓包证据/LogID/PSM+时间/复现步骤/明确代码现象等任何定位入口时才必问。只有准备查日志时，发生时间才是必填。
-7. **环境失败不当诊断信号**：provider 鉴权/版本/权限类失败只提示用户手动处理（login / update / 申请权限），不重试、不自动执行、不写进业务结论；非预期报错如实反馈用户。
-8. 🔴 **日志查询必带时间窗**：准备查日志但没有发生时间时先问用户，绝不无时间范围全量扫（必超时）；超时就收窄，不重试大范围。
-9. 🔴 **输出路径锁**：spec 模式写 `<proposal_dir>/debug-report.md`；standalone 模式写 `<repo_root>/.ai_doc/debug/{timestamp}-{topic}-diagnosis.md`；不得写根部 `.ai_doc/debug-report.md` 作为非 spec 默认路径；不得写 backup.md。
-10. **报告可读性**：结论先行；真实请求/响应单列；图用 ASCII/Markdown 优先，少用 Mermaid；所有图中的函数名必须真实存在，目标态名字另列。
-11. **提交前自检**：最终回执前逐项确认：未改业务代码 / 未写 backup.md / 已写 `DEBUG_REPORT_PATH` / debug.md 已按“保留或显式清空”规则处理 / standalone 模式未创建 debug.md / 只执行只读查询。
+## 提交前自检（出口 checklist）
+
+> 本节是最终回执前的出口 gate，只逐项核对、不重述规则。READ-ONLY 安全红线见顶部「🔴 安全红线」（全技能唯一权威出处），输出路径锁见 4.1，环境失败处置见「🟠 Provider 就绪性」。
+
+回执前必须逐项确认全部满足，任一不满足就先纠偏再回执：
+
+- [ ] 全程只执行只读查询，未对 provider / 业务系统 / 线上 / 泳道做任何写操作。
+- [ ] 未编辑任何业务文件（`.go`/`.ts`/`.py`/配置/IDL/SQL）；结论是代码问题时只写了「下一步」指针，未顺手修复。
+- [ ] 已写入 `DEBUG_REPORT_PATH`，未写 `backup.md`；standalone 模式未落根部 `.ai_doc/debug-report.md`。
+- [ ] debug.md 按「保留或显式清空」规则处理；standalone 模式未创建 debug.md。
+- [ ] 每条结论都挂了具体证据（平台 + 数据 + 行号），无凭感觉下结论。
+- [ ] 关键 psm 日志只落 `/tmp` 临时文件 + grep 命中摘要，未整份内联；查日志都带了时间窗。
+- [ ] 环境类失败（鉴权/版本/权限）未被写进业务结论，只列出需人工执行的命令。

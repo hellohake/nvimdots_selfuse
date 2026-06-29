@@ -29,17 +29,15 @@ The converter must guarantee these root-level shared assets exist for future `gw
 
 If they did not exist before conversion, create empty `.trae/` and `openspec/` directories and a small placeholder `AGENTS_meta.md`. Link them into the converted checkout when no real checkout entry would be overwritten.
 
-## When To Stop
+## Before You Mutate Anything
 
-Stop and ask before mutating anything if:
+This conversion relocates the Git database and the working tree. It is ordinary filesystem work, but it cannot be cleanly undone in place — so treat every run as a destructive migration, not a cleanup command. Before mutating, ask yourself, and stop to ask the user if any answer is "no" or "unsure":
 
-- The repository is dirty, unless the user explicitly accepts `--allow-dirty`.
-- The repo already has `.bare/`, a `.git` pointer file, or `git worktree list` shows it is already converted.
-- The target checkout directory already exists.
-- The primary branch has not been explicitly confirmed by the user for this conversion.
-- The user did not ask to execute conversion and only wants a design, plan, or check.
-
-This conversion moves the Git database and the working tree. It is ordinary filesystem work, but it is not a casual cleanup command.
+- **Did the user actually ask to execute?** If they only want a plan, design, or check, stay in dry run.
+- **Is the primary branch confirmed by the user** (not merely inferred)? A wrong primary bakes the wrong canonical checkout into the layout.
+- **Is the working tree clean?** A dirty tree means uncommitted work gets shuffled mid-conversion; require an explicit `--allow-dirty` otherwise.
+- **Is it already converted?** A `.bare/`, a `.git` pointer file, or a `bare` entry in `git worktree list` means re-running risks clobbering a working layout.
+- **Does the target checkout directory already exist?** Converting into an existing directory would collide with it.
 
 ## Primary Branch Detection
 
@@ -71,16 +69,18 @@ Checkout directory rule:
 
 ## Use The Script
 
-Prefer the bundled script instead of hand-writing shell sequences:
+Prefer the bundled script instead of hand-writing shell sequences. It is the load-bearing, tested path for a destructive operation: do NOT modify it or substitute hand-rolled `git`/`mv` commands, because the script keeps the backup-on-failure and confirmation gates that ad hoc shell would silently drop.
+
+The script lives with this skill at `scripts/convert_to_worktree_layout.py`. Resolve it relative to this SKILL.md's own directory (shown below as `$SKILL_DIR`) so it runs from whichever copy is active; never hardcode an absolute path into another tree, which breaks when the skill is synced/installed elsewhere.
 
 ```bash
-python3 /data00/home/lihao.hellohake/.agents/skills/git-worktree-converter/scripts/convert_to_worktree_layout.py --repo <repo>
+python3 "$SKILL_DIR/scripts/convert_to_worktree_layout.py" --repo <repo>
 ```
 
 The script prints a JSON dry-run plan by default. Only execute after reviewing that plan:
 
 ```bash
-python3 /data00/home/lihao.hellohake/.agents/skills/git-worktree-converter/scripts/convert_to_worktree_layout.py \
+python3 "$SKILL_DIR/scripts/convert_to_worktree_layout.py" \
   --repo <repo> \
   --primary <branch-if-needed> \
   --checkout-dir <dir-if-needed> \
@@ -120,46 +120,17 @@ Expected shape:
 - Root `.trae/`, `openspec/`, and `AGENTS_meta.md` exist.
 - Shared untracked directories/files that existed at repo root are linked into the checkout when possible.
 
-## Response Format
+## What To Report
 
-For dry runs, summarize:
+You can format the summary yourself; just make sure the safety-critical, non-obvious fields survive:
 
-```text
-Plan:
-repo=<repo-root>
-current=<branch>
-primary=<branch> (<source>)
-primary_confirmed=<true|false>
-checkout_dir=<dir> (<source>)
-dirty=<count>
-shared_entries=<names>
-
-Next command:
-python3 ... --primary <confirmed-branch> --execute
-```
-
-For successful execution:
-
-```text
-Converted:
-root=<repo-root>
-checkout=<repo-root>/<dir>
-primary=<branch>
-backup=<backup-path>
-
-Verified:
-<commands run and key result>
-
-Next:
-cd <repo-root>/<dir>
-gw-add <new-branch> <primary-or-base> <dir>
-```
-
-If conversion fails after moving files, report the backup path from the script output and stop. Do not improvise recovery unless the user explicitly asks.
+- **Dry run** — surface the plan the user must confirm before execution: `primary` branch *with its source* (e.g. `origin/HEAD` vs `current branch fallback`), `primary_confirmed` (true/false), the `checkout_dir` and its source, the dirty count, and the exact `--primary <branch> --execute` command to run next. The source attribution is what lets the user catch a wrong primary before it is baked in.
+- **Success** — report the new `root`, the `checkout` path, the confirmed `primary`, the `backup` path, and the key result of the verification commands.
+- **Failure after files moved** — report the backup path from the script output and stop. Do not improvise recovery unless the user explicitly asks; the backup is the only clean rollback.
 
 ## Non-Goals
 
-- Do not create feature worktrees directly; use `gw-worktree` after conversion.
-- Do not rename branches.
-- Do not commit, push, rebase, or fetch unless the user separately asks.
-- Do not edit `~/.zshrc` or `gw-add` unless the user asks to improve those helpers.
+- Do not create feature worktrees directly; use `gw-worktree` after conversion. This skill only converts the layout; worktree creation is that skill's job and keeps the two concerns testable in isolation.
+- Do not rename branches. Conversion preserves history exactly; a rename is a separate, user-visible decision that would surprise someone who only asked to relocate the Git database.
+- Do not commit, push, rebase, or fetch unless the user separately asks. Conversion only moves `.git` → `.bare` and adds a worktree; history operations are a distinct concern and risk surprising the user mid-migration.
+- Do not edit `~/.zshrc` or `gw-add` unless the user asks to improve those helpers. They are shared tooling outside this conversion's blast radius.

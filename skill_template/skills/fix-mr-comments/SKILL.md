@@ -19,27 +19,32 @@ description: 仅由用户**手动**触发（如 `/fix-mr-comments` 或显式说"
 
 ## Provider 架构与前置依赖
 
-本技能的核心是**通用 MR/PR 评论处置流程**，不是某个内网 CLI 的使用说明。平台操作一律通过 MR provider 抽象完成。
+本技能的核心是**通用 MR/PR 评论处置流程**，不是某个内网 CLI 的使用说明。平台操作一律通过 MR provider 抽象完成。后文的『查 MR』『列评论』『回复评论』『Resolve thread』『受保护分支』都是 provider capability 名称；具体命令、鉴权和参数规则只在 provider 文档里定义。
 
-启动后先读取：
+> 🔴 **MANDATORY — 完整读取（约 128 行，禁止设 offset / 行数上限）**：进入阶段 1 之前，你**必须**先从头到尾完整读取 [`references/provider-contract.md`](references/provider-contract.md)。它定义 provider 能力契约、读写 gate、失败分类、归一化字段，是后续所有平台操作的前提。**不读它就开工 = 凭空乱调命令。**
 
-1. [`references/provider-contract.md`](references/provider-contract.md) — MR provider 能力契约、读写 gate、失败分类。
-2. 选中的 provider 文档：
-   - ByteDance / code.byted.org 环境优先用 [`references/providers/bytedcli.md`](references/providers/bytedcli.md)（若存在）。
-   - 无可用 MR provider、或用户只粘贴评论文本时，用 [`references/providers/no-provider.md`](references/providers/no-provider.md)。
+### Provider selection（先选定，再加载对应 provider 文档）
 
-Provider selection：
+按下列规则选定**唯一**一个 provider：
 
 - 用户显式指定 provider → 优先使用。
-- 当前环境可用 ByteDance bytedcli / MCP 且目标是 code.byted.org → 使用 `bytedcli` provider。
-- 没有可执行 provider，但用户给了评论文本 → 使用 `no-provider`，只产处置预案/本地改码建议，不执行远端回复/resolve。
+- 当前环境可用 ByteDance bytedcli / MCP 且目标是 code.byted.org → 选 `bytedcli`。
+- 没有可执行 provider，但用户给了评论文本 → 选 `no-provider`（只产处置预案/本地改码建议，不执行远端回复/resolve）。
+
+选定后，**MANDATORY — 完整读取你选中的那一个 provider 文档（禁止设行数上限）**：
+
+- 选 `bytedcli` → 读 [`references/providers/bytedcli.md`](references/providers/bytedcli.md)（约 100 行，若存在）。
+- 选 `no-provider` → 读 [`references/providers/no-provider.md`](references/providers/no-provider.md)（约 56 行）。
+- 选了 references 未覆盖的 provider → 不要瞎猜命令，按 `provider-contract.md` 的 **Provider Discovery** 流程做只读发现。
+
+> **Do NOT Load（防止上下文污染、稀释关键内容）**：
+> - **只**加载你选中的那一个 provider 文档——选了 `no-provider` 就**不要**读 `bytedcli.md`，反之亦然；非 code.byted.org / 非 ByteDance 环境**不要**读 `bytedcli.md`。
+> - **不要**在这里读 [`references/archive_template.md`](references/archive_template.md)——它**只**在阶段 7（OpenSpec-style SDD 归档）才加载；非提案上下文永远不读。
 
 通用依赖：
 
 - **git**：分支、改动、仓库根判断。
 - **gopls MCP**：Go 工程本地校验只用 `mcp__gopls__go_diagnostics`，不要跑 `go build / test / vet`。
-
-后文的『查 MR』『列评论』『回复评论』『Resolve thread』『受保护分支』都是 provider capability 名称；具体命令、鉴权和参数规则只在 provider 文档里定义。
 
 ## 保护分支铁律（最高优先级）
 
@@ -63,14 +68,13 @@ Provider selection：
 
 目标：找出**本次会话中你实际改动过的所有仓库根目录**。OpenSpec-style SDD 多仓提案经常一次改 2~N 个仓库，漏一个就漏一组评论。
 
-依次合并去重：
+**合并三类候选来源、去重，再用"是否真有改动"过滤**：
 
-1. **会话回放**：扫描本次会话所有 `Edit/Write` 的文件路径，按 `git rev-parse --show-toplevel` 归并到仓库根。
-2. **当前 cwd**：cwd 是 git 仓库则加入候选。
-3. **提案推断**：若有 `openspec/changes/<name>/` 或 `specs/<name>/`，读其 `tasks.md` / `design.md` / `plan.md`，解析提到的仓库路径加入候选。
-4. **改动确认**：逐仓库跑 `git status --porcelain` + `git diff --name-only`（含已提交未推送：`git log @{u}..HEAD --name-only`）。无改动的剔除。
+- **会话回放**（最易漏）：扫描本次会话所有 `Edit/Write` 的文件路径，按 `git rev-parse --show-toplevel` 归并到仓库根。
+- **当前 cwd**：是 git 仓库就纳入候选。
+- **提案推断**：有 `openspec/changes/<name>/` 或 `specs/<name>/` 时，读其 `tasks.md` / `design.md` / `plan.md`，把提到的仓库路径纳入候选。
 
-> 找不到任何改动仓库时**询问用户**，不要硬猜。
+逐候选仓库判定改动并剔除"无改动"者——注意改动既包括工作树（`git status --porcelain` + `git diff --name-only`），也包括**已提交未推送**（`git log @{u}..HEAD --name-only`，容易被漏判为"干净"）。零命中时**询问用户**，不要硬猜。
 
 把"仓库路径 + 当前分支"列表给用户确认后进入阶段 2。
 
@@ -164,12 +168,9 @@ Provider selection：
 1. **改前再校验**：对每个仓库重跑 `git rev-parse --abbrev-ref HEAD`，与阶段 2 锁定分支精确比对——这是"保护分支铁律"在第二个时间点的复查。不一致硬停。工作树有与本任务无关的脏改动 → 先告诉用户，得到"继续"再动手，避免把脏改动混进 review fix。
 2. **改代码**（仅对预案标了"改"的条目）：用 `Edit`，每处改动都要能映射到具体某条评论；写入前再次确认目标路径在阶段 1 锁定的仓库根之下。预案标"不改"的（如 E nit、A 无效、用户说不用管的）→ **跳过，不动代码**。
 3. **本地校验（Go 工程）**：对本次改动的 `.go` 文件调用 `mcp__gopls__go_diagnostics`（`files` 传绝对路径），并扫一眼 workspace 级 error。**不**调用 `go build / test / vet`。校验出新增 error → **不要 resolve** 该 thread；按"失败与回退"撤回改动，记账到阶段 6 报告。非 Go 工程可跳过，或做最轻量的 syntax 检查（`python -m py_compile`、`tsc --noEmit -p`）。
-4. **回复评论**（仅对预案标了"回复"的条目）：调用 provider 的『回复评论』能力。预案标"不回复"的（如 E nit、用户说别回复的）→ **跳过**。若当前 provider 不支持远端回复（如 `no-provider`），不要伪造已回复，只在报告里标记 `not_supported_by_provider`。
-   - **回复语言对齐 reviewer 原文**（中/英），不混用——同事看到混语言会觉得诡异。
-   - 模板（按需裁剪、按语言翻译）：
-     - 已修复：`已按建议修复：<一句话>。详见 commit <短sha> / 改动见 <path:line>。`
-     - 拒绝/解释：`这里暂不修改：<原因>。相关上下文：<事实/代码引用>。如果还有不同意见欢迎继续讨论。`
-     - 答疑：`这块的逻辑是：<解释>。代码位置：<path:line>。`
+4. **回复评论**（仅对预案标了"回复"的条目）：调用 provider 的『回复评论』能力。预案标"不回复"的（如 E nit、用户说别回复的）→ **跳过**。若当前 provider 不支持远端回复（如 `no-provider`），不要伪造已回复，只在报告里标记 `not_supported_by_provider`。回复内容自拟，但守三条专家规则：
+   - **语言对齐 reviewer 原文**（中/英），不混用——同事看到混语言会觉得诡异。
+   - **每条回复都引具体证据**：已修复贴 `commit 短sha` / `path:line`；拒绝贴事实或代码引用并留"欢迎继续讨论"的余地；答疑贴 `path:line`。空口"已修复"不可信。
    - **回复后复读**：provider 支持时再次拉一次该 thread，确认新 reply 已落库——避免"以为发了其实没发"。
 5. **Resolve thread**（仅对预案标了"close"的条目）：调用 provider 的『Resolve thread』能力。若当前 provider 不支持 resolve，报告为 `not_supported_by_provider`，不得臆造 close 状态。**close 铁律**（优先级最高，违反即越权）：
    - 🔴 **人工 reviewer 的评论：绝不主动 close**，哪怕已改已回复——除非用户在阶段 4.5 明确点名"这条帮我 close"。
@@ -183,14 +184,7 @@ Provider selection：
    - **不**用 `git push <remote> HEAD:master` 这类显式覆盖主干形态。
    - 命中任何一条 → 立即终止。
 
-   通过后执行 `git add -p` → `git commit` → `git push`。Commit message：
-
-   ```
-   fix(review): <一句话主题>
-
-   - thread #<id> (<file:line>): <一句话改动>
-   - thread #<id> (<file:line>): <一句话改动>
-   ```
+   通过后执行 `git add -p` → `git commit` → `git push`。Commit message 用标准 Conventional Commit（`fix(review): ...`），正文**每条 thread 单独一行**并带 `#<id> (<file:line>)`，让 review fix 与原评论一一可追溯。
 
 → **Checkpoint 5**：每条预案标"改"的 thread 都已 (a) 改完且 gopls 无新增 error；(b) 标"回复"的已回复入库（已复读确认）；(c) 仅"机器人 + 标 close"或"用户点名 close"的被 resolve，人工评论一律保持 open。未授权动作（commit/push/approve/force-push）一律未发生。
 
@@ -209,9 +203,11 @@ Provider selection：
 
 ### 阶段 7 · 归档到 OpenSpec-style SDD 提案目录（条件触发）
 
-仅当本次会话工作在 OpenSpec-style SDD 提案上下文中时执行；否则跳过。
+仅当本次会话工作在 OpenSpec-style SDD 提案上下文中时执行；否则跳过——**非提案上下文绝不加载下面这个模板文件。**
 
-执行前**先 Read 一次 `references/archive_template.md`**，按其中的：
+> 🔴 **MANDATORY — 完整读取（约 95 行，禁止设行数上限）**：确认进入归档后，你**必须**先从头到尾完整读取 [`references/archive_template.md`](references/archive_template.md)，再动笔写 `mr-comment-resolution.md`。文件里的幂等标记（`<!-- AUTO-INDEX -->` / `<!-- ENTRIES -->`）和续写规则是硬约束，凭记忆写会破坏团队已有归档。
+
+按其中的：
 
 - 触发条件（哪些目录算"提案上下文"）
 - 固定文件名 `<proposal_dir>/mr-comment-resolution.md`
@@ -235,11 +231,6 @@ Provider selection：
 - **评论已 outdated**：不处理，仅在报告中列出。
 - **provider 异常输出**：按 `provider-contract.md` 分类处理。鉴权/版本/权限失败是 provider 环境问题，不当作评论处理结论；参数/能力不支持则在报告中标记并跳过对应远端动作。
 
-## 调用入口示例
+## 执行总则
 
-- `/fix-mr-comments`
-- "帮我处理一下当前分支 MR 上的 review 意见"
-- "把这次改动相关 MR 的评论跟一下，能修的修了，不该修的回复一下"
-- "openspec 这一波改的两个仓的 MR 评论一起处理一下"
-
-收到后按阶段 0 → 阶段 7 顺序执行（非提案上下文阶段 7 自动跳过），每个阶段结束给一行简短状态更新，减少噪音。
+触发短语见 description（`/fix-mr-comments`、"修复 MR 评论"、"处理 review 意见" 等）。收到后按阶段 0 → 阶段 7 顺序执行（非提案上下文阶段 7 自动跳过），每个阶段结束给一行简短状态更新，减少噪音。
