@@ -31,7 +31,6 @@ SHARED_NAMES = [
 
 REQUIRED_ROOT_SHARED = {
     ".trae": "dir",
-    "openspec": "dir",
     "AGENTS_meta.md": "file",
 }
 
@@ -217,6 +216,10 @@ def build_plan(args: argparse.Namespace) -> dict[str, object]:
         "dirty_entries": dirty,
         "ignored_entries": [line for line in status if line.startswith("!! ")],
         "shared_entries": shared_extraction_plan(root, tracked, args.extract_tracked_shared),
+        "required_root_shared": {
+            **REQUIRED_ROOT_SHARED,
+            **({"openspec": "dir"} if args.ensure_root_openspec else {}),
+        },
         "errors": errors,
         "will_execute": bool(args.execute and not errors),
     }
@@ -256,8 +259,8 @@ def restore_shared_entries(root: Path, target: Path, backup: Path, shared_plan: 
         os.symlink(f"../{destination_name}", link)
 
 
-def ensure_required_root_shared(root: Path, target: Path) -> None:
-    for name, kind in REQUIRED_ROOT_SHARED.items():
+def ensure_required_root_shared(root: Path, target: Path, required: dict[str, str]) -> None:
+    for name, kind in required.items():
         root_entry = root / name
         if not root_entry.exists() and not root_entry.is_symlink():
             if kind == "dir":
@@ -306,7 +309,7 @@ def execute_plan(plan: dict[str, object]) -> None:
         )
     restore_shared_entries(root, target, backup, list(plan["shared_entries"]))
     overlay_backup_to_target(backup, target)
-    ensure_required_root_shared(root, target)
+    ensure_required_root_shared(root, target, dict(plan["required_root_shared"]))
 
 
 def main() -> int:
@@ -319,6 +322,11 @@ def main() -> int:
         "--extract-tracked-shared",
         action="store_true",
         help="move tracked shared entries such as AGENTS.md out to the root and symlink them back",
+    )
+    parser.add_argument(
+        "--ensure-root-openspec",
+        action="store_true",
+        help="create a root-level shared openspec/ directory when one was not extracted from untracked content",
     )
     parser.add_argument("--execute", action="store_true", help="perform the conversion")
     args = parser.parse_args()

@@ -1,6 +1,6 @@
 ---
 name: git-worktree-converter
-description: Use when the user wants to convert an ordinary single-checkout Git repository into the user's bare-root plus peer-worktree layout, migrate a repo to worktree mode, normalize a non-worktree Git directory, or asks to make a repo look like the search_loader worktree format. Also use for main/master/primary-branch detection before conversion.
+description: Use when the user wants to convert or plan converting an ordinary single-checkout Git repository into the user's bare-root plus peer-worktree layout, migrate/normalize a repo to worktree mode, make a repo look like the search_loader worktree format, detect main/master primary before conversion, or says 转换 worktree / 迁移到 bare-root. Safety gate for destructive dry-run-first repo layout migration; requires confirmed primary. Not for creating feature worktrees or editing shell helpers.
 ---
 
 # Git Worktree Converter
@@ -13,7 +13,7 @@ repo-root/
 ├── .git            # pointer file: gitdir: ./.bare
 ├── main/           # current branch checkout when current == primary
 ├── feature-dir/    # future peer worktrees
-├── .coco/ .ai_doc/ .trae/ openspec/ specs/
+├── .coco/ .ai_doc/ .trae/ [openspec/] [specs/]
 └── AGENTS_meta.md  # shared agent instructions; worktrees link AGENTS.md -> ../AGENTS_meta.md
 ```
 
@@ -24,10 +24,11 @@ Important behavior: `repo-root/` is a bare Git control directory, not a working 
 The converter must guarantee these root-level shared assets exist for future `gw-add` symlinks:
 
 - `.trae/`
-- `openspec/`
 - `AGENTS_meta.md`
 
-If they did not exist before conversion, create empty `.trae/` and `openspec/` directories and a small placeholder `AGENTS_meta.md`. Link them into the converted checkout when no real checkout entry would be overwritten.
+If they did not exist before conversion, create empty `.trae/` and a small placeholder `AGENTS_meta.md`. Link them into the converted checkout when no real checkout entry would be overwritten.
+
+`openspec/` and `specs/` are shared only when they are untracked root-level directories before conversion. If either directory is tracked by Git, leave the tracked directory inside the checkout (`<repo-root>/<checkout-dir>/openspec` or `.../specs`) and do not create a misleading empty root copy. Create a root-level shared `openspec/` only when the user explicitly asks for that with `--ensure-root-openspec`.
 
 ## Before You Mutate Anything
 
@@ -38,6 +39,17 @@ This conversion relocates the Git database and the working tree. It is ordinary 
 - **Is the working tree clean?** A dirty tree means uncommitted work gets shuffled mid-conversion; require an explicit `--allow-dirty` otherwise.
 - **Is it already converted?** A `.bare/`, a `.git` pointer file, or a `bare` entry in `git worktree list` means re-running risks clobbering a working layout.
 - **Does the target checkout directory already exist?** Converting into an existing directory would collide with it.
+
+## NEVER
+
+- NEVER execute a conversion from an inferred primary branch. `--execute` requires a user-confirmed `--primary <branch>`.
+- NEVER point root `.git` at `.bare/worktrees/main`; the root must remain a bare Git control directory.
+- NEVER hand-roll the migration with ad hoc `git`/`mv` commands when the bundled script can run.
+- NEVER extract tracked `openspec/` or `specs/` into root shared copies unless the user explicitly asks to change tracked repository layout.
+- NEVER treat missing root `openspec/` as a failed conversion when the source `openspec/` was tracked or absent and `--ensure-root-openspec` was not requested.
+- NEVER create feature worktrees here; use the `gw-worktree` skill / `gw-add` after conversion.
+- NEVER edit `~/.zshrc`, `gw-add`, or other shell helpers as part of this conversion unless the user asks.
+- NEVER improvise recovery after a partial move. Report the script's backup path and stop unless the user explicitly asks for recovery.
 
 ## Primary Branch Detection
 
@@ -97,7 +109,31 @@ Useful options:
 | `--checkout-dir <dir>` | Override the target directory for the current checkout. Must be one directory name under repo root. |
 | `--allow-dirty` | Permit modified/untracked files. Use only after the user explicitly accepts the risk. |
 | `--extract-tracked-shared` | Move tracked shared files such as `AGENTS.md` out to root and symlink them back. This changes Git-tracked paths, so use only when the user wants that normalization. |
+| `--ensure-root-openspec` | Force creation of root `openspec/` when no untracked `openspec/` was extracted. Use only when the user explicitly wants root-level shared OpenSpec assets; never use it just because the checkout has a tracked `openspec/`. |
 | `--execute` | Actually convert. Without this, the script is dry-run only. |
+
+## `openspec/` and `specs/` Handling
+
+Before conversion, inspect whether these directories are tracked:
+
+```bash
+git -C <repo> ls-files openspec specs
+```
+
+Use this decision table:
+
+| Original state | Root after conversion | Checkout after conversion |
+| --- | --- | --- |
+| `openspec/` untracked | `repo-root/openspec/` with original content | symlink `checkout/openspec -> ../openspec` |
+| `specs/` untracked | `repo-root/specs/` with original content | symlink `checkout/specs -> ../specs` |
+| `openspec/` tracked | no root `openspec/` by default | real tracked `checkout/openspec/` |
+| `specs/` tracked | no root `specs/` by default | real tracked `checkout/specs/` |
+| no `openspec/` | no root `openspec/` by default | no checkout symlink |
+
+Do not use `--extract-tracked-shared` as a workaround for tracked `openspec/` or
+`specs/` unless the user explicitly wants to change tracked repository layout.
+It can create two sources of truth for proposal/spec files. Prefer leaving
+tracked OpenSpec assets in the checkout.
 
 ## Manual Verification Commands
 
@@ -117,7 +153,8 @@ Expected shape:
 - The checkout's `.git` is a file pointing into `.bare/worktrees/<checkout-dir>`.
 - `git worktree list --porcelain` includes a `bare` entry for `<repo-root>/.bare` and a normal worktree entry for the checkout directory.
 - `git -C <repo-root> rev-parse --show-toplevel` fails with `this operation must be run in a work tree`; this is expected for the bare root.
-- Root `.trae/`, `openspec/`, and `AGENTS_meta.md` exist.
+- Root `.trae/` and `AGENTS_meta.md` exist. Root `openspec/` exists only if it was extracted from an untracked directory or `--ensure-root-openspec` was explicitly used.
+- Root `specs/` exists only if it was extracted from an untracked directory.
 - Shared untracked directories/files that existed at repo root are linked into the checkout when possible.
 
 ## What To Report

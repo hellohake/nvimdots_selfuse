@@ -48,6 +48,84 @@
         "Verifies git commands work from <repo-root>/main or another peer worktree",
         "Mentions lazygit should be run from main/ or through the root wrapper"
       ]
+    },
+    {
+      "id": 5,
+      "prompt": "这个仓库里 openspec/ 和 specs/ 都是 git 跟踪的目录。帮我转换成 worktree 布局，但不要把提案目录搞成两份。",
+      "expected_output": "Keeps tracked openspec/specs inside the checkout by default and does not create root shared copies unless the user explicitly requests a tracked-layout change.",
+      "files": [],
+      "expectations": [
+        "Runs or recommends git ls-files openspec specs before deciding how to handle them",
+        "Does not use --extract-tracked-shared for tracked openspec/specs unless explicitly requested",
+        "Does not use --ensure-root-openspec just because tracked openspec exists",
+        "States that missing root openspec/specs is expected for tracked directories",
+        "Reports checkout openspec/specs as real tracked directories, not root symlinks"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "我这个 repo 里还有没提交的代码和新文件，不过先别管，直接帮我转成 bare-root worktree。",
+      "expected_output": "Blocks execution because the repository is dirty unless the user explicitly accepts --allow-dirty risk after seeing the dry-run plan.",
+      "files": [],
+      "expectations": [
+        "Runs dry-run/preflight before any execute conversion",
+        "Reports dirty_entries or equivalent dirty working tree evidence",
+        "Does not pass --allow-dirty without explicit user acceptance",
+        "Does not execute conversion while dirty state is unaccepted",
+        "Explains that uncommitted work would be shuffled mid-conversion"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "我不确定这个目录之前是不是已经转过 worktree 了，你帮我再跑一次转换吧。",
+      "expected_output": "Detects existing converted or non-standard layout markers and stops rather than re-running a destructive conversion.",
+      "files": [],
+      "expectations": [
+        "Checks for .bare, .git pointer file, or git worktree bare entry before executing",
+        "Treats already converted layout as a blocking condition",
+        "Does not move files or re-create .bare when conversion markers exist",
+        "Reports the evidence that suggests the repository is already converted",
+        "Suggests verification from the checkout instead of repeating conversion"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "当前普通 git 仓库已经有一个 main/ 目录，但我就在 master 分支上，想按 search_loader 样子转换。",
+      "expected_output": "Blocks or asks for an alternate checkout directory because converting the primary branch into an existing main/ directory would collide.",
+      "files": [],
+      "expectations": [
+        "Detects that the target checkout directory already exists",
+        "Does not overwrite or move the existing main/ directory during conversion",
+        "Offers an explicit --checkout-dir alternative or asks the user to resolve the collision",
+        "Keeps the request in dry-run/blocking state until the target path is safe",
+        "Reports checkout_dir and checkout_dir_source in the plan"
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "默认分支应该能自动看出来吧，直接 --execute 转一下这个 repo。",
+      "expected_output": "Refuses to execute without explicit primary confirmation, even if origin/HEAD or branch priority can infer a candidate.",
+      "files": [],
+      "expectations": [
+        "Shows the detected primary candidate and its source",
+        "States primary_confirmed is false or equivalent",
+        "Does not run --execute without --primary <branch>",
+        "Asks the user to confirm the primary branch before execution",
+        "Provides the exact command to run after confirmation"
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "转换过程中已经把 .git 挪成 .bare 之后 git worktree add 失败了，你根据输出里的 backup 路径帮我继续修。",
+      "expected_output": "Reports the backup path and stops instead of manually recovering after a partial move unless the user explicitly asks for recovery steps.",
+      "files": [],
+      "expectations": [
+        "Extracts and reports the backup path from the script output",
+        "Does not improvise mv/rm/git recovery commands by default",
+        "Explains that backup is the clean rollback source",
+        "Asks for explicit permission before attempting recovery",
+        "Preserves failure context including stdout/stderr or script error summary"
+      ]
     }
   ]
 }
