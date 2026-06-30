@@ -136,6 +136,45 @@ export HOME="/home/lihao.hellohake"    # Fix prompt abbreviation
 # back to the local clipboard for terminal coding agents.
 export VISUAL="$EDITOR"
 
+# Headless Secret Service for CLI keyring consumers such as codebase.
+ensure_gnome_keyring_headless() {
+    [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]] && return
+    [[ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]] || return
+    command -v gnome-keyring-daemon >/dev/null 2>&1 || return
+    command -v secret-tool >/dev/null 2>&1 || return
+    command -v setsid >/dev/null 2>&1 || return
+
+    if printf 'probe' | secret-tool store --label='zsh-keyring-probe' app zsh-keyring probe writable >/dev/null 2>&1; then
+        secret-tool clear app zsh-keyring probe writable >/dev/null 2>&1
+        return
+    fi
+
+    local lock_dir="${XDG_RUNTIME_DIR:-/tmp}/gnome-keyring-headless.lock"
+    mkdir "$lock_dir" 2>/dev/null || return
+
+    if printf 'probe' | secret-tool store --label='zsh-keyring-probe' app zsh-keyring probe writable >/dev/null 2>&1; then
+        secret-tool clear app zsh-keyring probe writable >/dev/null 2>&1
+        rmdir "$lock_dir" 2>/dev/null
+        return
+    fi
+
+    command -v systemctl >/dev/null 2>&1 && \
+        systemctl --user stop gnome-keyring-daemon.socket gnome-keyring-daemon.service >/dev/null 2>&1
+    pkill -u "$USER" -x gnome-keyring-d >/dev/null 2>&1
+    sleep 0.2
+
+    mkdir -p "$HOME/.local/share/keyrings"
+    setsid sh -c "printf '\n' | exec /usr/bin/gnome-keyring-daemon --unlock --foreground --components=secrets" \
+        >/tmp/gnome-keyring-headless.log 2>&1 &
+    sleep 0.5
+
+    if printf 'probe' | secret-tool store --label='zsh-keyring-probe' app zsh-keyring probe writable >/dev/null 2>&1; then
+        secret-tool clear app zsh-keyring probe writable >/dev/null 2>&1
+    fi
+    rmdir "$lock_dir" 2>/dev/null
+}
+ensure_gnome_keyring_headless
+
 
 # --- 5. ALIASES ---
 

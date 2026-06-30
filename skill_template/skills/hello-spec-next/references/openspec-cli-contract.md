@@ -10,7 +10,9 @@ and the missing/mismatch → Stop Reason mapping.
 Run `openspec status --change "<CHANGE_NAME>" --json` after `REPO_ROOT` and
 schema discovery are locked. Both `openspec` calls must run from `REPO_ROOT`
 (the dir directly containing `openspec/`); the CLI does not walk up ancestors,
-so prefix each with `cd "<REPO_ROOT>" &&`. It emits:
+so prefix each with `cd "<REPO_ROOT>" &&`. Both calls print a progress spinner
+to stderr; capture stdout only (do NOT merge with `2>&1`) before parsing the
+JSON. It emits:
 
 - `changeName`: the change being reported.
 - `schemaName`: must equal `hello-spec-v2`.

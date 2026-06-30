@@ -357,20 +357,29 @@ artifacts:
       decision history.)
 
       Persistence requirements (core of keeping context clean):
-      - Create `grill-spec.md` ONLY after all blocking Open Questions have been
-        resolved or explicitly marked as pending user confirmation. This file is
-        the GATE-1 completion marker; it must not replace `design.md`.
-      - Every resolved or pending question written to `grill-spec.md` MUST include:
-        `Status=<user_confirmed|resolved_by_evidence|pending_user_confirmation>`
-        and `Evidence=<path:line or exact user answer>`.
+      - The OpenSpec CLI marks an artifact `done` by FILE EXISTENCE alone (it does
+        not parse `## Status`). So `grill-spec.md` acts as the GATE-1 completion
+        marker purely by existing: do NOT create it while any blocking item is
+        still `pending_user_confirmation` or lacks Evidence — that would silently
+        mark the gate done and unblock tasks/plan. While the gate is pending,
+        persist ALL state in this change's `design.md` (Open Questions +
+        Decisions), never in a pending `grill-spec.md`.
+      - Create `grill-spec.md` ONLY when every blocking Open Question is resolved
+        (each `user_confirmed` or `resolved_by_evidence` with non-empty Evidence).
+        It is then created already-complete; it must not replace `design.md`.
+      - Every resolved question recorded in `grill-spec.md` MUST include:
+        `Status=<user_confirmed|resolved_by_evidence>` and
+        `Evidence=<path:line or exact user answer>`.
         - `user_confirmed`: the user explicitly answered or approved the recommended answer.
         - `resolved_by_evidence`: the answer was derived from concrete code/docs; cite path:line.
-        - `pending_user_confirmation`: the agent has a recommendation, but the user
-          has not confirmed it yet.
-      - `grill-spec.md` Status may be `complete` ONLY when every blocking question is
-        either `user_confirmed` or `resolved_by_evidence` with non-empty Evidence.
-        If any blocking item is `pending_user_confirmation` or lacks Evidence, set
-        Status to `pending` and stop before tasks/plan.
+        - `pending_user_confirmation` is a `design.md` Open-Questions state ONLY —
+          the agent has a recommendation the user has not confirmed yet. It MUST
+          NOT appear in `grill-spec.md`, because that file is created only once
+          nothing is pending.
+      - `grill-spec.md` carries Status `complete` (the only Status it ever holds,
+        since it is created solely at completion). If any blocking item is still
+        `pending_user_confirmation` or lacks Evidence, do NOT create the file —
+        keep clarifying in `design.md` and stop before tasks/plan.
       - Write resolutions BACK into this change's `design.md` Decisions section,
         and CLEAR the Open Questions section. design.md is the SINGLE source of
         truth for Open Questions — brainstorm.md has no such section.
