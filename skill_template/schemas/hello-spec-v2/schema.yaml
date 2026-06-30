@@ -15,7 +15,9 @@ description: >
   knowledge flywheel.
   Flow: brainstorm -> proposal -> specs -> design -> [GATE-1 clarify gate]
   -> tasks -> plan -> apply -> [GATE-2 retrospective + gotchas flywheel].
-  The apply phase uses git worktrees and subagent-driven development.
+  The apply phase uses git worktrees and hello-spec-apply, which treats a
+  hello-spec-v2 apply request as explicit authorization for subagent-driven
+  execution unless the user explicitly opts into SERIAL_APPLY=true.
   All human-facing artifacts default to Simplified Chinese (see language_policy).
 
 # ─────────────────────────────────────────────────────────────
@@ -544,19 +546,61 @@ apply:
     0.3 **Human decision queue**: before coding, read `human-decisions.md` if it exists.
        This is a lazy execution/review-stage queue, not a planning-stage
        substitute for grill-spec. Missing file means no execution-stage decision
-       has been raised yet.
+       has been raised yet; record `Decision queue path: not_created` instead of
+       treating absence as a failure.
        - If it contains unresolved `pending_human` decisions that block the
          current task, stop and ask the user to approve/reject/defer them.
        - If implementation uncovers a new unsafe decision, write a `Dxxx` entry
-         with AI recommendation and options instead of leaving the decision only
-         in chat.
+         with AI recommendation and options, creating `human-decisions.md` from
+         the template only at that point instead of leaving the decision only in
+         chat.
        - Do not commit or mark apply complete while blocking decisions remain
          `pending_human`.
 
-    1. **Executor**: Use the Skill tool to invoke **superpowers:subagent-driven-development** to execute the plan.md micro-tasks with fresh subagents per task.
+    1. **Executor**: Use **hello-spec-apply** as the binding executor contract
+       for this phase. A user request such as `hello-spec-apply <change>`,
+       `apply <change>`, "开始实现", "按 plan 实现", or a generic
+       `openspec-apply-change` that resolves to `schemaName=hello-spec-v2`
+       is explicit authorization to use delegated subagents for this apply phase.
+
+       Do NOT silently fall back to a long main-agent serial implementation. If
+       subagent tools are unavailable, or the current platform cannot delegate,
+       stop before production code edits with:
+
+       `Stopped at: subagent_mode_unavailable`
+
+       Manual fallback is allowed only when:
+       - the user explicitly says `SERIAL_APPLY=true`;
+       - the slice is ledger-only and changes no production/test code;
+       - a reviewer asks for a trivial one-line fix inside the same write scope.
+       - subagent tools are unavailable and the action is read-only or
+         ledger-only. Tool unavailability never authorizes serial production-code
+         implementation by itself; production-code serial fallback requires
+         `SERIAL_APPLY=true`.
+
+       Before any production-code edit, update the active `plan.md`
+       `Agent Execution Audit` with:
+
+       ```text
+       Subagent mode: planned|serial_subagents|parallel_subagents|manual_fallback|blocked
+       Spawned agents: <n>
+       Manual fallback: <yes|no>
+       Fallback reason: <none|SERIAL_APPLY=true|tool_unavailable|ledger_only|one_line_review_fix>
+       ```
 
        Tell the executor:
        - Read plan.md in this change directory for micro-tasks
+       - Validate and consume the existing `Subagent Dispatch Matrix` in plan.md
+         before coding. The plan phase owns matrix creation; apply must not
+         invent it. Required columns are `SliceID`, `TaskRefs`, `StepIDs`,
+         `worktree`, `allowed write scope`, `required reads`, `gotcha IDs`,
+         `test policy`, `reviewers required`, and `stop conditions`. If the
+         matrix is missing, placeholder-only, stale, or does not cover the next
+         production-code step, stop with `needs_plan_refinement`.
+       - Follow hello-spec-apply's skill-relative
+         `references/openspec-apply-contract.md` for machine JSON parsing,
+         stop reasons, and subagent dispatch/review details. The schema keeps
+         only invariant red-lines; the skill owns execution mechanics.
        - Update plan.md checkboxes status for finished micro-steps; each checked
          checkbox must keep its `StepID` and `TaskRef`
        - Update tasks.md checkboxes as coarse tasks complete, based on the
@@ -619,8 +663,10 @@ apply:
        represented in `human-decisions.md`, and that blocking `pending_human`
        entries are called out in the final summary.
 
-    If any skill is unavailable, fall back to manual implementation
-    using the standard task-by-task loop from tasks.md.
+    If `hello-spec-apply` itself is unavailable, stop before production code
+    edits and tell the user to install/sync the skill. Do not continue with
+    generic `openspec-apply-change` for a hello-spec-v2 proposal unless the user
+    explicitly provides `SERIAL_APPLY=true`.
 
 retrospective:
   trigger: Manual (run after a change is implemented and archived via /spec-trouble-resolve)
@@ -742,9 +788,10 @@ code_review:
          adjacent patterns, shared contracts, business boundaries, naming,
          simplicity, and verification gaps.
     - Output: `spec_code_review.md` in the proposal directory.
-    - The report includes a structured `Fix Queue` and a one-line
-      `Coding Agent Copy Prompt` with the report's absolute path, so you can
-      copy it directly to a coding agent for follow-up fixes.
+    - The report includes a structured `Fix Queue`, short next-action commands,
+      and a cross-session fallback prompt with the report's absolute path, so a
+      coding agent can locate the latest review run when explicit fix mode is
+      requested.
     - Human-facing report prose MUST be Simplified Chinese. Keep code symbols,
       file paths, SQL/IDL/RPC/API names, and status enums in their original
       English form, but do not write English narrative bullets in the final
@@ -767,8 +814,16 @@ code_review:
       with `Status=accepted`.
     - Any `human_decision` row must point to an entry in `human-decisions.md`
       (`Dxxx`) or create one with the AI recommendation and blocking scope.
-    - First version is report-only: it does NOT edit code, does NOT start an
-      infinite review/fix loop, and does NOT commit/push.
+    - Action boundary:
+      - `spec-code-review review` is report-only: it writes/appends
+        `spec_code_review.md` and does NOT edit code, commit, push, or start an
+        implicit review/fix loop.
+      - Only explicit `$spec-code-review fix`, `修 accepted`, or an equivalent
+        user request may consume the latest review run's Fix Queue rows with
+        `Status=accepted` and edit business code.
+      - Fix mode updates Fix Queue / Machine State status only; it does NOT
+        refresh Gate or CR Readiness. After fix mode, run review mode again to
+        produce the current Gate / CR Readiness.
 
     Suggested handoff after reading the report:
     - "修 Fix Queue 里 Status=accepted 的项"

@@ -4,25 +4,31 @@
     {
       "id": 1,
       "prompt": "OpenSpec-style SDD 提案的 apply 已经完成了，帮我对当前提案做一次 AI pre-commit review，重点看 spec 有没有漏考虑改动代码附近的上下文逻辑，输出 report，不要改代码。",
-      "expected_output": "Produces spec_code_review.md with Gate, Review Findings, Spec 反向风险, Context Audit, Fix Queue, and a Coding Agent Copy Prompt containing the absolute report path.",
+      "expected_output": "Produces spec_code_review.md with Gate, Review Findings, Spec 反向风险, Context Audit, Fix Queue, Next Actions, Machine State, and a short next command such as $spec-code-review fix. It does not edit code in review mode.",
       "files": []
     },
     {
       "id": 2,
-      "prompt": "这次 openspec 改动涉及两个 repo，代码写完了但还没 commit。请用不同 reviewer 视角先审一下实现，尤其看 shared struct/公共链路有没有被污染，报告里要能让我直接复制一句话给 coding agent 去修 accepted 项。",
-      "expected_output": "Discovers changed repos, reviews diff against spec and code context, does not commit or edit, and emits a coding-agent-consumable Fix Queue plus one-line copy prompt with absolute path.",
+      "prompt": "这次 openspec 改动涉及两个 repo，代码写完了但还没 commit。请用不同 reviewer 视角先审一下实现，尤其看 shared struct/公共链路有没有被污染；报告里要能让我下一步直接跑 $spec-code-review fix 去修 accepted 项。",
+      "expected_output": "Discovers changed repos, reviews diff against spec and code context, does not commit or edit, and emits a coding-agent-consumable Fix Queue plus Next Actions/Machine State so fix mode can consume it without a long copy prompt.",
       "files": []
     },
     {
       "id": 3,
       "prompt": "帮我 review 当前分支代码质量，但别走 MR comments，那是提交后的事。现在是在 spec-commit-push 前，想先让 AI 找 blocker/major。",
-      "expected_output": "Triggers spec-code-review rather than fix-mr-comments, keeps report-only boundary, classifies Blocker/Major/Minor/Nit, and gives next-step handoff to coding agent.",
+      "expected_output": "Triggers spec-code-review rather than fix-mr-comments, keeps review mode report-only, classifies Blocker/Major/Minor/Nit, and gives the short next-step command $spec-code-review fix plus fallback prompt only for cross-session handoff.",
       "files": []
     },
     {
       "id": 4,
       "prompt": "apply 后 coding agent 新增了 Go 单测文件，例如 server_middleware/scene_inject_mw_test.go。请做 spec-code-review，报告里除了 gopls 也要给我能直接复制手动跑的 targeted go test 命令。",
       "expected_output": "Produces spec_code_review.md with Manual Test Commands. For changed Go *_test.go files, includes copyable commands such as cd <repo> && go test ./server_middleware -run 'TestSceneFromRequest' -count=1, marked as manual/not run by the skill when repo rules forbid automatic go test. If proposal-level manual_test_commands.md exists, checks ledger coverage and reports missing commands as a verification gap; if the ledger file is absent, marks Ledger status=not_enabled and keeps the copyable commands in the report without requiring lightweight templates to create the file.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "上一步已经生成了 spec_code_review.md，现在在 coding agent 里执行 $spec-code-review fix，帮我自动定位最新审核结果并修 accepted。",
+      "expected_output": "Runs fix mode, automatically locates the latest consumable spec_code_review.md when unambiguous, reads the latest Review Run, fixes only Status=accepted Fix Queue items, updates Fix Queue/Machine State/Fix Mode Notes, runs lightweight verification, and tells the user to rerun review mode. It does not create new findings or refresh Gate/CR Readiness.",
       "files": []
     }
   ]
