@@ -10,6 +10,7 @@ typeset -ga SYNC_SKILLS=(
   spec-code-review
   spec-commit-push
   fix-mr-comments
+  hello-spec-loop
   hello-spec-start
   hello-spec-next
   hello-spec-advance

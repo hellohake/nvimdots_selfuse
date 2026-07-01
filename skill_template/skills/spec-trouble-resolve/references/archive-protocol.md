@@ -42,8 +42,15 @@ For entries waiting on Type C/E/user clarification, append:
 Before deleting anything from `troubleshoot.md`, mechanically identify entry boundaries:
 
 1. Prefer `## 问题` / `### 问题` headings. Each heading through the next same-or-higher-level problem heading is one entry.
-2. If no problem headings exist, split on an independent line of three or more hyphens: `---`.
-3. If neither rule uniquely identifies the handled entry, do not delete source content. Append a full copy of the relevant source text to `backup.md`, then add this status line in `troubleshoot.md`:
+2. If no problem headings exist, split on top-level numbered list markers. Treat these as entry starts even when spacing is casual:
+   - `1. xxx`
+   - `1.xxx`
+   - `1、xxx`
+   - `1) xxx`
+   A numbered entry runs until the next top-level numbered marker, problem heading, or `---` separator. Indented lines, quote blocks, sub-lists, and plain continuation lines belong to the previous numbered entry.
+3. If neither headings nor numbered entries exist, split on an independent line of three or more hyphens: `---`.
+4. Do not split on semicolons (`;` / `；`) or ordinary punctuation. They are sentence endings, not entry boundaries.
+5. If none of the rules above uniquely identifies the handled entry, do not delete source content. Append a full copy of the relevant source text to `backup.md`, then add this status line in `troubleshoot.md`:
 
 ```markdown
 > 状态：已处理但未自动删除 YYYY-MM-DD，原因：无法唯一切分条目

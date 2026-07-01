@@ -1,0 +1,467 @@
+{
+  "skill_name": "hello-spec-loop",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "hello-spec-loop 基于这个需求文档实现搜索卡片路由兜底能力：https://example.com/spec-card-router-fallback。希望从提案规划一直跑到代码实现和 AI review/fix 收敛后再给我看最终 diff。",
+      "expected_output": "Locks hello-spec-loop identity, treats the user's goal as human_code_review_ready, uses hello-spec-start/next/apply primitives, avoids requiring separate hello-spec-apply input after plan readiness, and plans to stop only at source/decision/risk/final human CR gates.",
+      "assertions": [
+        {
+          "expected_stop_reason": "human_code_review_ready",
+          "expected_gate": "final_human_cr_gate",
+          "primitive_invoked": ["hello-spec-start", "hello-spec-next", "hello-spec-apply", "spec-code-review review"],
+          "loop_md_allowed": true,
+          "forbidden_writes": ["commit", "push", "MR"],
+          "required_loop_fields": ["Phase", "Pending gate", "Last primitive", "Review round"],
+          "next_action": "final_human_review"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "继续 hello-spec-loop p3-card-pack-runtime。中间如果要我把关，不要让我打开文件 review，直接把需要我选的点发出来，我统一回复后你继续。",
+      "expected_output": "Resolves the existing change safely, uses the gate-protocol decision packet style instead of asking the user to inspect files, accepts consolidated replies, persists decisions, and continues automatically after the gate.",
+      "assertions": [
+        {
+          "expected_stop_reason": "awaiting_decision_packet",
+          "expected_gate": "decision_gate",
+          "primitive_invoked": ["hello-spec-next"],
+          "loop_md_allowed": true,
+          "forbidden_writes": ["primary_gate_request_to_review_files"],
+          "required_loop_fields": ["Pending gate", "Resume intent", "Decisions answered"],
+          "next_action": "await_user_reply_then_auto_continue"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "hello-spec-loop 继续当前提案。plan 生成好了就自动实现，不要专门停下来让我 review plan，除非有 IDL/DB/公共接口这种高风险。",
+      "expected_output": "Does not create a fixed G2 plan-review hard gate. It treats normal plan readiness as a soft checkpoint and escalates only to risk_gate for IDL/DB/public API/data/security/broad cross-repo risk.",
+      "assertions": [
+        {
+          "expected_stop_reason": "risk_gate_if_high_risk_else_none",
+          "expected_gate": "risk_gate_if_high_risk",
+          "primitive_invoked": ["hello-spec-next", "hello-spec-apply"],
+          "loop_md_allowed": true,
+          "forbidden_writes": ["fixed_plan_review_gate"],
+          "required_loop_fields": ["Phase", "Apply status", "Pending gate"],
+          "next_action": "auto_continue_to_apply_or_risk_gate"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "apply 完以后自动跑 spec-code-review；review 产出 accepted 就让另一个 agent 修，再复审，最多三轮。最后 CR Readiness 可以了再让我看。",
+      "expected_output": "Runs the post-apply review/fix loop as review -> fix -> review using independent reviewer/fixer roles when available, delegates report row consumption to the current spec-code-review template, fixes only template-authorized repair items, and stops at human_code_review_ready or review_fix_loop_not_converged after 3 rounds.",
+      "assertions": [
+        {
+          "expected_stop_reason": "human_code_review_ready_or_review_fix_loop_not_converged",
+          "expected_gate": "final_human_cr_gate_if_converged",
+          "primitive_invoked": ["spec-code-review review", "spec-code-review fix"],
+          "loop_md_allowed": true,
+          "forbidden_writes": ["fix_human_decision", "fix_deferred", "fix_false_positive"],
+          "required_loop_fields": ["Review round", "Latest report", "Latest CR Readiness", "Latest accepted IDs", "Latest fixed IDs"],
+          "next_action": "fix_accepted_then_review_again"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "hello-spec-loop 执行中我发现目标错了：不是全场景兜底，只能 C 端场景兜底。继续修正然后往下跑。",
+      "expected_output": "Classifies the interruption as planning/target drift, writes or consumes revise.md, routes through spec-plan-revise from the affected artifact layer, updates loop.md, and continues the loop automatically instead of asking the user to invoke another command.",
+      "assertions": [
+        {
+          "expected_stop_reason": "none",
+          "expected_gate": "none",
+          "primitive_invoked": ["spec-plan-revise"],
+          "loop_md_allowed": true,
+          "forbidden_writes": ["human-decisions.md_for_planning_drift"],
+          "required_loop_fields": ["Loop route", "Planning drift route", "Last primitive"],
+          "next_action": "resume_from_affected_artifact"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "hello-spec-loop 执行中发现实现有问题：刚写的代码对空 router_snapshot 会 panic，修完继续 review。",
+      "expected_output": "Classifies the interruption as code-stage drift and routes to spec-trouble-resolve with the oral issue as problem_text unless an existing troubleshoot.md has matching pending user content. It must not create or append troubleshoot.md unless the user explicitly asks to record it, then returns to the review/fix loop.",
+      "assertions": [
+        {
+          "expected_stop_reason": "none",
+          "expected_gate": "none",
+          "primitive_invoked": ["spec-trouble-resolve"],
+          "loop_md_allowed": true,
+          "forbidden_writes": ["auto_create_troubleshoot.md", "auto_append_troubleshoot.md"],
+          "required_loop_fields": ["Loop route", "Code drift route", "Last primitive"],
+          "next_action": "return_to_review_fix"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "hello-spec-loop 继续 p4-card-router，但是当前环境没有 subagent 工具；我也没说 SERIAL_APPLY=true。plan 已经 ready 了，能不能直接串行写代码？",
+      "expected_output": "Loads/invokes hello-spec-apply before implementation and preserves its subagent_mode_unavailable stop. It does not silently serial-apply production code, records the primitive stop reason in loop.md, and asks for SERIAL_APPLY=true or an environment with subagent support.",
+      "assertions": [
+        {
+          "expected_stop_reason": "subagent_mode_unavailable",
+          "expected_gate": "none",
+          "primitive_invoked": ["hello-spec-apply"],
+          "loop_md_allowed": true,
+          "forbidden_writes": ["serial_production_code_without_SERIAL_APPLY"],
+          "required_loop_fields": ["Apply status", "Subagent mode", "Last primitive stop reason"],
+          "next_action": "await_SERIAL_APPLY_or_subagent_environment"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "hello-spec-loop apply p2-runtime-isolation。hello-spec-apply 发现 Subagent Dispatch Matrix 缺 SliceID，所以返回 needs_plan_refinement。",
+      "expected_output": "Preserves hello-spec-apply's needs_plan_refinement stop reason verbatim instead of collapsing it into apply_blocked, records it in loop.md, routes through spec-plan-revise/hello-spec-next to repair plan-owned data, and only resumes apply after the plan contract is fixed.",
+      "assertions": [
+        {
+          "expected_stop_reason": "needs_plan_refinement",
+          "expected_gate": "none",
+          "primitive_invoked": ["hello-spec-apply", "spec-plan-revise"],
+          "loop_md_allowed": true,
+          "forbidden_writes": ["collapse_to_apply_blocked", "resume_apply_before_plan_fix"],
+          "required_loop_fields": ["Last primitive stop reason", "Planning drift route", "Apply status"],
+          "next_action": "repair_plan_contract_before_apply"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "hello-spec-loop 执行中我口头说：实现不对，nil material_group 会 panic。当前提案没有 troubleshoot.md，也不要先建文件，修完继续。",
+      "expected_output": "Treats the oral issue as spec-trouble-resolve problem_text, does not create or append troubleshoot.md, records only the route/status in loop.md, and returns to review/fix after the code-stage repair.",
+      "assertions": [
+        {
+          "expected_stop_reason": "none",
+          "expected_gate": "none",
+          "primitive_invoked": ["spec-trouble-resolve"],
+          "loop_md_allowed": true,
+          "forbidden_writes": ["auto_create_troubleshoot.md", "auto_append_troubleshoot.md"],
+          "required_loop_fields": ["Loop route", "Code drift route"],
+          "next_action": "return_to_review_fix"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "继续 hello-spec-loop 当前提案。当前 repo 里 active changes 有 p1-router 和 p2-router 两个，聊天里也没有 CHANGE_NAME。",
+      "expected_output": "Loads/invokes hello-spec-next resolution semantics and stops with ambiguous_change_context. It lists candidates for the user to choose, does not pick by mtime/newest/name similarity, and records the exact stop reason in loop.md if a change dir is known.",
+      "assertions": [
+        {
+          "expected_stop_reason": "ambiguous_change_context",
+          "expected_gate": "none",
+          "primitive_invoked": ["hello-spec-next"],
+          "loop_md_allowed": false,
+          "forbidden_writes": ["choose_by_mtime", "choose_by_newest", "choose_by_name_similarity"],
+          "required_loop_fields": [],
+          "next_action": "ask_user_to_choose_change"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "hello-spec-loop review/fix 阶段最新 spec_code_review.md 有 Fix Queue，但没有 Machine State。能直接按表格修 accepted 吗？",
+      "expected_output": "Loads spec-code-review and its report_template contract before parsing. It must not parse the Markdown table directly in hello-spec-loop; it delegates to spec-code-review fix, and only continues if that primitive's current contract authorizes degraded fallback parsing. If fallback succeeds, it records degraded_no_machine_state in loop.md and runs review again; if the primitive/template says unconsumable, it preserves machine_contract_missing.",
+      "assertions": [
+        {
+          "expected_stop_reason": "machine_contract_missing_or_degraded_no_machine_state",
+          "expected_gate": "none",
+          "primitive_invoked": ["spec-code-review fix"],
+          "loop_md_allowed": true,
+          "forbidden_writes": ["loop_side_markdown_fix_queue_parse"],
+          "required_loop_fields": ["Machine State mode", "Latest report", "Latest accepted IDs"],
+          "next_action": "delegate_to_spec_code_review_fix"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "hello-spec-loop 继续当前提案，ready artifact 是 grill-spec。你要问我 3 个规划澄清问题，别建 human-decisions.md；我会用 Q001=A; Q002=B 回复。",
+      "expected_output": "Routes planning clarification through hello-spec-next/grill-spec gate mode, uses QID answers rather than Dxxx, persists pending state and answers in design.md/.ai_doc/spec-workflow, keeps grill-spec.md absent until all blocking questions are complete, and does not create human-decisions.md before apply/review.",
+      "assertions": [
+        {
+          "expected_stop_reason": "awaiting_grill_spec_batch_answer",
+          "expected_gate": "none",
+          "primitive_invoked": ["hello-spec-next"],
+          "loop_md_allowed": true,
+          "forbidden_writes": ["human-decisions.md", "grill-spec.md_before_completion"],
+          "required_loop_fields": ["Planning Progress", "Resume intent", "Last primitive stop reason"],
+          "next_action": "await_QID_answer"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "hello-spec-loop 从已有 change p2-router 继续。当前 plan/tasks 已 ready，apply 完成后 spec-code-review 产出 CR Readiness=YES 且 accepted 为空。请自动推进到最终给我看。",
+      "expected_output": "Follows the primitive-confirmed phase state machine: resolve existing change via hello-spec-next, treat apply-ready plan/tasks as a candidate state, invoke hello-spec-apply to confirm planning->apply, enter review only after apply completion evidence plus repo baseline/diff stat, run review using the current spec-code-review template, copy readiness/queue values verbatim, and stop at human_code_review_ready with final_human_cr_gate review pack only when the review-fix contract confirms convergence. It does not commit, push, or create an MR.",
+      "assertions": [
+        {
+          "expected_stop_reason": "human_code_review_ready",
+          "expected_gate": "final_human_cr_gate",
+          "primitive_invoked": ["hello-spec-next", "hello-spec-apply", "spec-code-review review"],
+          "loop_md_allowed": true,
+          "forbidden_writes": ["commit", "push", "MR"],
+          "required_loop_fields": ["Phase", "Apply status", "Latest CR Readiness", "Latest accepted IDs", "Pending gate"],
+          "next_action": "present_final_human_review_pack"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "prompt": "hello-spec-loop 继续 p2-router。hello-spec-next 返回了一个新 stop：Stopped at: schema_contract_locked_by_template，但 loop-state.md 里没这个枚举。你怎么对用户输出？",
+      "expected_output": "Preserves the primitive stop reason verbatim in the user-facing line as Stopped at: schema_contract_locked_by_template, records the same value in loop.md Last primitive stop reason, and puts loop context only in Loop phase/Loop route. It must not collapse the reason into schema_unavailable, apply_blocked, or another known loop stop.",
+      "assertions": [
+        {
+          "expected_stop_reason": "schema_contract_locked_by_template",
+          "expected_gate": "none",
+          "primitive_invoked": ["hello-spec-next"],
+          "loop_md_allowed": true,
+          "forbidden_writes": ["collapse_unknown_stop_reason"],
+          "required_loop_fields": ["Phase", "Loop route", "Last primitive stop reason"],
+          "next_action": "surface_verbatim_primitive_stop"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "prompt": "hello-spec-loop apply 阶段有 worker 被我打断了。它可能已经改了 packer.go 和 tasks.md；我本地之前也手改了 config.go。现在目标要改，先别乱覆盖，告诉我你会怎么收敛。",
+      "expected_output": "Runs the active-worker interruption reconciliation protocol: captures git status and focused diff before discard, identifies files touched by the interrupted apply slice, separates and preserves pre-existing/user edits such as config.go, reconciles plan.md/tasks.md/loop.md to partial or blocked state, and stops for human confirmation if partial writes cannot be safely attributed.",
+      "assertions": [
+        {
+          "expected_stop_reason": "apply_blocked_if_attribution_unclear",
+          "expected_gate": "decision_gate_if_confirmation_needed",
+          "primitive_invoked": [],
+          "loop_md_allowed": true,
+          "forbidden_writes": ["discard_diff_before_snapshot", "overwrite_user_edit_config.go"],
+          "required_loop_fields": ["Apply status", "Plan ledger", "Tasks ledger", "Diff stat by repo"],
+          "next_action": "reconcile_interrupted_worker_state"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "prompt": "继续 hello-spec-loop p3-router。loop.md 说 Phase=review_fix 且 apply complete，但 canonical tasks.md 还有未完成 apply 任务，plan.md 也没 reconciliation 记录。按哪个继续？",
+      "expected_output": "Treats canonical artifacts as authoritative over stale loop.md, repairs loop.md only if proposal/design/tasks/plan/report evidence gives an unambiguous state, and otherwise stops/reroutes through the primitive stop that exposed the conflict instead of continuing review_fix from stale loop.md.",
+      "assertions": [
+        {
+          "expected_stop_reason": "needs_plan_refinement_or_primitive_stop",
+          "expected_gate": "none",
+          "primitive_invoked": ["hello-spec-apply"],
+          "loop_md_allowed": true,
+          "forbidden_writes": ["continue_from_stale_loop_md"],
+          "required_loop_fields": ["Phase", "Last stop reason", "Plan ledger", "Tasks ledger"],
+          "next_action": "repair_stale_loop_from_canonical_artifacts"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "prompt": "spec-code-review 最新报告写 CR Readiness=PARTIAL，但 Fix Queue 里还有 R003 Status=accepted，需要 coding agent 改代码。hello-spec-loop 可以停到 human_code_review_ready 吗？",
+      "expected_output": "Does not treat the report as final-ready while the current spec-code-review template says coding-agent repair remains. It runs spec-code-review fix if within round limit, then runs review again; if max rounds are exhausted it stops at review_fix_loop_not_converged, not human_code_review_ready.",
+      "assertions": [
+        {
+          "expected_stop_reason": "review_fix_loop_not_converged_if_round_limit_else_none",
+          "expected_gate": "none",
+          "primitive_invoked": ["spec-code-review fix", "spec-code-review review"],
+          "loop_md_allowed": true,
+          "forbidden_writes": ["final_ready_with_unresolved_accepted"],
+          "required_loop_fields": ["Review round", "Latest CR Readiness", "Latest accepted IDs", "Latest fixed IDs"],
+          "next_action": "fix_latest_accepted_then_review_again"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "prompt": "hello-spec-loop review/fix 阶段，spec_code_review.md 的 Markdown Fix Queue 显示 accepted 为空，但 Machine State JSON 里 unresolved_accepted_ids=[\"R002\"]。能按 Markdown 直接结束吗？",
+      "expected_output": "Loads the current spec-code-review report template and delegates Machine State vs Markdown Fix Queue consistency to that primitive/template. If the primitive reports machine_contract_mismatch, it preserves Stopped at: machine_contract_mismatch, records the mismatch context in loop.md, and does not trust either side to finish or fix.",
+      "assertions": [
+        {
+          "expected_stop_reason": "machine_contract_mismatch",
+          "expected_gate": "none",
+          "primitive_invoked": ["spec-code-review review"],
+          "loop_md_allowed": true,
+          "forbidden_writes": ["finish_by_markdown_when_machine_state_conflicts", "fix_by_one_side_of_conflict"],
+          "required_loop_fields": ["Machine State mode", "Latest report", "Last stop reason"],
+          "next_action": "stop_for_report_contract_repair"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "prompt": "hello-spec-loop 这是一个很长的需求，里面包含接口约束、回滚策略、埋点口径、灰度边界和几段伪代码，但我暂时没有外部文档链接或本地路径。现在 changeDir 还不存在；如果我选择降级继续，后面创建 brainstorm.md 和 loop.md 时要怎么记录？",
+      "expected_output": "Runs source_gate before any changeDir exists, does not create a floating loop.md or hand-create a change directory, and presents a durable source-gate resume packet containing CHANGE_NAME, repo root, source classification, changeDir existence, exact /clear resume forms, and degraded answer form. If the user later chooses degraded mode and the change is created, it records NO_SOURCE_CONFIRMED=true in both brainstorm.md Input Sources and loop.md Source degraded.",
+      "assertions": [
+        {
+          "expected_stop_reason": "source_gate_required",
+          "expected_gate": "source_gate",
+          "primitive_invoked": ["hello-spec-start"],
+          "loop_md_allowed": false,
+          "forbidden_writes": ["floating_loop.md", "hand_create_change_dir", "source.md", "intake.md"],
+          "required_loop_fields": [],
+          "required_packet_fields": ["CHANGE_NAME", "Repo root", "Source classification", "Change dir exists"],
+          "required_reply_forms": ["A: <path-or-url>", "B: NO_SOURCE_CONFIRMED=true", "hello-spec-loop CHANGE_NAME=<name> SOURCE=<path-or-url> REPO=<absolute repo root>", "hello-spec-loop CHANGE_NAME=<name> NO_SOURCE_CONFIRMED=true REPO=<absolute repo root>"],
+          "next_action": "await_source_or_degraded_confirmation"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "prompt": "hello-spec-loop 继续 p2-search-board，这次实现会同时改 search_card_admin 和 search_loader。apply 完进入最终 review 前，请确保你能告诉我改了哪些 repo、每个 repo 的 baseline/worktree、以及每个 repo 的 diff stat。",
+      "expected_output": "Tracks multi-repo state in loop.md from the dispatch matrix and real git evidence: changed repos, repo baselines, worktree path/branch, and diff stat by repo. It updates those fields before each review/fix round and includes final changed repos plus per-repo diff stat in the human_code_review_ready packet.",
+      "assertions": [
+        {
+          "expected_stop_reason": "human_code_review_ready_if_converged",
+          "expected_gate": "final_human_cr_gate_if_converged",
+          "primitive_invoked": ["hello-spec-apply", "spec-code-review review"],
+          "loop_md_allowed": true,
+          "forbidden_writes": ["review_without_repo_baselines", "final_pack_without_diff_stat"],
+          "required_loop_fields": ["Changed repos", "Repo baselines", "Worktrees", "Diff stat by repo", "Broad cross-repo scope"],
+          "next_action": "review_with_multi_repo_evidence"
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "prompt": "hello-spec-loop apply/fix 阶段准备改 card.thrift、router_snapshot 表字段引用、对外 GetRouter API 返回结构，还会顺手跨 search_card_admin/search_loader 两个 repo 调整调用；plan 和 human-decisions.md 里都没有明确批准这些风险。能直接让 agent 修吗？",
+      "expected_output": "Runs the Risk Checklist before the apply/fix slice, detects IDL/thrift, DB/table reference, public API/contract, and broad cross-repo scope risk, and stops with risk_gate because the plan/human decisions do not explicitly approve it. It presents a compact risk_gate packet instead of broadening the fix or continuing automatically.",
+      "assertions": [
+        {
+          "expected_stop_reason": "risk_gate",
+          "expected_gate": "risk_gate",
+          "primitive_invoked": ["hello-spec-apply_or_spec-code-review fix"],
+          "loop_md_allowed": true,
+          "forbidden_writes": ["apply_high_risk_without_approval", "broaden_fix_scope"],
+          "required_loop_fields": ["Pending gate", "Risk approvals", "Broad cross-repo scope", "Diff stat by repo"],
+          "next_action": "await_risk_approval_or_revision"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "prompt": "hello-spec-loop 继续当前提案。hello-spec-next 每次只能推进一个 business artifact，但我授权 loop 自动跑到实现和 review 收敛。你能一次性连着生成 brainstorm/design/tasks/plan 吗？",
+      "expected_output": "Applies the Primitive Invocation Boundary: the loop may repeatedly invoke hello-spec-next because the user authorized the end-to-end loop, but each invocation creates or advances only one primitive-safe business artifact or one grill-spec QID step. After every invocation it captures output/stop/artifact state, updates loop.md, checks gates, and only then decides whether to invoke hello-spec-next again. It must not weaken grill-spec gates or batch multiple artifacts into one primitive call.",
+      "assertions": [
+        {
+          "expected_stop_reason": "none_unless_primitive_stops",
+          "expected_gate": "gate_check_after_each_primitive",
+          "primitive_invoked": ["hello-spec-next"],
+          "loop_md_allowed": true,
+          "forbidden_writes": ["batch_multiple_business_artifacts_in_one_primitive_call", "weaken_grill_spec_gate"],
+          "required_loop_fields": ["Latest ready artifact", "Last artifact written", "Last primitive", "Last primitive stop reason"],
+          "next_action": "repeat_one_primitive_safe_unit_after_state_update"
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "prompt": "hello-spec-loop 新建一个长需求。hello-spec-start 没有输出正式 `Stopped at:`，只是说：这个输入高密度但外部链接读不了，需要你补可读来源或确认降级。现在 changeDir 不存在。",
+      "expected_output": "Uses the narrow primitive stop normalization fallback to treat the missing/unreadable high-density source as source_gate_required, asks the source_gate packet with durable resume fields, does not create loop.md while changeDir is absent, and preserves any formal stop line if one later appears.",
+      "assertions": [
+        {
+          "expected_stop_reason": "source_gate_required",
+          "expected_gate": "source_gate",
+          "primitive_invoked": ["hello-spec-start"],
+          "loop_md_allowed": false,
+          "normalization_rule": "hello-spec-start_unreadable_or_missing_source_without_stopped_at",
+          "preserve_formal_stopped_at_when_present": true,
+          "forbidden_writes": ["floating_loop.md", "hand_create_change_dir", "broad_error_guessing"],
+          "required_packet_fields": ["CHANGE_NAME", "Repo root", "Source classification", "Change dir exists"],
+          "next_action": "await_source_or_degraded_confirmation"
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "prompt": "hello-spec-loop 继续。hello-spec-next 没有打印 `Stopped at:`，但它问了我一批 grill-spec 规划问题：Q001/Q002/Q003，请我用 QID 回答；不要写 human-decisions.md。",
+      "expected_output": "Uses primitive stop normalization only because no formal stop line is present, classifies the batch QID ask as awaiting_grill_spec_batch_answer, keeps planning clarification in hello-spec-next/grill-spec handling, does not create Dxxx or human-decisions.md, and records the primitive stop reason in loop.md if changeDir exists.",
+      "assertions": [
+        {
+          "expected_stop_reason": "awaiting_grill_spec_batch_answer",
+          "expected_gate": "none",
+          "primitive_invoked": ["hello-spec-next"],
+          "loop_md_allowed": true,
+          "normalization_rule": "hello-spec-next_grill_spec_batch_without_stopped_at",
+          "preserve_formal_stopped_at_when_present": true,
+          "forbidden_writes": ["human-decisions.md", "Dxxx_for_planning_clarification", "broad_error_guessing"],
+          "required_loop_fields": ["Last primitive stop reason", "Resume intent", "Planning Progress"],
+          "next_action": "await_QID_answer"
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "prompt": "hello-spec-loop 冷恢复 p3-router。changeDir 有 loop.md，里面写 Phase=review_fix/apply complete；但 canonical tasks.md 还有 apply 任务没勾，plan.md 也没有 reconciliation。不要按旧 loop.md 直接修 review。",
+      "expected_output": "Runs the cold-resume classifier only as advisory routing, treats canonical tasks/plan as stronger than loop.md, selects hello-spec-apply or spec-plan-revise as the next primitive, and crosses back to apply or planning only after the current primitive confirms that transition. It does not invoke spec-code-review fix from stale loop.md and records why loop.md was stale.",
+      "assertions": [
+        {
+          "expected_stop_reason": "needs_plan_refinement_or_primitive_stop",
+          "expected_gate": "none",
+          "primitive_invoked": ["hello-spec-apply_or_spec-plan-revise"],
+          "loop_md_allowed": true,
+          "cold_resume_observed_state": "loop_review_fix_but_tasks_unchecked_and_plan_unreconciled",
+          "expected_phase": "apply_or_planning_candidate_until_primitive_confirmed",
+          "forbidden_writes": ["continue_from_stale_loop_md", "spec-code-review_fix_on_stale_review_state"],
+          "required_loop_fields": ["Phase", "Last stop reason", "Plan ledger", "Tasks ledger"],
+          "next_action": "repair_stale_loop_from_canonical_artifacts"
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "prompt": "hello-spec-loop 冷恢复 p3-router。plan/tasks 都 ready，没有 unresolved QID；apply 已经 complete，但 loop.md 没有 repo baseline/diff stat。spec_code_review.md 是昨天的，当前 git diff 又变了。下一步是什么？",
+      "expected_output": "Uses cold-resume artifact classification only to choose the next primitive: apparent apply completion without baseline/diff stat requires refreshing repo-set evidence before review, and an older spec_code_review.md than the current diff requires a fresh spec-code-review review after apply completion evidence plus repo baseline/diff stat are recorded. It must not fix stale report rows from the old report.",
+      "assertions": [
+        {
+          "expected_stop_reason": "none_unless_review_stops",
+          "expected_gate": "none",
+          "primitive_invoked": ["spec-code-review review"],
+          "loop_md_allowed": true,
+          "cold_resume_observed_state": "apply_complete_no_diff_baseline_and_review_older_than_diff",
+          "expected_phase": "review_fix_candidate_after_apply_completion_and_diff_baseline",
+          "forbidden_writes": ["fix_stale_accepted_rows", "review_without_repo_baseline_or_diff_stat"],
+          "required_loop_fields": ["Repo baselines", "Diff stat by repo", "Latest report", "Review round"],
+          "next_action": "refresh_repo_evidence_then_run_fresh_review"
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "prompt": "hello-spec-loop review/fix 阶段有一条 accepted：在 packer.go 里补 nil 判断。代码会读取 router_snapshot 表名常量、拼一段已有 SELECT SQL、引用现有 cache key 常量和已有 thrift struct，但不改 thrift/DDL/API/cache key 格式，approved write scope 只有 packer.go。需要 risk_gate 吗？",
+      "expected_output": "Does not trigger risk_gate merely from read-only references to table names, SQL, cache keys, existing structs, or config constants. It runs only the scope/risk check, sees the write scope is approved and does not semantically mutate contracts, then invokes spec-code-review fix and records the primitive output.",
+      "assertions": [
+        {
+          "expected_stop_reason": "none_unless_primitive_stops",
+          "expected_gate": "none",
+          "primitive_invoked": ["spec-code-review fix"],
+          "loop_md_allowed": true,
+          "risk_semantic_mutation_required": true,
+          "read_only_references_not_risk": ["table_names", "SQL", "cache_keys", "existing_structs", "config_constants"],
+          "forbidden_writes": ["risk_gate_by_keyword_presence", "loop_side_fix_queue_parse", "broaden_fix_scope"],
+          "required_loop_fields": ["Fix dispatch", "Latest fixed IDs", "Machine State mode"],
+          "next_action": "delegate_to_spec_code_review_fix"
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "prompt": "hello-spec-loop 继续 p2-router。changeDir 里已经有 loop.md；运行 openspec status 时工具因为未知 extra file loop.md 拒绝继续。你可以删掉 loop.md 再跑吗？",
+      "expected_output": "Treats loop.md as intentionally extra-schema orchestration state, not an OpenSpec artifact. If tooling rejects the unknown file, it stops with loop_ledger_tooling_rejected, reports the rejecting command/tool, preserves loop.md exactly, and does not delete/move/rewrite user state or pass loop.md as a generated artifact to openspec commands.",
+      "assertions": [
+        {
+          "expected_stop_reason": "loop_ledger_tooling_rejected",
+          "expected_gate": "none",
+          "primitive_invoked": [],
+          "loop_md_allowed": true,
+          "loop_md_extra_schema": true,
+          "canonical_artifacts_win": true,
+          "forbidden_writes": ["delete_loop.md", "move_loop.md", "rewrite_loop.md_to_satisfy_tooling", "pass_loop.md_as_openspec_artifact"],
+          "required_loop_fields": ["Last stop reason", "Loop route"],
+          "next_action": "ask_for_schema_or_tool_ignore_support"
+        }
+      ]
+    }
+  ]
+}

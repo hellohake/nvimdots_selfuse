@@ -57,8 +57,8 @@
     },
     {
       "id": 10,
-      "prompt": "$spec-trouble-resolve openspec/changes/foo/troubleshoot.md，已有 backup.md 很长且不能改动历史内容；本次 troubleshoot 没有 ## 问题 或 --- 分隔符，无法唯一切分。",
-      "expected_output": "Uses append-only archival for backup.md without rewriting or cleaning existing content, detects that troubleshoot.md cannot be uniquely split, does not automatically delete source content, and instead appends a processed-but-not-auto-deleted status note.",
+      "prompt": "$spec-trouble-resolve openspec/changes/foo/troubleshoot.md，已有 backup.md 很长且不能改动历史内容；troubleshoot.md 里是简短编号列表：1. 分支承载错误，应该迁移到新 worktree；2. handler nil 判断漏了；3.xxx。请只处理第 1 条。",
+      "expected_output": "Uses append-only archival for backup.md without rewriting existing content, recognizes top-level numbered list items such as '1.', '2.', and '3.xxx' as valid troubleshoot entry boundaries, archives and deletes only item 1, and preserves items 2 and 3 with their original formatting.",
       "files": []
     },
     {
@@ -101,6 +101,24 @@
       "id": 17,
       "prompt": "$spec-trouble-resolve openspec/changes/foo/troubleshoot.md，处理完成后给我结果。",
       "expected_output": "Final response includes the required five-line template: classification, changed files/functions or docs, verification result or skipped reason, archive path or not-archived reason, and remaining user-confirmation items.",
+      "files": []
+    },
+    {
+      "id": 18,
+      "prompt": "$spec-trouble-resolve openspec/changes/foo/troubleshoot.md，文件里只有一条编号问题：1. 当前提案代码改动分支不对，应该迁移到新 worktree，不要直接在 main 分支改；",
+      "expected_output": "Treats the single numbered item as a complete source entry, archives it to backup.md, and after successful handling resets troubleshoot.md to the empty troubleshoot template instead of leaving a processed-but-not-auto-deleted status note.",
+      "files": []
+    },
+    {
+      "id": 19,
+      "prompt": "$spec-trouble-resolve openspec/changes/foo/troubleshoot.md，文件里只有一段没有标题、没有编号、没有 --- 的自由文本：这里有问题，帮我看下。",
+      "expected_output": "Does not delete source content because there is no safe entry boundary and the problem description is underspecified; asks for clarification or appends a pending/processed status note as appropriate, while preserving backup.md append-only behavior.",
+      "files": []
+    },
+    {
+      "id": 20,
+      "prompt": "$spec-trouble-resolve openspec/changes/foo/troubleshoot.md，文件里写：1. 当前提案代码改动分支不对，应该在新的 git 分支/worktree 上修改，而不是直接在 main 分支上修改；",
+      "expected_output": "Classifies the issue as Type D engineering workflow/worktree ownership drift rather than a business code bug, migrates or plans migration of the work to the correct branch/worktree without changing business behavior, archives the numbered item, and cleans up troubleshoot.md when it is the only item.",
       "files": []
     }
   ]
