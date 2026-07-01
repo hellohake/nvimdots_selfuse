@@ -21,8 +21,8 @@
     },
     {
       "id": 4,
-      "prompt": "帮我提交并 push p0-card-foundation，但 spec_code_review.md 最新一轮 CR Readiness 是 PARTIAL，还有一个 human_decision。",
-      "expected_output": "Reads the latest Review Run in spec_code_review.md, reports the PARTIAL readiness and human_decision risk, requires single-character r to acknowledge review-readiness risk before ordinary y/a push confirmation, and does not treat PASS/Gate alone as approval.",
+      "prompt": "帮我提交并 push p0-card-foundation，但 spec-code-review.md 最新一轮 CR Readiness 是 PARTIAL，还有一个 human_decision。",
+      "expected_output": "Reads the latest Review Run in spec-code-review.md, reports the PARTIAL readiness and human_decision risk, requires single-character r to acknowledge review-readiness risk before ordinary y/a push confirmation, and does not treat PASS/Gate alone as approval.",
       "files": []
     }
   ]

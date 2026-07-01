@@ -18,7 +18,7 @@ spec-code-review review
 
 Review and fix should be driven by independent roles when available:
 
-- Review role: read-only, creates/appends `spec_code_review.md`.
+- Review role: read-only, creates/appends `spec-code-review.md`.
 - Fix role: writes code only for latest Review Run `Fix Queue` rows where
   the current `spec-code-review` template says coding-agent repair is accepted.
 
@@ -149,7 +149,7 @@ After every review or fix, update `loop.md`:
 - `Machine State mode` as reported by the current template/primitive
 
 Keep only IDs and paths in `loop.md`; the full details live in
-`spec_code_review.md`.
+`spec-code-review.md`.
 
 ## Final Review Pack
 
@@ -160,7 +160,7 @@ Stopped at: human_code_review_ready
 
 CR Readiness: <verbatim template value>
 Review rounds: <n>/3
-Latest report: <abs path>/spec_code_review.md
+Latest report: <abs path>/spec-code-review.md
 Diff stat: <summary>
 Accepted remaining: none
 Human decisions: <none|Dxxx>

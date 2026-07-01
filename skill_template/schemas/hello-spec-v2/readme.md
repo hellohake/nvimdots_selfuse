@@ -26,8 +26,8 @@ brainstorm
 
 - `grill-spec` 只是 schema stage id，不再有独立技能目录；实际澄清能力来自 `grill-with-docs`，并通过 schema 约束写入 `.ai_doc/spec-workflow/CONTEXT.md` 和 `.ai_doc/spec-workflow/adr/`。
 - `hello-spec-apply` 是 `hello-spec-v2` 的推荐实现入口。它把 apply 请求视为 subagent 授权，按 plan slice 调度实现/审查，并禁止自动 commit。
-- `spec-code-review` 是 apply 后、commit 前的 AI pre-commit review，只产 `spec_code_review.md`，不自动改代码。
-- `manual_test_commands.md` 是提案级手动测试命令台账。任何阶段新增/修改测试文件，都要留下可复制 targeted test command。
+- `spec-code-review` 是 apply 后、commit 前的 AI pre-commit review，只产 `spec-code-review.md`，不自动改代码。
+- `manual-test-commands.md` 是提案级手动测试命令台账。任何阶段新增/修改测试文件，都要留下可复制 targeted test command。
 - `human-decisions.md` 是执行期/审查期懒创建的人工决策队列，不替代 `grill-spec`。规划期需求/术语/边界不清走 `grill-spec`；apply/review/debug/MR 阶段暴露出的风险取舍，AI 先给推荐方案和选项，再写入本文件等人把关。
 - `Agent Execution Audit` 是核心产物的审计段，用来证明本阶段遵守了 AI context discipline：读了哪些关键文件、是否内联大内容、下一步命令和 `/clear` 恢复命令是什么。
 - `spec-commit-push` 推荐显式传提案名或绝对路径；空上下文不能唯一定位提案时必须停手询问。

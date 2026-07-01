@@ -6,7 +6,7 @@ Use this protocol when `spec-trouble-resolve` changes any Go file.
 
 - Run after every Type A/B/D fix that creates or modifies `.go` files.
 - Skip for pure documentation changes and Type C/E clarification-only outcomes.
-- For non-Go code changes, use the repo's smallest existing static check or the test policy from `tasks.md`, `manual_test_commands.md`, repo docs, or the user's current instruction. Do not apply `go_diagnostics` to non-Go work.
+- For non-Go code changes, use the repo's smallest existing static check or the test policy from `tasks.md`, `manual-test-commands.md`, repo docs, or the user's current instruction. Do not apply `go_diagnostics` to non-Go work.
 
 ## Required Check
 

@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "OpenSpec-style SDD 提案的 apply 已经完成了，帮我对当前提案做一次 AI pre-commit review，重点看 spec 有没有漏考虑改动代码附近的上下文逻辑，输出 report，不要改代码。",
-      "expected_output": "Produces spec_code_review.md with Gate, Review Findings, Spec 反向风险, Context Audit, Fix Queue, Next Actions, Machine State, and a short next command such as $spec-code-review fix. It does not edit code in review mode.",
+      "expected_output": "Produces spec-code-review.md with Gate, Review Findings, Spec 反向风险, Context Audit, Fix Queue, Next Actions, Machine State, and a short next command such as $spec-code-review fix. It does not edit code in review mode.",
       "files": []
     },
     {
@@ -22,13 +22,13 @@
     {
       "id": 4,
       "prompt": "apply 后 coding agent 新增了 Go 单测文件，例如 server_middleware/scene_inject_mw_test.go。请做 spec-code-review，报告里除了 gopls 也要给我能直接复制手动跑的 targeted go test 命令。",
-      "expected_output": "Produces spec_code_review.md with Manual Test Commands. For changed Go *_test.go files, includes copyable commands such as cd <repo> && go test ./server_middleware -run 'TestSceneFromRequest' -count=1, marked as manual/not run by the skill when repo rules forbid automatic go test. If proposal-level manual_test_commands.md exists, checks ledger coverage and reports missing commands as a verification gap; if the ledger file is absent, marks Ledger status=not_enabled and keeps the copyable commands in the report without requiring lightweight templates to create the file.",
+      "expected_output": "Produces spec-code-review.md with Manual Test Commands. For changed Go *_test.go files, includes copyable commands such as cd <repo> && go test ./server_middleware -run 'TestSceneFromRequest' -count=1, marked as manual/not run by the skill when repo rules forbid automatic go test. If proposal-level manual-test-commands.md exists, checks ledger coverage and reports missing commands as a verification gap; if the ledger file is absent, marks Ledger status=not_enabled and keeps the copyable commands in the report without requiring lightweight templates to create the file.",
       "files": []
     },
     {
       "id": 5,
-      "prompt": "上一步已经生成了 spec_code_review.md，现在在 coding agent 里执行 $spec-code-review fix，帮我自动定位最新审核结果并修 accepted。",
-      "expected_output": "Runs fix mode, automatically locates the latest consumable spec_code_review.md when unambiguous, reads the latest Review Run, fixes only Status=accepted Fix Queue items, updates Fix Queue/Machine State/Fix Mode Notes, runs lightweight verification, and tells the user to rerun review mode. It does not create new findings or refresh Gate/CR Readiness.",
+      "prompt": "上一步已经生成了 spec-code-review.md，现在在 coding agent 里执行 $spec-code-review fix，帮我自动定位最新审核结果并修 accepted。",
+      "expected_output": "Runs fix mode, automatically locates the latest consumable spec-code-review.md when unambiguous, reads the latest Review Run, fixes only Status=accepted Fix Queue items, updates Fix Queue/Machine State/Fix Mode Notes, runs lightweight verification, and tells the user to rerun review mode. It does not create new findings or refresh Gate/CR Readiness.",
       "files": []
     }
   ]

@@ -89,7 +89,7 @@ support or a tool-owned ignore rule before continuing.
 
 ## Review-Fix Progress
 - Review round: <0-3>
-- Latest report: <none|absolute spec_code_review.md path>
+- Latest report: <none|absolute spec-code-review.md path>
 - Latest CR Readiness: <unknown|verbatim template value>
 - Latest accepted IDs: <none|R001,R002>
 - Latest fixed IDs: <none|R001,R002>
@@ -151,7 +151,7 @@ Stale-state detection:
 - If `loop.md` says `apply` or `review_fix` but `plan.md` / `tasks.md` ledgers
   are missing, contradictory, or unreconciled, treat `loop.md` as stale.
 - If review fields point to a missing, older, or unconsumable
-  `spec_code_review.md`, treat review state as stale.
+  `spec-code-review.md`, treat review state as stale.
 - If repo-set fields lack real git/worktree evidence before review/fix, refresh
   them before continuing.
 
@@ -269,7 +269,7 @@ the next primitive only. The classifier is advisory and cannot by itself cross
 | `loop.md` says `review_fix`, but canonical `tasks.md` has unchecked apply tasks or `plan.md` lacks reconciliation evidence. | `apply` or `planning` candidate | Treat `loop.md` as stale; invoke `hello-spec-apply` or repair through `spec-plan-revise` only when the primitive/report confirms that route. |
 | Plan artifacts explicitly record a revise-required state. | `planning` candidate | Invoke `spec-plan-revise`, then `hello-spec-next` as needed. |
 | Apply appears complete, but repo baseline or diff stat is missing before review. | `apply` candidate | Refresh repo-set evidence; enter review only after apply completion evidence and diff baseline are recorded. |
-| Latest `spec_code_review.md` is older than the current git diff or points at a different baseline. | `review_fix` | Run a fresh `spec-code-review review`; do not fix stale accepted rows. |
+| Latest `spec-code-review.md` is older than the current git diff or points at a different baseline. | `review_fix` | Run a fresh `spec-code-review review`; do not fix stale accepted rows. |
 | Latest report has template-consumable coding-agent fix work and round count is below limit. | `review_fix` | `spec-code-review fix`, then `spec-code-review review`. |
 | Latest report template says no coding-agent repair remains and readiness is final-acceptable. | `human_code_review_ready` candidate | Confirm through `references/review-fix-loop.md`, then emit final human CR packet. |
 

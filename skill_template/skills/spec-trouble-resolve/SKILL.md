@@ -196,7 +196,7 @@ INPUT_NORMALIZED:
 ### 阶段 3：执行修复与同步
 
 #### 3.0 核心红线
-- **禁止 broad build/test**：不得自动执行 `go test ./...`、全仓 `go build`、全量 `npm test`、全量 `make` 等高成本或高副作用命令。不同仓库测试策略不同，先读 `tasks.md` / `manual_test_commands.md` / repo 文档 / 用户本轮说明中的 test policy。
+- **禁止 broad build/test**：不得自动执行 `go test ./...`、全仓 `go build`、全量 `npm test`、全量 `make` 等高成本或高副作用命令。不同仓库测试策略不同，先读 `tasks.md` / `manual-test-commands.md` / repo 文档 / 用户本轮说明中的 test policy。
 - **允许最小验证的条件**：只有当 repo test policy 明确允许、用户本轮明确指定，或类型 D 正在修测试/脚本/构建配置时，才可运行与本次问题直接相关的 targeted test / script / build command；执行前必须先向用户说明命令、范围和为什么它是最小验证。
 - **禁止**在未经 1.4 确认前回退用户未提交的改动。
 - **禁止**为了"完整"顺手重写不相关的代码。

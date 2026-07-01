@@ -268,7 +268,7 @@ only when the review/fix loop has converged per `references/review-fix-loop.md`.
 The final response must give the human a low-cost review pack:
 
 - final changed repositories and per-repo diff stat;
-- latest `spec_code_review.md` path;
+- latest `spec-code-review.md` path;
 - `CR Readiness`;
 - remaining `human_decision` IDs, if any;
 - manual test commands or verification gaps;
@@ -372,7 +372,7 @@ Use concise Chinese summaries:
 本轮动作：<what changed or what was reviewed>
 Gate：<none | source_gate | decision_gate | risk_gate | final_human_cr_gate>
 下一步：<auto-continue | waiting for QID answer via hello-spec-next | waiting for Dxxx answer | human_code_review_ready>
-路径：<loop.md / spec_code_review.md / key artifacts>
+路径：<loop.md / spec-code-review.md / key artifacts>
 ```
 
 When waiting for a gate answer, end with the exact accepted reply forms from

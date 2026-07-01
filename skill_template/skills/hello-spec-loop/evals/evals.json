@@ -163,7 +163,7 @@
     },
     {
       "id": 11,
-      "prompt": "hello-spec-loop review/fix 阶段最新 spec_code_review.md 有 Fix Queue，但没有 Machine State。能直接按表格修 accepted 吗？",
+      "prompt": "hello-spec-loop review/fix 阶段最新 spec-code-review.md 有 Fix Queue，但没有 Machine State。能直接按表格修 accepted 吗？",
       "expected_output": "Loads spec-code-review and its report_template contract before parsing. It must not parse the Markdown table directly in hello-spec-loop; it delegates to spec-code-review fix, and only continues if that primitive's current contract authorizes degraded fallback parsing. If fallback succeeds, it records degraded_no_machine_state in loop.md and runs review again; if the primitive/template says unconsumable, it preserves machine_contract_missing.",
       "assertions": [
         {
@@ -173,7 +173,7 @@
           "loop_md_allowed": true,
           "forbidden_writes": ["loop_side_markdown_fix_queue_parse"],
           "required_loop_fields": ["Machine State mode", "Latest report", "Latest accepted IDs"],
-          "next_action": "delegate_to_spec_code_review_fix"
+          "next_action": "delegate_to_spec-code-review-fix"
         }
       ]
     },
@@ -275,7 +275,7 @@
     },
     {
       "id": 18,
-      "prompt": "hello-spec-loop review/fix 阶段，spec_code_review.md 的 Markdown Fix Queue 显示 accepted 为空，但 Machine State JSON 里 unresolved_accepted_ids=[\"R002\"]。能按 Markdown 直接结束吗？",
+      "prompt": "hello-spec-loop review/fix 阶段，spec-code-review.md 的 Markdown Fix Queue 显示 accepted 为空，但 Machine State JSON 里 unresolved_accepted_ids=[\"R002\"]。能按 Markdown 直接结束吗？",
       "expected_output": "Loads the current spec-code-review report template and delegates Machine State vs Markdown Fix Queue consistency to that primitive/template. If the primitive reports machine_contract_mismatch, it preserves Stopped at: machine_contract_mismatch, records the mismatch context in loop.md, and does not trust either side to finish or fix.",
       "assertions": [
         {
@@ -411,8 +411,8 @@
     },
     {
       "id": 26,
-      "prompt": "hello-spec-loop 冷恢复 p3-router。plan/tasks 都 ready，没有 unresolved QID；apply 已经 complete，但 loop.md 没有 repo baseline/diff stat。spec_code_review.md 是昨天的，当前 git diff 又变了。下一步是什么？",
-      "expected_output": "Uses cold-resume artifact classification only to choose the next primitive: apparent apply completion without baseline/diff stat requires refreshing repo-set evidence before review, and an older spec_code_review.md than the current diff requires a fresh spec-code-review review after apply completion evidence plus repo baseline/diff stat are recorded. It must not fix stale report rows from the old report.",
+      "prompt": "hello-spec-loop 冷恢复 p3-router。plan/tasks 都 ready，没有 unresolved QID；apply 已经 complete，但 loop.md 没有 repo baseline/diff stat。spec-code-review.md 是昨天的，当前 git diff 又变了。下一步是什么？",
+      "expected_output": "Uses cold-resume artifact classification only to choose the next primitive: apparent apply completion without baseline/diff stat requires refreshing repo-set evidence before review, and an older spec-code-review.md than the current diff requires a fresh spec-code-review review after apply completion evidence plus repo baseline/diff stat are recorded. It must not fix stale report rows from the old report.",
       "assertions": [
         {
           "expected_stop_reason": "none_unless_review_stops",
@@ -441,7 +441,7 @@
           "read_only_references_not_risk": ["table_names", "SQL", "cache_keys", "existing_structs", "config_constants"],
           "forbidden_writes": ["risk_gate_by_keyword_presence", "loop_side_fix_queue_parse", "broaden_fix_scope"],
           "required_loop_fields": ["Fix dispatch", "Latest fixed IDs", "Machine State mode"],
-          "next_action": "delegate_to_spec_code_review_fix"
+          "next_action": "delegate_to_spec-code-review-fix"
         }
       ]
     },

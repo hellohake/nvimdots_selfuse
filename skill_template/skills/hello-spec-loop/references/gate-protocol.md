@@ -190,11 +190,11 @@ Final CR is a stop, not an auto-continue gate.
 Stopped at: human_code_review_ready
 
 CR Readiness: <verbatim template value>
-最新报告：<abs path>/spec_code_review.md
+最新报告：<abs path>/spec-code-review.md
 人工重点看：
 1. <file/finding/risk>
 2. <file/finding/risk>
-验证命令：<manual_test_commands path or key commands>
+验证命令：<manual-test-commands path or key commands>
 剩余决策：<none|Dxxx list>
 
 不自动 commit/push。通过后请运行 spec-commit-push。

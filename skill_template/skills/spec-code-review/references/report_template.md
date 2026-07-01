@@ -1,6 +1,6 @@
-# spec_code_review.md Template
+# spec-code-review.md Template
 
-本文件是 `spec-code-review` 写入 `spec_code_review.md` 时必须遵守的输出契约。如果文件已经存在，追加新的 `## Review Run` section，并保留历史 run。只有用户明确要求口头预审且不写报告文件时，才可以跳过本模板。
+本文件是 `spec-code-review` 写入 `spec-code-review.md` 时必须遵守的输出契约。如果文件已经存在，追加新的 `## Review Run` section，并保留历史 run。只有用户明确要求口头预审且不写报告文件时，才可以跳过本模板。
 
 本模板是报告字段和枚举语义的单一来源。不要在 `SKILL.md` 里重复定义 Severity、Status、CR Readiness、Fixability、Scope 或 Manual Test Commands 的字段契约；`SKILL.md` 只保留行为意图，字段级规则维护在这里。
 
@@ -102,7 +102,7 @@ CR Readiness 判定规则：
   "review_run_id": "<YYYY-MM-DD HH:mm:ss>",
   "change_name": "<proposal name>",
   "proposal_dir": "<absolute proposal dir>",
-  "report_path": "<absolute path to spec_code_review.md>",
+  "report_path": "<absolute path to spec-code-review.md>",
   "cr_readiness": "YES | NO | PARTIAL",
   "gate": "PASS | PASS_WITH_WARNINGS | BLOCKED",
   "accepted": ["R001"],
@@ -111,7 +111,7 @@ CR Readiness 判定规则：
   "false_positive": [],
   "human_decisions": ["D001"],
   "deferred": [],
-  "manual_test_commands": ["C001"]
+  "manual-test-commands": ["C001"]
 }
 ```
 
@@ -169,9 +169,9 @@ Status 取值：
 
 ### Manual Test Commands
 
-本 section 用来给用户可复制的定向测试命令。除非实际执行过，不要声称这些命令已经运行。存在提案级 `manual_test_commands.md` 时必须检查并引用；缺失时按提案类型分支：`hello-spec-v2` 标为 verification gap / schema drift，并给出 expected path 与补救建议；只有 lightweight/legacy 才可把 ledger 标为 optional/not enabled，并把命令留在本报告内。
+本 section 用来给用户可复制的定向测试命令。除非实际执行过，不要声称这些命令已经运行。存在提案级 `manual-test-commands.md` 时必须检查并引用；缺失时按提案类型分支：`hello-spec-v2` 标为 verification gap / schema drift，并给出 expected path 与补救建议；只有 lightweight/legacy 才可把 ledger 标为 optional/not enabled，并把命令留在本报告内。
 
-- Ledger path: `<absolute path to proposal/manual_test_commands.md | not_enabled | missing_expected:<absolute path>>`
+- Ledger path: `<absolute path to proposal/manual-test-commands.md | not_enabled | missing_expected:<absolute path>>`
 - Ledger status: `covered | missing_command | not_enabled | not_applicable | verification_gap | schema_drift`
 - Ledger note: `<中文说明台账是否已有对应命令；hello-spec-v2 缺失时写 expected path、verification gap/schema drift 和补救建议；lightweight/legacy 未启用时说明本报告已提供可复制命令，可按需创建 ledger>`
 
@@ -189,8 +189,8 @@ go test ./server_middleware -run 'TestSceneFromRequest' -count=1
 - 如果存在 changed tests，每个 touched package/module 至少给一条命令。
 - Go 项目从 repo root 推导 package-relative path，并从 changed `*_test.go` 提取 `TestXxx` 名称；优先 `go test ./pkg -run 'TestA|TestB' -count=1`。
 - 如果 repo 禁止自动运行 `go test`，标 `Status=not_run_by_skill` 或 `skipped_by_repo_rule`；命令仍然提供给用户手动运行。
-- 如果 `manual_test_commands.md` 已包含命令，在这里引用其 command ID；如果文件存在但缺命令，标 `Ledger status=missing_command` 并在报告里补命令。
-- 如果文件不存在：`hello-spec-v2` 标 `Ledger path=missing_expected:<absolute path>`，`Ledger status=verification_gap` 或 `schema_drift`，并建议创建/补齐该 ledger；lightweight/legacy 才标 `Ledger status=not_enabled`，不要强制轻量模板创建。
+- 如果 `manual-test-commands.md` 已包含命令，在这里引用其 command ID；如果文件存在但缺命令，标 `Ledger status=missing_command` 并在报告里补命令。
+- 如果文件不存在：`hello-spec-v2` 标 `Ledger path=missing_expected:<absolute path to manual-test-commands.md>`，`Ledger status=verification_gap` 或 `schema_drift`，并建议创建/补齐该 ledger；lightweight/legacy 才标 `Ledger status=not_enabled`，不要强制轻量模板创建。
 - 如果没有测试文件改动，写：`本轮未发现新增/修改测试文件，未生成手动单测命令。`
 
 ### Fix Queue
