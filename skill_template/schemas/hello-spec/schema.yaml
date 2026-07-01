@@ -178,12 +178,21 @@ artifacts:
       The writing-plans skill will:
       1. Read the tasks.md and design.md for context
       2. Break each task into 2-5 minute micro-steps (TDD style)
-      3. Include exact file paths, code snippets, test commands
-      4. Add commit points after each task
+      3. Include exact file paths, code snippets, allowed write scope, and verification commands
+      4. Add a lightweight `Subagent Execution Contract` section that groups micro-steps into assignable slices
 
       Pass the tasks.md content to the skill as the input for
       decomposition. The plan should reference the specs and
       design artifacts in this change directory.
+
+      Subagent execution requirements:
+      - The final plan.md MUST contain a non-empty `## Subagent Execution Contract`
+        section.
+      - Keep this lightweight; do not copy the heavier hello-spec-v2 dispatch matrix.
+      - Each slice should include SliceID, TaskRefs, Allowed Write Scope, Read First,
+        Acceptance, Verification, and Stop Conditions.
+      - Verification MUST respect this repo's policy: do not include full `go test ./...`
+        or broad `go build` commands.
     requires:
       - tasks
 
@@ -192,19 +201,35 @@ apply:
   tracks: tasks.md
   instruction: |
     Note when implementing, it is forbidden to execute go build and go test. The project is too large. These operations will cause lag and memory exhaustion.
-    1. **Executor**: Use the Skill tool to invoke **superpowers:subagent-driven-development** to execute the plan.md micro-tasks with fresh subagents per task.
+    1. **Coordinator boundary**: the main agent is only the apply coordinator.
+       It must read plan.md/tasks.md, prepare subagent task packets, inspect
+       returned diffs, and update ledgers. It must NOT edit production code in
+       the main thread unless the user explicitly provides `SERIAL_APPLY=true`.
 
-       Tell the executor:
-       - Read plan.md in this change directory for micro-tasks
-       - Update plan.md checkboxes status for finished tasks
-       - Update tasks.md checkboxes as coarse tasks complete
-       - Work within the created worktree
+    2. **Executor**: Use the Skill tool to invoke **superpowers:subagent-driven-development**,
+       but apply this schema's stricter prompt contract:
 
-    2. **Completion**: When all tasks are done, use the Skill tool to invoke **superpowers:finishing-a-development-branch** for branch cleanup, PR creation, etc.
+       - The coordinator reads plan.md first and extracts the next incomplete slice
+         from `## Subagent Execution Contract`.
+       - Do NOT tell a subagent to "read plan.md and figure it out". Paste the full
+         slice text into the subagent prompt, including TaskRefs, exact micro-steps,
+         Allowed Write Scope, Read First files, Acceptance, Verification, and Stop Conditions.
+       - Each implementation subagent gets one slice only and may edit only paths
+         listed in Allowed Write Scope.
+       - Subagents must update plan.md checkboxes for completed micro-steps and
+         tasks.md checkboxes only when all matching micro-steps for the coarse task
+         are complete.
+       - Subagents must not write troubleshoot.md. It is user-curated.
+       - Subagents must report: Status=DONE|DONE_WITH_CONCERNS|BLOCKED|NEEDS_CONTEXT,
+         files changed, verification commands run, ledger updates, and blockers.
 
-    3. **Diagnostics**: After code implementation is complete, invoke the gopls MCP tool's go_diagnostics to validate correctness. Any error-level diagnostics must be fixed and re-validated until all checks pass.
+    3. **No silent serial fallback**: if subagent dispatch is unavailable, stop before
+       production-code edits with `Stopped at: subagent_mode_unavailable`. Serial
+       main-agent implementation is allowed only when the user explicitly provides
+       `SERIAL_APPLY=true`.
 
-    4. **Troubleshoot scope**: `troubleshoot.md` is NOT written by the apply phase or any subagent. It is a user-curated file. Issues discovered during implementation must be appended manually by the developer and are later consumed by the `/spec-trouble-resolve` command. Do not let executors auto-populate it.
+    4. **Completion**: When all tasks are done, use the Skill tool to invoke **superpowers:finishing-a-development-branch** for branch cleanup, PR creation, etc.
 
-    If any skill is unavailable, fall back to manual implementation
-    using the standard task-by-task loop from tasks.md.
+    5. **Diagnostics**: After code implementation is complete, invoke the gopls MCP tool's go_diagnostics to validate correctness. Any error-level diagnostics must be fixed and re-validated until all checks pass.
+
+    6. **Troubleshoot scope**: `troubleshoot.md` is NOT written by the apply phase or any subagent. It is a user-curated file. Issues discovered during implementation must be appended manually by the developer and are later consumed by the `/spec-trouble-resolve` command. Do not let executors auto-populate it.
